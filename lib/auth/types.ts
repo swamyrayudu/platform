@@ -9,6 +9,8 @@ export type AccountType = 'FREE' | 'PREMIUM'
 export type SubscriptionStatus = 'NONE' | 'ACTIVE' | 'EXPIRED' | 'CANCELLED'
 export type SessionStatus = 'ACTIVE' | 'REVOKED' | 'EXPIRED'
 export type UserRole = 'user' | 'admin'
+export type EducationMedium = 'english' | 'telugu'
+export type LearningGoal = 'mock_test' | 'practice' | 'ai_support' | 'other'
 
 export type SecurityEventType =
   | 'GOOGLE_LOGIN'
@@ -37,6 +39,9 @@ export interface DbUser {
   subscription_started_at: string | null
   subscription_expires_at: string | null
   role: UserRole
+  learning_goals: LearningGoal[]
+  education_medium: EducationMedium | null
+  onboarding_completed: boolean
   session_version: number
   created_at: string
   updated_at: string
@@ -125,6 +130,7 @@ export interface PublicUser {
   subscriptionStatus: SubscriptionStatus
   subscriptionExpiresAt: string | null
   role: UserRole
+  onboardingCompleted: boolean
 }
 
 export interface PublicSession {
@@ -166,6 +172,7 @@ export function toPublicUser(user: DbUser): PublicUser {
     subscriptionStatus: user.subscription_status,
     subscriptionExpiresAt: user.subscription_expires_at,
     role: user.role,
+    onboardingCompleted: user.onboarding_completed,
   }
 }
 

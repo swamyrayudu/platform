@@ -18,10 +18,13 @@ export default function Home() {
   const router = useRouter()
   const { user, loading, logout, logoutAll } = useAuth()
 
-  // Redirect to login if not authenticated
+  // Redirect to login if not authenticated, or to onboarding if not completed
   React.useEffect(() => {
     if (!loading && !user) {
       router.replace('/')
+    }
+    if (!loading && user && !user.onboardingCompleted) {
+      router.replace('/onboarding')
     }
   }, [user, loading, router])
 

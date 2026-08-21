@@ -12,7 +12,7 @@ import React, {
   useRef,
   useState,
 } from 'react'
-import type { PublicUser } from '@/lib/auth/types'
+import type { PublicUser, LearningGoal, EducationMedium } from '@/lib/auth/types'
 
 // ---- Context types ---------------------------------------------
 
@@ -25,6 +25,10 @@ interface AuthContextValue extends AuthState {
   refreshUser: () => Promise<void>
   logout: () => Promise<void>
   logoutAll: () => Promise<void>
+  completeOnboarding: (data: {
+    learningGoals: LearningGoal[]
+    educationMedium: EducationMedium
+  }) => Promise<boolean>
 }
 
 // ---- Context ---------------------------------------------------
@@ -120,8 +124,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await fetchUser()
   }, [fetchUser])
 
+  /**
+   * Submit onboarding data and update user state.
+   * Returns true on success, false on failure.
+   */
+  const completeOnboarding = useCallback(async (data: {
+    learningGoals: LearningGoal[]
+    educationMedium: EducationMedium
+  }): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/auth/onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data),
+      })
+
+      if (res.ok) {
+        const result = await res.json()
+        if (result.user) {
+          setUser(result.user)
+        }
+        return true
+      }
+
+      return false
+    } catch {
+      return false
+    }
+  }, [])
+
   return (
-    <AuthContext.Provider value={{ user, loading, refreshUser, logout, logoutAll }}>
+    <AuthContext.Provider value={{ user, loading, refreshUser, logout, logoutAll, completeOnboarding }}>
       {children}
     </AuthContext.Provider>
   )

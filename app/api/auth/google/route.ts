@@ -18,7 +18,7 @@ import { verifyGoogleIdToken } from '@/lib/auth/google'
 import { findOrCreateUser, upsertDevice, revokeActiveSession, createSession, logSecurityEvent } from '@/lib/auth/db'
 import { getHashedIp } from '@/lib/auth/ip'
 import { signAccessToken, generateOpaqueToken, hashRefreshToken } from '@/lib/auth/crypto'
-import { setAuthCookies } from '@/lib/auth/cookies'
+import { setAuthCookies, setOnboardingCookie } from '@/lib/auth/cookies'
 import { checkRateLimit } from '@/lib/auth/rate-limit'
 import { handleAuthError, AuthError } from '@/lib/auth/errors'
 import { toPublicUser } from '@/lib/auth/types'
@@ -159,6 +159,10 @@ export async function POST(request: Request): Promise<Response> {
       // Web: set HttpOnly cookies, don't return tokens in body
       const response = NextResponse.json({ user: publicUser, sessionId: session.id })
       setAuthCookies(response, { accessToken, refreshToken })
+      // Set onboarding cookie if already completed (returning user)
+      if (user.onboarding_completed) {
+        setOnboardingCookie(response)
+      }
       return response
     } else {
       // Mobile: return tokens in JSON body; client stores in secure storage

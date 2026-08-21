@@ -15,12 +15,14 @@ import type {
   Platform,
   SecurityEventType,
   PublicDevice,
+  LearningGoal,
+  EducationMedium,
 } from './types'
 import { AuthError } from './errors'
 
 // ---- Refresh token expiry -------------------------------------------
 
-const REFRESH_TOKEN_EXPIRES_DAYS = 30
+const REFRESH_TOKEN_EXPIRES_DAYS = 60
 
 function refreshTokenExpiresAt(): string {
   const d = new Date()
@@ -119,6 +121,34 @@ export async function getUserById(userId: string): Promise<DbUser | null> {
     return null
   }
   return data as DbUser | null
+}
+
+/**
+ * Update onboarding fields and mark onboarding as completed.
+ * Sets learning_goals, education_medium, and onboarding_completed = true atomically.
+ */
+export async function updateOnboarding(
+  userId: string,
+  learningGoals: LearningGoal[],
+  educationMedium: EducationMedium
+): Promise<DbUser> {
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .update({
+      learning_goals: learningGoals,
+      education_medium: educationMedium,
+      onboarding_completed: true,
+    })
+    .eq('id', userId)
+    .select('*')
+    .single()
+
+  if (error) {
+    console.error('[DB] updateOnboarding error:', error)
+    throw new AuthError('INTERNAL_ERROR', 500, 'Failed to save onboarding data')
+  }
+
+  return data as DbUser
 }
 
 // ---- Devices ---------------------------------------------------------

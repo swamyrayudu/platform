@@ -13,10 +13,11 @@ const IS_PROD = process.env.NODE_ENV === 'production'
 // Cookie names
 export const ACCESS_TOKEN_COOKIE = 'dsc_access_token'
 export const REFRESH_TOKEN_COOKIE = 'dsc_refresh_token'
+export const ONBOARDING_COOKIE = 'dsc_onboarding_done'
 
 // Lifetimes (in seconds)
-const ACCESS_TOKEN_MAX_AGE = 15 * 60          // 15 minutes
-const REFRESH_TOKEN_MAX_AGE = 30 * 24 * 60 * 60  // 30 days
+const ACCESS_TOKEN_MAX_AGE = 30 * 24 * 60 * 60   // 30 days
+const REFRESH_TOKEN_MAX_AGE = 60 * 24 * 60 * 60  // 60 days
 
 /**
  * Set HttpOnly auth cookies on a Next.js response.
@@ -67,6 +68,28 @@ export function clearAuthCookies(response: NextResponse): void {
     sameSite: 'lax',
     path: '/api/auth/refresh',
     maxAge: 0,
+  })
+
+  // Also clear onboarding cookie
+  response.cookies.set(ONBOARDING_COOKIE, '', {
+    secure: IS_PROD,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 0,
+  })
+}
+
+/**
+ * Set the onboarding-done cookie so the proxy can skip DB checks.
+ * This is a lightweight, non-HttpOnly cookie (readable by proxy).
+ */
+export function setOnboardingCookie(response: NextResponse): void {
+  response.cookies.set(ONBOARDING_COOKIE, '1', {
+    httpOnly: false,
+    secure: IS_PROD,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: ACCESS_TOKEN_MAX_AGE,
   })
 }
 

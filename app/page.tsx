@@ -78,7 +78,12 @@ export default function Home() {
           description: 'Welcome to rsdeducation.',
         })
         await refreshUser()
-        router.push('/home')
+        // Route based on onboarding status
+        if (data.user && data.user.onboardingCompleted === false) {
+          router.push('/onboarding')
+        } else {
+          router.push('/home')
+        }
         return
       }
 

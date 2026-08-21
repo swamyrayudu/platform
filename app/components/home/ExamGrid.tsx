@@ -6,10 +6,12 @@
 import React, { useState, useMemo } from 'react'
 import { Search, LayoutGrid, List } from 'lucide-react'
 import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 import ExamCard from './ExamCard'
 import { EXAMS, type ExamItem } from './examData'
 
 export default function ExamGrid() {
+  const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
 
@@ -33,9 +35,10 @@ export default function ExamGrid() {
       })
     } else {
       toast.success(`${exam.label} Selected`, {
-        description: `${exam.sublabel} (${exam.tag}) - Loading practice questions and mock tests...`,
-        duration: 3500,
+        description: `Entering ${exam.sublabel} Preparation Hub...`,
+        duration: 2000,
       })
+      router.push('/dsc-sgt')
     }
   }
 

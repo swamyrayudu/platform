@@ -126,6 +126,10 @@ export async function POST(request: Request): Promise<Response> {
         accessToken: newAccessToken,
         refreshToken: newRefreshToken,
       })
+      if (user.onboarding_completed) {
+        const { setOnboardingCookie } = await import('@/lib/auth/cookies')
+        setOnboardingCookie(response)
+      }
       return response
     } else {
       // Mobile: return in JSON body

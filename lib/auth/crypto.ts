@@ -60,10 +60,10 @@ export function generateOpaqueToken(byteLength = 48): string {
 
 // ---- JWT (Access Token) ---------------------------------------
 
-const ACCESS_TOKEN_TTL_SECONDS = 15 * 60 // 15 minutes
+const ACCESS_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60 // 30 days
 
 /**
- * Sign a short-lived JWT access token.
+ * Sign a JWT access token (valid for 30 days).
  * Payload contains only: sub, sid, sv, iat, exp.
  */
 export async function signAccessToken(
