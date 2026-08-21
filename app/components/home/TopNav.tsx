@@ -9,6 +9,7 @@ import {
   User,
   LogOut,
   ShieldAlert,
+  LayoutDashboard,
   type LucideIcon,
 } from 'lucide-react'
 import { ModeToggle } from '@/components/mode-toggle'
@@ -17,6 +18,7 @@ export interface UserProfile {
   name?: string | null
   email: string
   avatarUrl?: string | null
+  role?: string
 }
 
 interface TopNavProps {
@@ -85,6 +87,7 @@ export default function TopNav({ user, logout, logoutAll }: TopNavProps) {
               onClose={() => setOpen(false)}
               logout={logout}
               logoutAll={logoutAll}
+              isAdmin={user.role === 'admin'}
             />
           )}
         </div>
@@ -101,12 +104,14 @@ function ProfileDropdown({
   onClose,
   logout,
   logoutAll,
+  isAdmin,
 }: {
   user: UserProfile
   initials: string
   onClose: () => void
   logout: () => void
   logoutAll: () => void
+  isAdmin: boolean
 }) {
   return (
     <div className="absolute right-4 top-[3.75rem] w-64 overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-2xl animate-in fade-in-50 zoom-in-95 sm:right-6 lg:right-8">
@@ -141,6 +146,16 @@ function ProfileDropdown({
             toast.info('Profile Section', { description: 'Profile details and account settings.' })
           }}
         />
+        {isAdmin && (
+          <DDItem
+            icon={LayoutDashboard}
+            label="Admin Dashboard"
+            onClick={() => {
+              onClose()
+              window.location.href = '/admin'
+            }}
+          />
+        )}
       </div>
 
       {/* Sign-out section */}

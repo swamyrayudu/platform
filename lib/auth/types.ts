@@ -8,6 +8,7 @@ export type Platform = 'WEB' | 'ANDROID' | 'IOS'
 export type AccountType = 'FREE' | 'PREMIUM'
 export type SubscriptionStatus = 'NONE' | 'ACTIVE' | 'EXPIRED' | 'CANCELLED'
 export type SessionStatus = 'ACTIVE' | 'REVOKED' | 'EXPIRED'
+export type UserRole = 'user' | 'admin'
 
 export type SecurityEventType =
   | 'GOOGLE_LOGIN'
@@ -20,6 +21,7 @@ export type SecurityEventType =
   | 'REFRESH_TOKEN_REUSE_DETECTED'
   | 'PREMIUM_ACCESS_DENIED'
   | 'SESSION_VERSION_MISMATCH'
+  | 'ADMIN_ACCESS_DENIED'
 
 // ---- Database row shapes ----------------------------------------
 
@@ -34,6 +36,7 @@ export interface DbUser {
   subscription_status: SubscriptionStatus
   subscription_started_at: string | null
   subscription_expires_at: string | null
+  role: UserRole
   session_version: number
   created_at: string
   updated_at: string
@@ -121,6 +124,7 @@ export interface PublicUser {
   accountType: AccountType
   subscriptionStatus: SubscriptionStatus
   subscriptionExpiresAt: string | null
+  role: UserRole
 }
 
 export interface PublicSession {
@@ -161,6 +165,7 @@ export function toPublicUser(user: DbUser): PublicUser {
     accountType: user.account_type,
     subscriptionStatus: user.subscription_status,
     subscriptionExpiresAt: user.subscription_expires_at,
+    role: user.role,
   }
 }
 

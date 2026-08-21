@@ -192,3 +192,55 @@ export function requirePremium<TParams = Record<string, string>>(
     }
   }
 }
+
+// ---- requireAdmin -----------------------------------------------
+
+/**
+ * Middleware that validates session AND checks admin role.
+ *
+ * Checks:
+ * - Valid authenticated session
+ * - user.role === 'admin'
+ *
+ * Returns 403 ADMIN_REQUIRED if role check fails.
+ *
+ * Usage:
+ * ```ts
+ * export const GET = requireAdmin(async (request, context, { user, session }) => {
+ *   return Response.json({ adminData: '...' })
+ * })
+ * ```
+ */
+export function requireAdmin<TParams = Record<string, string>>(
+  handler: RouteHandler<TParams>
+) {
+  return async (
+    request: Request,
+    context: { params: Promise<TParams> }
+  ): Promise<Response> => {
+    try {
+      const auth = await validateSession(request)
+      const { user } = auth
+
+      // Check admin role — never trust the frontend
+      if (user.role !== 'admin') {
+        // Log the denied access attempt
+        await logSecurityEvent({
+          userId: user.id,
+          eventType: 'ADMIN_ACCESS_DENIED',
+          deviceId: auth.session.device_id,
+          ipHash: getHashedIp(request),
+          metadata: {
+            role: user.role,
+            attemptedUrl: request.url,
+          },
+        })
+        throw new AuthError('ADMIN_REQUIRED', 403, 'Admin access required')
+      }
+
+      return await handler(request, context, auth)
+    } catch (err) {
+      return handleAuthError(err)
+    }
+  }
+}
