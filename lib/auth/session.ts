@@ -98,6 +98,17 @@ async function validateSession(request: Request): Promise<AuthContext> {
   return { user, session }
 }
 
+/**
+ * Safely extract AuthContext without throwing if user is unauthenticated
+ */
+export async function getOptionalAuth(request: Request): Promise<AuthContext | null> {
+  try {
+    return await validateSession(request)
+  } catch {
+    return null
+  }
+}
+
 // ---- Route Handler types ----------------------------------------
 
 type RouteHandler<TParams = Record<string, string>> = (

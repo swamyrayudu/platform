@@ -44,16 +44,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   /**
    * Handle session revocation: clear state and redirect to login.
-   * Called on 401 SESSION_REVOKED / SESSION_EXPIRED responses.
+   * Only redirects if we are on a protected page. NEVER reloads if already at '/'.
    */
   const handleRevocation = useCallback(() => {
     if (handlingRevocation.current) return
     handlingRevocation.current = true
     setUser(null)
-    // Give React a chance to render before redirecting
-    setTimeout(() => {
-      window.location.href = '/'
-    }, 100)
+    setLoading(false)
+
+    // Only redirect if NOT already on root landing page
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+      setTimeout(() => {
+        window.location.href = '/'
+      }, 50)
+    }
   }, [])
 
   /**
@@ -106,7 +110,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
     } finally {
       setUser(null)
-      window.location.href = '/'
+      if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+        window.location.href = '/'
+      }
     }
   }, [])
 
@@ -115,7 +121,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await fetch('/api/auth/logout-all', { method: 'POST', credentials: 'include' })
     } finally {
       setUser(null)
-      window.location.href = '/'
+      if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+        window.location.href = '/'
+      }
     }
   }, [])
 

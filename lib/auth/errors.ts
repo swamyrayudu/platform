@@ -2,6 +2,9 @@
 // lib/auth/errors.ts — Standardized auth errors (SERVER ONLY)
 // ============================================================
 
+import { NextResponse } from 'next/server'
+import { clearAuthCookies } from './cookies'
+
 export type AuthErrorCode =
   | 'AUTH_INVALID_TOKEN'
   | 'UNAUTHORIZED'
@@ -39,10 +42,23 @@ export function errorResponse(
   status: number,
   extra?: Record<string, unknown>
 ): Response {
-  return Response.json(
+  const response = NextResponse.json(
     { error: code, ...extra },
     { status }
   )
+
+  // Automatically clear cookies on revocation/expiration/unauthorized errors
+  if (
+    code === 'SESSION_REVOKED' ||
+    code === 'SESSION_EXPIRED' ||
+    code === 'UNAUTHORIZED' ||
+    code === 'AUTH_INVALID_TOKEN' ||
+    code === 'REFRESH_TOKEN_REUSE_DETECTED'
+  ) {
+    clearAuthCookies(response)
+  }
+
+  return response
 }
 
 /** Map common AuthError codes to their default HTTP status. */
@@ -62,7 +78,7 @@ export const AUTH_ERROR_STATUS: Record<AuthErrorCode, number> = {
 
 /**
  * Convert any thrown error into a safe Response.
- * Prevents internal details from leaking to clients.
+ * Prevents internal details from leaking to clients and cleans dead cookies.
  */
 export function handleAuthError(err: unknown): Response {
   if (err instanceof AuthError) {
@@ -70,5 +86,5 @@ export function handleAuthError(err: unknown): Response {
   }
   // Log unexpected errors server-side without exposing to client
   console.error('[Auth] Unexpected error:', err)
-  return errorResponse('INTERNAL_ERROR', 500)
+  return NextResponse.json({ error: 'INTERNAL_ERROR' }, { status: 500 })
 }
