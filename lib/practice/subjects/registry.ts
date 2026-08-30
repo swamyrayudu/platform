@@ -28,6 +28,17 @@ function initRegistry() {
     providersMap.set(p.metadata.id.toLowerCase(), p)
     providersMap.set(p.metadata.name.toLowerCase(), p)
   })
+
+  // Aliases for Pedagogy / CDP / Educational Psychology
+  const pedProvider = defaults.find((p) => p.metadata.id === 'Pedagogy')
+  if (pedProvider) {
+    providersMap.set('educational psychology', pedProvider)
+    providersMap.set('psychology', pedProvider)
+    providersMap.set('cdp', pedProvider)
+    providersMap.set('child development', pedProvider)
+    providersMap.set('సైకాలజీ & బోధన', pedProvider)
+    providersMap.set('సైకాలజీ', pedProvider)
+  }
 }
 
 initRegistry()

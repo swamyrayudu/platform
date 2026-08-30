@@ -1,24 +1,30 @@
 // ============================================================================
-// lib/practice/subjects/social-studies/fetch-algorithms.ts
+// lib/practice/subjects/telugu/fetch-algorithms.ts
 // Specialized Database Fetch & Adaptive Selection Algorithms
-// Dedicated for Telugu Medium (socal_telugu_medimum) & English Medium (socal_english_medium)
+// Dedicated for Telugu Subject (telugu_subject_questions) supporting both Telugu & English mediums
 // ============================================================================
 
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import type { PracticeMedium, PracticeMode, PracticeQuestion, PracticeFilterState } from '@/types/practice'
+import type {
+  PracticeMedium,
+  PracticeMode,
+  PracticeQuestion,
+  PracticeFilterState,
+} from '@/types/practice'
 import {
   calculateQuestionScore,
   shuffleArray,
   type UserAttemptHistory,
 } from '@/lib/practice/engine'
 
-export interface SocialQuestionQueryFilter {
+export interface TeluguQuestionQueryFilter {
   class_levels?: string[]
   chapters?: string[]
   topics?: string[]
   subtopics?: string[]
   difficulty?: string[]
   source_types?: string[]
+  language?: string
   limit?: number
   offset?: number
 }
@@ -26,15 +32,15 @@ export interface SocialQuestionQueryFilter {
 import type { DifficultyRatio } from '../types'
 
 
-export interface MediumExamBlueprint {
+export interface TeluguExamBlueprint {
   medium: PracticeMedium
   totalQuestions: number
   difficultyDistribution?: DifficultyRatio
   categoryDistribution?: {
-    geographyPct?: number   // భౌగోళిక శాస్త్రం / Geography
-    historyPct?: number     // చరిత్ర / History
-    civicsPct?: number      // పౌరనీతి / Civics
-    economicsPct?: number   // అర్థశాస్త్రం / Economics
+    grammarPct?: number     // వ్యాకరణం (సంధులు, సమాసాలు, ఛందస్సు, అలంకారాలు)
+    literaturePct?: number  // సాహిత్యం (కవులు, కావ్యాలు, ప్రబంధాలు)
+    vocabularyPct?: number  // భాషాంశాలు (పర్యాయపదాలు, నానార్థాలు, జాతీయాలు)
+    pedagogyPct?: number    // బోధనా పద్ధతులు (Telugu Pedagogy)
   }
 }
 
@@ -46,10 +52,10 @@ function mapRowToPracticeQuestion(row: any, medium: PracticeMedium): PracticeQue
     id: row.id || row.question_id,
     question_id: row.question_id || row.id,
     medium,
-    subject: row.subject || 'Social Studies',
+    subject: row.subject || 'Telugu',
     class_level: row.class_level || 'Class 8',
     chapter: row.chapter || null,
-    topic: row.topic || 'Social Studies',
+    topic: row.topic || 'వ్యాకరణం',
     subtopic: row.subtopic || null,
     difficulty: row.difficulty || 'Medium',
     question_type: row.question_type || 'MCQ',
@@ -61,7 +67,7 @@ function mapRowToPracticeQuestion(row: any, medium: PracticeMedium): PracticeQue
     correct_answer: (row.correct_answer || 'A').trim(),
     explanation: row.explanation || null,
     source_type: row.source_type || 'SCERT',
-    language: row.language || (medium === 'telugu' ? 'telugu' : 'english'),
+    language: row.language || 'telugu',
     tags: row.tags || null,
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -69,19 +75,19 @@ function mapRowToPracticeQuestion(row: any, medium: PracticeMedium): PracticeQue
 }
 
 // ============================================================================
-// ALGORITHM 1: Dedicated Telugu Medium Database Fetcher (`socal_telugu_medimum`)
+// ALGORITHM 1: Intelligent Database Fetcher from `telugu_subject_questions`
 // ============================================================================
 /**
- * Executes an optimized query against `socal_telugu_medimum`.
- * Supports Telugu text matching, Class level filtering (e.g., 'Class 6', '6వ తరగతి'),
- * chapter/topic filtering, and source type discrimination.
+ * Queries `telugu_subject_questions` table with indexing support.
+ * Serves both Telugu Medium and English Medium requests seamlessly.
  */
-export async function fetchTeluguMediumQuestions(
-  filter: SocialQuestionQueryFilter = {}
+export async function fetchTeluguQuestions(
+  medium: PracticeMedium = 'telugu',
+  filter: TeluguQuestionQueryFilter = {}
 ): Promise<PracticeQuestion[]> {
   try {
     let query = supabaseAdmin
-      .from('socal_telugu_medimum')
+      .from('telugu_subject_questions')
       .select('*')
       .order('created_at', { ascending: false })
 
@@ -90,17 +96,17 @@ export async function fetchTeluguMediumQuestions(
       query = query.in('class_level', filter.class_levels)
     }
 
-    // 2. Filter by Chapters (supports Telugu strings e.g., 'భౌగోళిక శాస్త్రం', 'చరిత్ర')
+    // 2. Filter by Chapters (e.g. 'వ్యాకరణం', 'సాహిత్యం', 'పాఠ్యభాగం')
     if (filter.chapters && filter.chapters.length > 0 && !filter.chapters.includes('All')) {
       query = query.in('chapter', filter.chapters)
     }
 
-    // 3. Filter by Topics
+    // 3. Filter by Topics (e.g. 'సంధులు', 'సమాసాలు', 'ఛందస్సు', 'అలంకారాలు')
     if (filter.topics && filter.topics.length > 0 && !filter.topics.includes('All')) {
       query = query.in('topic', filter.topics)
     }
 
-    // 4. Filter by Subtopics
+    // 4. Filter by Subtopics (e.g. 'సవర్ణదీర్ఘ సంధి', 'గుణ సంధి', 'ద్విగు సమాసం')
     if (filter.subtopics && filter.subtopics.length > 0 && !filter.subtopics.includes('All')) {
       query = query.in('subtopic', filter.subtopics)
     }
@@ -110,12 +116,17 @@ export async function fetchTeluguMediumQuestions(
       query = query.in('difficulty', filter.difficulty)
     }
 
-    // 6. Filter by Source Type
+    // 6. Filter by Source Type (e.g. 'SCERT', 'Previous Papers')
     if (filter.source_types && filter.source_types.length > 0) {
       query = query.in('source_type', filter.source_types)
     }
 
-    // 7. Pagination
+    // 7. Filter by Language if explicitly supplied
+    if (filter.language) {
+      query = query.eq('language', filter.language)
+    }
+
+    // 8. Pagination
     if (filter.limit) {
       const from = filter.offset || 0
       const to = from + filter.limit - 1
@@ -125,141 +136,71 @@ export async function fetchTeluguMediumQuestions(
     const { data, error } = await query
 
     if (error) {
-      console.error('[Algorithm: Telugu Fetcher] Supabase error:', error)
-      return []
+      console.warn('[Telugu Fetch Algorithm] Table query error, falling back to unified:', error.message)
+      return fallbackToUnifiedTeluguQuestions(medium, filter)
     }
 
-    return (data || []).map((row) => mapRowToPracticeQuestion(row, 'telugu'))
+    if (!data || data.length === 0) {
+      return fallbackToUnifiedTeluguQuestions(medium, filter)
+    }
+
+    return data.map((row) => mapRowToPracticeQuestion(row, medium))
   } catch (err) {
-    console.error('[Algorithm: Telugu Fetcher] Execution failure:', err)
-    return []
+    console.error('[Telugu Fetch Algorithm] Execution error:', err)
+    return fallbackToUnifiedTeluguQuestions(medium, filter)
   }
 }
 
-// ============================================================================
-// ALGORITHM 2: Dedicated English Medium Database Fetcher (`socal_english_medium`)
-// ============================================================================
 /**
- * Executes an optimized query against `socal_english_medium`.
- * Supports English domain queries, standard terminology, difficulty and chapter constraints.
+ * Fallback to dsc_practice_questions if primary table has no data or migration not run
  */
-export async function fetchEnglishMediumQuestions(
-  filter: SocialQuestionQueryFilter = {}
-): Promise<PracticeQuestion[]> {
-  try {
-    let query = supabaseAdmin
-      .from('socal_english_medium')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    // 1. Filter by Class Levels
-    if (filter.class_levels && filter.class_levels.length > 0 && !filter.class_levels.includes('All')) {
-      query = query.in('class_level', filter.class_levels)
-    }
-
-    // 2. Filter by Chapters (e.g., 'Geography', 'History', 'Civics', 'Economics')
-    if (filter.chapters && filter.chapters.length > 0 && !filter.chapters.includes('All')) {
-      query = query.in('chapter', filter.chapters)
-    }
-
-    // 3. Filter by Topics
-    if (filter.topics && filter.topics.length > 0 && !filter.topics.includes('All')) {
-      query = query.in('topic', filter.topics)
-    }
-
-    // 4. Filter by Subtopics
-    if (filter.subtopics && filter.subtopics.length > 0 && !filter.subtopics.includes('All')) {
-      query = query.in('subtopic', filter.subtopics)
-    }
-
-    // 5. Filter by Difficulty
-    if (filter.difficulty && filter.difficulty.length > 0 && !filter.difficulty.includes('All')) {
-      query = query.in('difficulty', filter.difficulty)
-    }
-
-    // 6. Filter by Source Type
-    if (filter.source_types && filter.source_types.length > 0) {
-      query = query.in('source_type', filter.source_types)
-    }
-
-    // 7. Pagination
-    if (filter.limit) {
-      const from = filter.offset || 0
-      const to = from + filter.limit - 1
-      query = query.range(from, to)
-    }
-
-    const { data, error } = await query
-
-    if (error) {
-      console.error('[Algorithm: English Fetcher] Supabase error:', error)
-      return []
-    }
-
-    return (data || []).map((row) => mapRowToPracticeQuestion(row, 'english'))
-  } catch (err) {
-    console.error('[Algorithm: English Fetcher] Execution failure:', err)
-    return []
-  }
-}
-
-// ============================================================================
-// ALGORITHM 3: Medium-Unified Dynamic Dispatcher with Fallback
-// ============================================================================
-/**
- * Automatically routes the request to the corresponding medium table,
- * applies unified cross-table deduplication, and falls back to universal repository if required.
- */
-export async function fetchQuestionsByMedium(
+async function fallbackToUnifiedTeluguQuestions(
   medium: PracticeMedium,
-  filter: SocialQuestionQueryFilter = {}
+  filter: TeluguQuestionQueryFilter = {}
 ): Promise<PracticeQuestion[]> {
-  if (medium.toLowerCase() === 'telugu') {
-    const teluguQuestions = await fetchTeluguMediumQuestions(filter)
-    if (teluguQuestions.length > 0) return teluguQuestions
+  try {
+    let query = supabaseAdmin
+      .from('dsc_practice_questions')
+      .select('*')
+      .ilike('subject', 'Telugu')
+      .eq('is_active', true)
 
-    // Fallback to legacy social_subject_questions if empty
-    try {
-      const { data } = await supabaseAdmin
-        .from('social_subject_questions')
-        .select('*')
-        .ilike('language', 'telugu')
-      if (data && data.length > 0) {
-        return data.map((r) => mapRowToPracticeQuestion(r, 'telugu'))
-      }
-    } catch (err) {}
+    if (filter.class_levels && filter.class_levels.length > 0 && !filter.class_levels.includes('All')) {
+      query = query.in('class_level', filter.class_levels)
+    }
+    if (filter.topics && filter.topics.length > 0 && !filter.topics.includes('All')) {
+      query = query.in('topic', filter.topics)
+    }
+    if (filter.difficulty && filter.difficulty.length > 0 && !filter.difficulty.includes('All')) {
+      query = query.in('difficulty', filter.difficulty)
+    }
+
+    const { data, error } = await query
+    if (error || !data) return []
+
+    return data.map((row) => mapRowToPracticeQuestion(row, medium))
+  } catch (err) {
     return []
   }
-
-  // English medium
-  const englishQuestions = await fetchEnglishMediumQuestions(filter)
-  if (englishQuestions.length > 0) return englishQuestions
-
-  // Fallback to legacy social_subject_questions if empty
-  try {
-    const { data } = await supabaseAdmin
-      .from('social_subject_questions')
-      .select('*')
-      .or('language.eq.english,language.is.null')
-    if (data && data.length > 0) {
-      return data.map((r) => mapRowToPracticeQuestion(r, 'english'))
-    }
-  } catch (err) {}
-  return []
 }
 
 // ============================================================================
-// ALGORITHM 4: Adaptive Practice Generator with Balanced Difficulty & Topics
+// ALGORITHM 2: Smart Algorithmic Question Selector (NOT Random)
 // ============================================================================
 /**
- * High-performance smart question generator designed specifically for DSC aspirants.
- * Performs:
- * 1. Medium-strict database retrieval (`socal_telugu_medimum` vs `socal_english_medium`)
- * 2. User history scoring (Prioritizes never seen, boosts previously incorrect, penalizes recent repeats)
- * 3. Topic balanced distribution (Geography, History, Civics, Economics)
- * 4. Difficulty curve balancing (Default: 30% Easy, 50% Medium, 20% Hard)
+ * Advanced multi-criteria algorithmic question selector for Telugu practice & mock tests.
+ * 
+ * Algorithms applied:
+ * 1. Medium unification: Serves both Telugu medium and English medium students taking Telugu Paper-I.
+ * 2. Spaced Repetition & Heuristic Scoring:
+ *    - Unattempted questions (+10)
+ *    - Previously incorrect questions (+8)
+ *    - Weak topics (<65% mastery) (+5)
+ *    - Avoids questions answered repeatedly or attempted in the last 24h (-5)
+ * 3. Difficulty Curve Balancing (e.g. 30% Easy, 50% Medium, 20% Hard)
+ * 4. Topic Round-Robin Balancing across Syllabus (Grammar, Literature, Vocabulary, Pedagogy)
  */
-export async function generateSmartSocialSession(options: {
+export async function generateSmartTeluguSession(options: {
   medium: PracticeMedium
   count: number
   mode: PracticeMode
@@ -278,8 +219,8 @@ export async function generateSmartSocialSession(options: {
     difficultyRatio = { easyPct: 0.3, mediumPct: 0.5, hardPct: 0.2 },
   } = options
 
-  // 1. Fetch raw pool from the dedicated database table
-  const pool = await fetchQuestionsByMedium(medium, {
+  // 1. Fetch raw pool from telugu_subject_questions
+  const pool = await fetchTeluguQuestions(medium, {
     class_levels: filter.class_levels,
     topics: filter.topics,
     subtopics: filter.subtopics,
@@ -300,50 +241,80 @@ export async function generateSmartSocialSession(options: {
     score: calculateQuestionScore(q, history, weakTopics, mode),
   }))
 
-  // Sort descending by calculated priority score
+  // Sort descending by priority score
   scored.sort((a, b) => b.score - a.score)
 
-  // 3. For target modes (weak_areas, previously_incorrect, new_questions)
+  // 3. For targeted modes: weak_areas, previously_incorrect, new_questions
   if (mode === 'weak_areas' || mode === 'previously_incorrect' || mode === 'new_questions') {
     const topCandidates = scored.slice(0, Math.min(scored.length, count * 2)).map((s) => s.question)
     return shuffleArray(topCandidates).slice(0, count)
   }
 
-  // 4. For Random Mode: Pure uniform randomization
-  if (mode === 'random') {
-    return shuffleArray(pool).slice(0, count)
-  }
-
-  // 5. Standard / Exam Mode: Balance across Difficulty and Topics
+  // 4. BALANCED / EXAM MODE: Intelligent Topic Stratification + Difficulty Curve Allocation
   const targetEasy = Math.round(count * difficultyRatio.easyPct)
   const targetHard = Math.round(count * difficultyRatio.hardPct)
   const targetMedium = count - (targetEasy + targetHard)
 
-  const easyPool = scored.filter((s) => s.question.difficulty.toLowerCase() === 'easy').map((s) => s.question)
-  const mediumPool = scored.filter((s) => s.question.difficulty.toLowerCase() === 'medium').map((s) => s.question)
-  const hardPool = scored.filter((s) => s.question.difficulty.toLowerCase() === 'hard').map((s) => s.question)
+  const easyPool = scored.filter((s) => (s.question.difficulty || '').toLowerCase() === 'easy').map((s) => s.question)
+  const mediumPool = scored.filter((s) => (s.question.difficulty || '').toLowerCase() === 'medium').map((s) => s.question)
+  const hardPool = scored.filter((s) => (s.question.difficulty || '').toLowerCase() === 'hard').map((s) => s.question)
 
   const selectedSet = new Set<string>()
   const finalQuestions: PracticeQuestion[] = []
 
   const pickFromPool = (candidatePool: PracticeQuestion[], targetCount: number) => {
+    // Topic-aware selection within difficulty bucket
+    const byTopic: Record<string, PracticeQuestion[]> = {}
+    candidatePool.forEach((q) => {
+      const t = q.topic || 'General'
+      if (!byTopic[t]) byTopic[t] = []
+      byTopic[t].push(q)
+    })
+
+    const topics = Object.keys(byTopic)
+    let round = 0
     let picked = 0
-    for (const q of candidatePool) {
-      if (picked >= targetCount) break
-      const qId = q.question_id || q.id
-      if (!selectedSet.has(qId)) {
-        selectedSet.add(qId)
-        finalQuestions.push(q)
-        picked++
+
+    while (picked < targetCount && round < 50) {
+      let addedInRound = false
+      for (const t of topics) {
+        if (picked >= targetCount) break
+        const list = byTopic[t]
+        if (round < list.length) {
+          const cand = list[round]
+          const qId = cand.question_id || cand.id
+          if (!selectedSet.has(qId)) {
+            selectedSet.add(qId)
+            finalQuestions.push(cand)
+            picked++
+            addedInRound = true
+          }
+        }
+      }
+      round++
+      if (!addedInRound) break
+    }
+
+    // Fill remaining within pool if topic round-robin ended early
+    if (picked < targetCount) {
+      for (const q of candidatePool) {
+        if (picked >= targetCount) break
+        const qId = q.question_id || q.id
+        if (!selectedSet.has(qId)) {
+          selectedSet.add(qId)
+          finalQuestions.push(q)
+          picked++
+        }
       }
     }
   }
 
+  // Allocate per difficulty curve
   pickFromPool(easyPool, targetEasy)
   pickFromPool(mediumPool, targetMedium)
   pickFromPool(hardPool, targetHard)
 
-  // If still below target count, fill from remaining top scored candidates
+  // 5. If any shortfall remains, backfill from highest priority scored questions
   if (finalQuestions.length < count) {
     for (const s of scored) {
       const qId = s.question.question_id || s.question.id
@@ -355,23 +326,20 @@ export async function generateSmartSocialSession(options: {
     }
   }
 
-  // 6. Final shuffle to randomize question order for the test session
+  // 6. Return randomized order for exam delivery
   return shuffleArray(finalQuestions)
 }
 
 // ============================================================================
-// ALGORITHM 5: Metadata & Topic Aggregation Algorithm
+// ALGORITHM 3: Telugu Syllabus Coverage & Analytics Aggregator
 // ============================================================================
 /**
- * Directly aggregates statistics (Total count, Chapters, Topics, Difficulties)
- * from `socal_telugu_medimum` or `socal_english_medium`.
+ * Direct real-time aggregation of questions by Class, Chapter, Topic & Difficulty.
  */
-export async function getSocialMediumAnalytics(medium: PracticeMedium) {
-  const tableName = medium.toLowerCase() === 'telugu' ? 'socal_telugu_medimum' : 'socal_english_medium'
-
+export async function getTeluguAnalytics(medium: PracticeMedium = 'telugu') {
   try {
     const { data, error } = await supabaseAdmin
-      .from(tableName)
+      .from('telugu_subject_questions')
       .select('class_level, chapter, topic, difficulty')
 
     if (error || !data) {
@@ -394,7 +362,7 @@ export async function getSocialMediumAnalytics(medium: PracticeMedium) {
     })
 
     return {
-      tableName,
+      tableName: 'telugu_subject_questions',
       medium,
       total: data.length,
       classes: Array.from(classes),
@@ -403,7 +371,7 @@ export async function getSocialMediumAnalytics(medium: PracticeMedium) {
       difficulties,
     }
   } catch (err) {
-    console.error(`[Analytics Algorithm] Failed for ${tableName}:`, err)
+    console.error('[Telugu Analytics Algorithm] Failed:', err)
     return { total: 0, classes: [], chapters: [], topics: [], difficulties: { Easy: 0, Medium: 0, Hard: 0 } }
   }
 }

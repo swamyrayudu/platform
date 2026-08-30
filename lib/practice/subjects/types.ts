@@ -28,6 +28,12 @@ export interface SubjectMetadata {
   defaultClasses?: string[]
 }
 
+export interface DifficultyRatio {
+  easyPct: number    // e.g., 0.30 (30%)
+  mediumPct: number  // e.g., 0.50 (50%)
+  hardPct: number    // e.g., 0.20 (20%)
+}
+
 export interface SubjectProvider {
   readonly metadata: SubjectMetadata
 
@@ -37,3 +43,4 @@ export interface SubjectProvider {
    */
   fetchQuestions(medium?: PracticeMedium): Promise<PracticeQuestion[]>
 }
+
