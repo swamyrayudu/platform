@@ -166,6 +166,9 @@ export default function OnboardingPage() {
       })
 
       if (success) {
+        try {
+          localStorage.setItem('preferred_practice_medium', selectedMedium)
+        } catch {}
         toast.success('Welcome to RSD Education!', {
           description: 'Preferences saved. Redirecting to your dashboard...',
           duration: 3000,

@@ -9,6 +9,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { GraduationCap, History } from 'lucide-react'
+import { useAuth } from '@/app/contexts/AuthContext'
 import type {
   PracticeMedium,
   PracticeMode,
@@ -40,9 +41,12 @@ export default function PracticeSetup({
   onViewHistory,
   isLoading = false,
 }: PracticeSetupProps) {
+  const { user } = useAuth()
+
   // ── Core State ──────────────────────────────────────────────
   const [medium, setMedium] = useState<PracticeMedium>('english')
   const [subject, setSubject] = useState<string>('English')
+  const [hasUserSelectedMedium, setHasUserSelectedMedium] = useState<boolean>(false)
   const [topicMode, setTopicMode] = useState<'all' | 'custom'>('all')
   const [selectedTopics, setSelectedTopics] = useState<string[]>([])
   const [selectedSubtopics, setSelectedSubtopics] = useState<string[]>([])
@@ -105,6 +109,44 @@ export default function PracticeSetup({
   useEffect(() => {
     fetchFilterMetadata()
   }, [fetchFilterMetadata])
+
+  // ── Automatically open collected Medium Tab (from user profile or localStorage) ──
+  useEffect(() => {
+    if (hasUserSelectedMedium) return
+
+    let targetMedium: PracticeMedium | null = null
+
+    // 1. Check user profile collected during onboarding
+    if (user?.educationMedium === 'telugu' || user?.educationMedium === 'english') {
+      targetMedium = user.educationMedium
+    } else {
+      // 2. Check localStorage for previously remembered preference
+      try {
+        const stored = localStorage.getItem('preferred_practice_medium')
+        if (stored === 'telugu' || stored === 'english') {
+          targetMedium = stored as PracticeMedium
+        }
+      } catch {}
+    }
+
+    if (targetMedium && targetMedium !== medium) {
+      setMedium(targetMedium)
+      setSubject(targetMedium === 'english' ? 'English' : 'Telugu')
+      setSelectedTopics([])
+      setTopicMode('all')
+    }
+  }, [user?.educationMedium, hasUserSelectedMedium, medium])
+
+  const handleSelectMedium = (m: PracticeMedium) => {
+    setHasUserSelectedMedium(true)
+    setMedium(m)
+    setSubject(m === 'english' ? 'English' : 'Telugu')
+    setSelectedTopics([])
+    setTopicMode('all')
+    try {
+      localStorage.setItem('preferred_practice_medium', m)
+    } catch {}
+  }
 
   // Toggle specific topic
   const toggleTopic = (topicName: string) => {
@@ -172,12 +214,7 @@ export default function PracticeSetup({
         {/* Medium Selector */}
         <MediumSelector
           medium={medium}
-          onSelectMedium={(m) => {
-            setMedium(m)
-            setSubject(m === 'english' ? 'English' : 'Telugu')
-            setSelectedTopics([])
-            setTopicMode('all')
-          }}
+          onSelectMedium={handleSelectMedium}
         />
 
         {/* Weak topic alert banner */}

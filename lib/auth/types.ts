@@ -131,6 +131,7 @@ export interface PublicUser {
   subscriptionExpiresAt: string | null
   role: UserRole
   onboardingCompleted: boolean
+  educationMedium?: EducationMedium | null
 }
 
 export interface PublicSession {
@@ -173,6 +174,7 @@ export function toPublicUser(user: DbUser): PublicUser {
     subscriptionExpiresAt: user.subscription_expires_at,
     role: user.role,
     onboardingCompleted: user.onboarding_completed,
+    educationMedium: user.education_medium ?? null,
   }
 }
 

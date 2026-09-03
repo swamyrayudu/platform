@@ -29,6 +29,17 @@ function initRegistry() {
     providersMap.set(p.metadata.name.toLowerCase(), p)
   })
 
+  // Aliases for Mathematics
+  const mathProvider = defaults.find((p) => p.metadata.id === 'Mathematics')
+  if (mathProvider) {
+    providersMap.set('math', mathProvider)
+    providersMap.set('maths', mathProvider)
+    providersMap.set('గణితం', mathProvider)
+    providersMap.set('గణిత శాస్త్రం', mathProvider)
+    providersMap.set('telugu medium math', mathProvider)
+    providersMap.set('telugu medium mathematics', mathProvider)
+  }
+
   // Aliases for Pedagogy / CDP / Educational Psychology
   const pedProvider = defaults.find((p) => p.metadata.id === 'Pedagogy')
   if (pedProvider) {
@@ -38,6 +49,23 @@ function initRegistry() {
     providersMap.set('child development', pedProvider)
     providersMap.set('సైకాలజీ & బోధన', pedProvider)
     providersMap.set('సైకాలజీ', pedProvider)
+  }
+
+  // Aliases for Science (Telugu & English Medium)
+  const sciProvider = defaults.find((p) => p.metadata.id === 'Science')
+  if (sciProvider) {
+    providersMap.set('sci', sciProvider)
+    providersMap.set('general science', sciProvider)
+    providersMap.set('సైన్స్', sciProvider)
+    providersMap.set('సాధారణ సైన్స్', sciProvider)
+    providersMap.set('భౌతిక రసాయన శాస్త్రాలు', sciProvider)
+    providersMap.set('జీవశాస్త్రం', sciProvider)
+    providersMap.set('biological science', sciProvider)
+    providersMap.set('physical science', sciProvider)
+    providersMap.set('telugu medium science', sciProvider)
+    providersMap.set('english medium science', sciProvider)
+    providersMap.set('evs', sciProvider)
+    providersMap.set('పరిసరాల విజ్ఞానం', sciProvider)
   }
 }
 

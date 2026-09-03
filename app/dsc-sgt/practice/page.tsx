@@ -12,12 +12,14 @@
 
 import React, { useState } from 'react'
 import { toast } from 'sonner'
+import { useAuth } from '@/app/contexts/AuthContext'
 import PracticeSetup from '@/app/components/dsc-sgt/practice/PracticeSetup'
 import PracticeExam from '@/app/components/dsc-sgt/practice/PracticeExam'
 import PracticeResults from '@/app/components/dsc-sgt/practice/PracticeResults'
 import PracticeHistory from '@/app/components/dsc-sgt/practice/PracticeHistory'
 import type {
   PracticeFilterState,
+  PracticeMedium,
   PracticeSession,
   PracticeResultSummary,
 } from '@/types/practice'
@@ -25,6 +27,7 @@ import type {
 type ViewMode = 'setup' | 'exam' | 'results' | 'history'
 
 export default function PracticePage() {
+  const { user } = useAuth()
   const [view, setView] = useState<ViewMode>('setup')
   const [currentSession, setCurrentSession] = useState<PracticeSession | null>(null)
   const [sessionResults, setSessionResults] = useState<PracticeResultSummary | null>(null)
@@ -119,10 +122,30 @@ export default function PracticePage() {
   }
 
   // ── 4. Quick Practice on Weak Topic ────────────────────────
-  const handlePracticeTopic = async (topic: string, subject: string) => {
+  const handlePracticeTopic = async (topic: string, subject?: string, customMedium?: PracticeMedium) => {
+    let resolvedMedium: PracticeMedium = 'english'
+    if (customMedium) {
+      resolvedMedium = customMedium
+    } else if (sessionResults?.medium) {
+      resolvedMedium = sessionResults.medium
+    } else if (currentSession?.medium) {
+      resolvedMedium = currentSession.medium
+    } else if (user?.educationMedium === 'telugu' || user?.educationMedium === 'english') {
+      resolvedMedium = user.educationMedium
+    } else {
+      try {
+        const stored = localStorage.getItem('preferred_practice_medium')
+        if (stored === 'telugu' || stored === 'english') {
+          resolvedMedium = stored as PracticeMedium
+        }
+      } catch {}
+    }
+
+    const defaultSubject = resolvedMedium === 'telugu' ? 'Telugu' : 'English'
+
     const filter: PracticeFilterState = {
-      medium: 'english',
-      subject: subject || 'English',
+      medium: resolvedMedium,
+      subject: subject || defaultSubject,
       class_levels: [],
       topics: [topic],
       subtopics: [],
@@ -202,7 +225,12 @@ export default function PracticePage() {
       {view === 'setup' && (
         <PracticeSetup
           onStartSession={handleStartSession}
-          onQuickRetry={(topic, subject) => handlePracticeTopic(topic || 'Tenses', subject || 'English')}
+          onQuickRetry={(topic, subject) =>
+            handlePracticeTopic(
+              topic || (user?.educationMedium === 'telugu' ? 'వ్యాకరణం' : 'Tenses'),
+              subject
+            )
+          }
           onViewHistory={() => setView('history')}
           isLoading={isLoading}
         />
