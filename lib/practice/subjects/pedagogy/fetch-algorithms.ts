@@ -111,8 +111,9 @@ export async function fetchPedagogyQuestions(
   filter: PedagogyQuestionQueryFilter = {}
 ): Promise<PracticeQuestion[]> {
   try {
+    const primaryTable = medium === 'english' ? 'pedagogy_english_medium' : 'pedagogy_subject_questions'
     let query = supabaseAdmin
-      .from('pedagogy_subject_questions')
+      .from(primaryTable)
       .select('*')
       .order('created_at', { ascending: false })
 
@@ -187,16 +188,23 @@ export async function fetchPedagogyQuestions(
 
     const { data, error } = await query
 
-    if (error) {
-      console.warn('[Pedagogy Fetch Algorithm] Table query error, falling back to unified:', error.message)
-      return fallbackToUnifiedPedagogyQuestions(medium, filter)
+    if (!error && data && data.length > 0) {
+      return data.map((row) => mapRowToPracticeQuestion(row, medium))
     }
 
-    if (!data || data.length === 0) {
-      return fallbackToUnifiedPedagogyQuestions(medium, filter)
+    // If English requested and pedagogy_english_medium had no rows, try legacy pedagogy_subject_questions
+    if (primaryTable === 'pedagogy_english_medium') {
+      const { data: legacyData, error: legacyErr } = await supabaseAdmin
+        .from('pedagogy_subject_questions')
+        .select('*')
+        .limit(2000)
+
+      if (!legacyErr && legacyData && legacyData.length > 0) {
+        return legacyData.map((row) => mapRowToPracticeQuestion(row, medium))
+      }
     }
 
-    return data.map((row) => mapRowToPracticeQuestion(row, medium))
+    return fallbackToUnifiedPedagogyQuestions(medium, filter)
   } catch (err) {
     console.error('[Pedagogy Fetch Algorithm] Execution error:', err)
     return fallbackToUnifiedPedagogyQuestions(medium, filter)

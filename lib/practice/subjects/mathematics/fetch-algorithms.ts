@@ -153,14 +153,15 @@ export async function fetchTeluguMediumMathQuestions(
 }
 
 // ============================================================================
-// ALGORITHM 2: English Medium Math Database Fetcher (`mathematics_subject_questions`)
+// ALGORITHM 2: English Medium Math Database Fetcher
 // ============================================================================
 export async function fetchEnglishMediumMathQuestions(
   filter: MathQuestionQueryFilter = {}
 ): Promise<PracticeQuestion[]> {
   try {
+    // 1. Try math_english_medium first
     let query = supabaseAdmin
-      .from('mathematics_subject_questions')
+      .from('math_english_medium')
       .select('*')
       .order('created_at', { ascending: false })
 
@@ -189,11 +190,21 @@ export async function fetchEnglishMediumMathQuestions(
     }
 
     const { data, error } = await query
-    if (error || !data || data.length === 0) {
-      return fallbackToUnifiedMathQuestions('english', filter)
+    if (!error && data && data.length > 0) {
+      return data.map((row) => mapRowToPracticeQuestion(row, 'english'))
     }
 
-    return data.map((row) => mapRowToPracticeQuestion(row, 'english'))
+    // 2. Fallback to mathematics_subject_questions
+    const { data: legacyData, error: legacyErr } = await supabaseAdmin
+      .from('mathematics_subject_questions')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (!legacyErr && legacyData && legacyData.length > 0) {
+      return legacyData.map((row) => mapRowToPracticeQuestion(row, 'english'))
+    }
+
+    return fallbackToUnifiedMathQuestions('english', filter)
   } catch (err) {
     return fallbackToUnifiedMathQuestions('english', filter)
   }
@@ -403,11 +414,21 @@ export async function generateSmartMathSession(options: {
  * Aggregates live question counts, chapters, topics, and difficulty distribution from `telugu_medium_math`.
  */
 export async function getMathAnalytics(medium: PracticeMedium = 'telugu') {
-  const tableName = medium === 'telugu' ? 'telugu_medium_math' : 'mathematics_subject_questions'
+  const tableName = medium === 'telugu' ? 'telugu_medium_math' : 'math_english_medium'
   try {
-    const { data, error } = await supabaseAdmin
+    let { data, error } = await supabaseAdmin
       .from(tableName)
       .select('class_level, chapter, topic, difficulty')
+
+    if ((error || !data || data.length === 0) && tableName === 'math_english_medium') {
+      const legacyRes = await supabaseAdmin
+        .from('mathematics_subject_questions')
+        .select('class_level, chapter, topic, difficulty')
+      if (!legacyRes.error && legacyRes.data && legacyRes.data.length > 0) {
+        data = legacyRes.data
+        error = null
+      }
+    }
 
     if (error || !data) {
       return { total: 0, classes: [], chapters: [], topics: [], difficulties: { Easy: 0, Medium: 0, Hard: 0 } }
