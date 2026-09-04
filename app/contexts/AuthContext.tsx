@@ -23,6 +23,8 @@ interface AuthState {
 
 interface AuthContextValue extends AuthState {
   refreshUser: () => Promise<void>
+  /** Replace the cached user with a fresh copy returned by a server call (no refetch). */
+  updateUser: (user: PublicUser) => void
   logout: () => Promise<void>
   logoutAll: () => Promise<void>
   completeOnboarding: (data: {
@@ -132,6 +134,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await fetchUser()
   }, [fetchUser])
 
+  const updateUser = useCallback((next: PublicUser) => {
+    setUser(next)
+  }, [])
+
   /**
    * Submit onboarding data and update user state.
    * Returns true on success, false on failure.
@@ -163,7 +169,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, loading, refreshUser, logout, logoutAll, completeOnboarding }}>
+    <AuthContext.Provider value={{ user, loading, refreshUser, updateUser, logout, logoutAll, completeOnboarding }}>
       {children}
     </AuthContext.Provider>
   )

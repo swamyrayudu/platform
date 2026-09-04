@@ -24,6 +24,12 @@ export type SecurityEventType =
   | 'PREMIUM_ACCESS_DENIED'
   | 'SESSION_VERSION_MISMATCH'
   | 'ADMIN_ACCESS_DENIED'
+  | 'PAYMENT_ORDER_CREATED'
+  | 'PAYMENT_VERIFIED'
+  | 'PAYMENT_SIGNATURE_INVALID'
+  | 'PAYMENT_FAILED'
+  | 'PAYMENT_WEBHOOK_INVALID'
+  | 'SUBSCRIPTION_ACTIVATED'
 
 // ---- Database row shapes ----------------------------------------
 
@@ -38,6 +44,7 @@ export interface DbUser {
   subscription_status: SubscriptionStatus
   subscription_started_at: string | null
   subscription_expires_at: string | null
+  subscription_plan: string | null
   role: UserRole
   learning_goals: LearningGoal[]
   education_medium: EducationMedium | null
@@ -129,6 +136,7 @@ export interface PublicUser {
   accountType: AccountType
   subscriptionStatus: SubscriptionStatus
   subscriptionExpiresAt: string | null
+  subscriptionPlan: string | null
   role: UserRole
   onboardingCompleted: boolean
   educationMedium?: EducationMedium | null
@@ -172,6 +180,7 @@ export function toPublicUser(user: DbUser): PublicUser {
     accountType: user.account_type,
     subscriptionStatus: user.subscription_status,
     subscriptionExpiresAt: user.subscription_expires_at,
+    subscriptionPlan: user.subscription_plan ?? null,
     role: user.role,
     onboardingCompleted: user.onboarding_completed,
     educationMedium: user.education_medium ?? null,

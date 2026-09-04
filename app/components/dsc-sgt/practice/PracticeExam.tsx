@@ -23,6 +23,7 @@ import {
 
 interface PracticeExamProps {
   session: PracticeSession
+  isPremium?: boolean
   onAnswerQuestion: (
     questionId: string,
     selectedAnswer: 'A' | 'B' | 'C' | 'D' | null,
@@ -30,12 +31,13 @@ interface PracticeExamProps {
     markedForReview: boolean
   ) => Promise<{ is_correct: boolean; correct_answer: string; explanation: string | null } | void>
   onSubmitSession: (totalTimeSeconds: number) => void
-  onExitSession: () => void
+  onExitSession: (elapsedSeconds?: number) => void
   isSubmitting?: boolean
 }
 
 export default function PracticeExam({
   session,
+  isPremium = false,
   onAnswerQuestion,
   onSubmitSession,
   onExitSession,
@@ -261,10 +263,11 @@ export default function PracticeExam({
       {/* ── Abandon / Exit Modal ──────────────────────────────── */}
       <ExitModal
         show={showExitModal}
+        isPremium={isPremium}
         onClose={() => setShowExitModal(false)}
         onConfirm={() => {
           setShowExitModal(false)
-          onExitSession()
+          onExitSession(elapsedSeconds)
         }}
       />
     </div>

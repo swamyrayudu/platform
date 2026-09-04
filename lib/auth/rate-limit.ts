@@ -6,13 +6,22 @@
 // Controlled by RATE_LIMIT_PROVIDER env variable.
 // ============================================================
 
-type Endpoint = 'google' | 'refresh' | 'logout'
+type Endpoint =
+  | 'google'
+  | 'refresh'
+  | 'logout'
+  | 'payment_order'
+  | 'payment_verify'
+  | 'coupon'
 
 // ---- Limits per endpoint --------------------------------------
 const LIMITS: Record<Endpoint, { max: number; windowMs: number }> = {
   google:  { max: 10, windowMs: 15 * 60 * 1000 }, // 10 req / 15 min
   refresh: { max: 20, windowMs: 15 * 60 * 1000 }, // 20 req / 15 min
   logout:  { max: 10, windowMs: 15 * 60 * 1000 }, // 10 req / 15 min
+  payment_order:  { max: 10, windowMs: 15 * 60 * 1000 }, // 10 orders / 15 min per user
+  payment_verify: { max: 20, windowMs: 15 * 60 * 1000 }, // 20 verifies / 15 min per user
+  coupon:         { max: 30, windowMs: 15 * 60 * 1000 }, // 30 coupon checks / 15 min per user
 }
 
 // ---- In-memory implementation ---------------------------------

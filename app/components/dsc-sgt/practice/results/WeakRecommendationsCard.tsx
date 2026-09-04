@@ -5,19 +5,23 @@
 // ============================================================
 
 import React from 'react'
-import { Sparkles, ArrowRight } from 'lucide-react'
+import { Sparkles, ArrowRight, Crown } from 'lucide-react'
 import type { WeakAreaRecommendation } from '@/types/practice'
 
 interface WeakRecommendationsCardProps {
   weakRecommendations: WeakAreaRecommendation[]
   subject: string
+  isPremium?: boolean
   onPracticeTopic: (topic: string, subject: string) => void
+  onOpenUpgradeModal?: () => void
 }
 
 export default function WeakRecommendationsCard({
   weakRecommendations,
   subject,
+  isPremium = false,
   onPracticeTopic,
+  onOpenUpgradeModal,
 }: WeakRecommendationsCardProps) {
   if (weakRecommendations.length === 0) return null
 
@@ -45,11 +49,30 @@ export default function WeakRecommendationsCard({
 
             <button
               type="button"
-              onClick={() => onPracticeTopic(rec.topic, subject)}
-              className="inline-flex items-center gap-1 rounded-xl bg-primary hover:bg-primary/90 px-3.5 py-2 text-xs font-black text-primary-foreground transition cursor-pointer shadow-xs"
+              onClick={() => {
+                if (!isPremium) {
+                  onOpenUpgradeModal?.()
+                } else {
+                  onPracticeTopic(rec.topic, subject)
+                }
+              }}
+              className={`inline-flex items-center gap-1 rounded-xl px-3.5 py-2 text-xs font-black transition cursor-pointer shadow-xs ${
+                !isPremium
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:brightness-105'
+                  : 'bg-primary hover:bg-primary/90 text-primary-foreground'
+              }`}
             >
-              <span>Practice</span>
-              <ArrowRight className="h-3.5 w-3.5" />
+              {!isPremium ? (
+                <>
+                  <Crown className="h-3.5 w-3.5" />
+                  <span>Pro Only</span>
+                </>
+              ) : (
+                <>
+                  <span>Practice</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </>
+              )}
             </button>
           </div>
         ))}

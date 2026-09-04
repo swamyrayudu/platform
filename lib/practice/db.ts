@@ -3,6 +3,8 @@
 // ============================================================
 
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { isUserPremium } from '@/lib/auth/session'
+import type { DbUser } from '@/lib/auth/types'
 import type {
   PracticeMedium,
   PracticeMode,
@@ -190,18 +192,120 @@ export async function createPracticeSession(
     started_at: new Date().toISOString(),
   }
 
-  // Cache in-memory during active solving (DO NOT write to DB before submit)
+  // Cache in-memory during active solving
   activeSessionsCache.set(sessionId, session)
+
+  // Persist session record into Supabase immediately so free trial attempt is registered
+  if (userId) {
+    try {
+      await supabaseAdmin.from('practice_sessions').insert({
+        id: session.id,
+        user_id: session.user_id,
+        medium: session.medium,
+        subject: session.subject,
+        class_levels: session.class_levels,
+        topics: session.topics,
+        subtopics: session.subtopics,
+        difficulty: session.difficulty,
+        mode: session.mode,
+        feedback_mode: session.feedback_mode,
+        has_timer: session.has_timer,
+        duration_seconds: session.duration_seconds,
+        question_count: session.question_count,
+        question_ids: session.question_ids,
+        user_answers: {},
+        time_spent_seconds: 0,
+        score: 0,
+        accuracy_pct: 0,
+        status: 'in_progress',
+        started_at: session.started_at,
+      })
+    } catch (err) {
+      console.warn('[Practice DB] Error inserting initial practice_session:', err)
+    }
+  }
 
   return session
 }
 
 /**
- * Abandon a practice session without saving any information.
- * Purges in-memory session and ensures nothing is stored.
+ * Abandon a practice session.
+ * For free users: marks the session as completed so the free trial is finished.
+ * For pro users: discards without saving.
  */
 export async function abandonPracticeSession(sessionId: string): Promise<void> {
+  const session = activeSessionsCache.get(sessionId)
   activeSessionsCache.delete(sessionId)
+
+  let userId = session?.user_id || null
+
+  if (!userId) {
+    try {
+      const { data: dbSession } = await supabaseAdmin
+        .from('practice_sessions')
+        .select('user_id')
+        .eq('id', sessionId)
+        .single()
+      if (dbSession?.user_id) {
+        userId = dbSession.user_id
+      }
+    } catch {}
+  }
+
+  if (userId) {
+    try {
+      const { data: userRow } = await supabaseAdmin
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single()
+
+      const isPro = isUserPremium(userRow)
+      if (!isPro) {
+        // Free user: exiting/abandoning completes and finishes the free trial session!
+        if (session) {
+          await supabaseAdmin
+            .from('practice_sessions')
+            .upsert({
+              id: session.id,
+              user_id: session.user_id,
+              medium: session.medium,
+              subject: session.subject,
+              class_levels: session.class_levels,
+              topics: session.topics,
+              subtopics: session.subtopics,
+              difficulty: session.difficulty,
+              mode: session.mode,
+              feedback_mode: session.feedback_mode,
+              has_timer: session.has_timer,
+              duration_seconds: session.duration_seconds,
+              question_count: session.question_count,
+              question_ids: session.question_ids,
+              user_answers: session.user_answers || {},
+              time_spent_seconds: session.time_spent_seconds || 0,
+              score: session.score || 0,
+              accuracy_pct: session.accuracy_pct || 0,
+              status: 'completed',
+              started_at: session.started_at,
+              completed_at: new Date().toISOString(),
+            })
+        } else {
+          await supabaseAdmin
+            .from('practice_sessions')
+            .update({
+              status: 'completed',
+              completed_at: new Date().toISOString(),
+            })
+            .eq('id', sessionId)
+        }
+        return
+      }
+    } catch (err) {
+      console.warn('[Practice DB] Error finalizing free session in abandon:', err)
+    }
+  }
+
+  // Pro users or guest: purge
   try {
     await supabaseAdmin.from('practice_sessions').delete().eq('id', sessionId)
   } catch (err) {
@@ -640,3 +744,95 @@ export async function getPracticeHistory(userId: string | null): Promise<Practic
       status: s.status,
     }))
 }
+
+/**
+ * Count completed or active practice sessions for a user (from database + in-memory cache).
+ * For free accounts, once a test is started or completed, it counts as consumed.
+ */
+export async function getUserCompletedPracticeSessionCount(userId: string | null): Promise<number> {
+  if (!userId) return 0
+
+  let dbCount = 0
+  try {
+    const { count, error } = await supabaseAdmin
+      .from('practice_sessions')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+
+    if (!error && typeof count === 'number') {
+      dbCount = count
+    }
+  } catch (err) {
+    console.warn('[Practice DB] Error checking user practice sessions count:', err)
+  }
+
+  let memCount = 0
+  for (const session of activeSessionsCache.values()) {
+    if (session.user_id === userId) {
+      memCount++
+    }
+  }
+
+  return Math.max(dbCount, memCount)
+}
+
+export interface PracticeQuotaResult {
+  allowed: boolean
+  reason?: string
+  isPremium: boolean
+  completedSessions: number
+  maxQuestions: number
+}
+
+/**
+ * Determine if a user can create a practice session based on Pro subscription status.
+ * Free tier accounts:
+ *   - Only 1 practice session per account ever
+ *   - Max 25 questions per session
+ * Pro tier accounts:
+ *   - Unlimited practice sessions
+ *   - Unlimited questions
+ */
+export async function canUserCreatePracticeSession(
+  user: DbUser | null | undefined
+): Promise<PracticeQuotaResult> {
+  if (!user) {
+    return {
+      allowed: false,
+      reason: 'Please sign in to access your practice session.',
+      isPremium: false,
+      completedSessions: 0,
+      maxQuestions: 25,
+    }
+  }
+
+  const isPro = isUserPremium(user)
+  if (isPro) {
+    return {
+      allowed: true,
+      isPremium: true,
+      completedSessions: 0,
+      maxQuestions: 150,
+    }
+  }
+
+  // Free Tier account: check completed sessions
+  const completedSessions = await getUserCompletedPracticeSessionCount(user.id)
+  if (completedSessions >= 1) {
+    return {
+      allowed: false,
+      reason: 'Free practice limit reached: you can only take 1 practice session on the free plan. Upgrade to Pro for unlimited practice sessions across all subjects!',
+      isPremium: false,
+      completedSessions,
+      maxQuestions: 25,
+    }
+  }
+
+  return {
+    allowed: true,
+    isPremium: false,
+    completedSessions,
+    maxQuestions: 25,
+  }
+}
+

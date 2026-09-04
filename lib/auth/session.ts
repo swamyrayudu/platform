@@ -145,6 +145,19 @@ export function requireAuth<TParams = Record<string, string>>(
   }
 }
 
+/**
+ * Check if a user has active PRO / Premium status.
+ */
+export function isUserPremium(user: DbUser | null | undefined): boolean {
+  if (!user) return false
+  return (
+    user.account_type === 'PREMIUM' &&
+    user.subscription_status === 'ACTIVE' &&
+    user.subscription_expires_at !== null &&
+    new Date(user.subscription_expires_at) > new Date()
+  )
+}
+
 // ---- requirePremium ---------------------------------------------
 
 /**
@@ -176,13 +189,9 @@ export function requirePremium<TParams = Record<string, string>>(
       const { user } = auth
 
       // Check premium authorization — never trust the frontend
-      const isPremium = user.account_type === 'PREMIUM'
-      const isActive = user.subscription_status === 'ACTIVE'
-      const notExpired =
-        user.subscription_expires_at !== null &&
-        new Date(user.subscription_expires_at) > new Date()
+      const isPremium = isUserPremium(user)
 
-      if (!isPremium || !isActive || !notExpired) {
+      if (!isPremium) {
         // Log the denied access attempt
         await logSecurityEvent({
           userId: user.id,

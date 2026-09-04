@@ -5,19 +5,23 @@
 // ============================================================
 
 import React from 'react'
-import { RotateCcw } from 'lucide-react'
+import { RotateCcw, Crown } from 'lucide-react'
 import type { PracticeHistoryItem } from '@/types/practice'
 
 interface HistorySessionCardProps {
   item: PracticeHistoryItem
+  isPremium?: boolean
   onReviewSession: (sessionId: string) => void
   onRetryIncorrect: (sessionId: string) => void
+  onOpenUpgradeModal?: () => void
 }
 
 export default function HistorySessionCard({
   item,
+  isPremium = false,
   onReviewSession,
   onRetryIncorrect,
+  onOpenUpgradeModal,
 }: HistorySessionCardProps) {
   const formatDate = (isoStr: string) => {
     try {
@@ -85,11 +89,18 @@ export default function HistorySessionCard({
         {item.accuracy_pct < 100 && (
           <button
             type="button"
-            onClick={() => onRetryIncorrect(item.id)}
-            className="inline-flex items-center gap-1 rounded-xl bg-primary hover:bg-primary/90 px-3.5 py-2 text-xs font-bold text-primary-foreground transition cursor-pointer shadow-xs"
+            onClick={() => {
+              if (!isPremium) onOpenUpgradeModal?.()
+              else onRetryIncorrect(item.id)
+            }}
+            className={`inline-flex items-center gap-1 rounded-xl px-3.5 py-2 text-xs font-bold transition cursor-pointer shadow-xs ${
+              !isPremium
+                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:brightness-105'
+                : 'bg-primary hover:bg-primary/90 text-primary-foreground'
+            }`}
           >
-            <RotateCcw className="h-3 w-3" />
-            <span>Retry Missed</span>
+            {isPremium ? <RotateCcw className="h-3 w-3" /> : <Crown className="h-3 w-3" />}
+            <span>{isPremium ? 'Retry Missed' : 'Retry (PRO)'}</span>
           </button>
         )}
       </div>

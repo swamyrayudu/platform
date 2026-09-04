@@ -8,8 +8,9 @@
 // ============================================================
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { GraduationCap, History } from 'lucide-react'
+import { GraduationCap, History, Crown, Lock, Sparkles, CheckCircle2 } from 'lucide-react'
 import { useAuth } from '@/app/contexts/AuthContext'
+import { usePremium } from '@/app/components/dsc-sgt/PremiumContext'
 import type {
   PracticeMedium,
   PracticeMode,
@@ -42,6 +43,47 @@ export default function PracticeSetup({
   isLoading = false,
 }: PracticeSetupProps) {
   const { user } = useAuth()
+  const { isPremium, openModal } = usePremium()
+
+  // ── Practice Quota State ────────────────────────────────────
+  const [quota, setQuota] = useState<{
+    loading: boolean
+    canPractice: boolean
+    completedSessions: number
+    allowedSessions: number | string
+    maxQuestions: number
+    reason: string | null
+  }>({
+    loading: true,
+    canPractice: true,
+    completedSessions: 0,
+    allowedSessions: 1,
+    maxQuestions: 25,
+    reason: null,
+  })
+
+  const fetchQuota = useCallback(async () => {
+    try {
+      const res = await fetch('/api/dsc-sgt/practice/quota')
+      const data = await res.json()
+      if (data.success) {
+        setQuota({
+          loading: false,
+          canPractice: data.canPractice,
+          completedSessions: data.completedSessions,
+          allowedSessions: data.allowedSessions,
+          maxQuestions: data.maxQuestions,
+          reason: data.reason,
+        })
+      }
+    } catch {
+      setQuota((prev) => ({ ...prev, loading: false }))
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchQuota()
+  }, [fetchQuota])
 
   // ── Core State ──────────────────────────────────────────────
   const [medium, setMedium] = useState<PracticeMedium>('english')
@@ -163,13 +205,19 @@ export default function PracticeSetup({
 
   // Matching questions available
   const totalAvailable = dynamicOptions?.total_matching_questions ?? 25
-  const finalQuestionCount = Math.min(
+  const rawQuestionCount = Math.min(
     questionCount,
     totalAvailable > 0 ? totalAvailable : questionCount
   )
+  const finalQuestionCount = !isPremium ? Math.min(25, rawQuestionCount) : rawQuestionCount
 
   // Start practice handler
   const handleStart = () => {
+    if (!quota.canPractice && !isPremium) {
+      openModal('practice_limit_start_blocked')
+      return
+    }
+
     const filterState: PracticeFilterState = {
       medium,
       subject,
@@ -186,17 +234,115 @@ export default function PracticeSetup({
     onStartSession(filterState)
   }
 
+  // ── Locked State: Free Trial Already Completed ─────────────
+  if (!quota.loading && !quota.canPractice && !isPremium) {
+    return (
+      <div className="space-y-6 max-w-3xl mx-auto pb-24 sm:pb-8">
+        {/* Header */}
+        <div className="rounded-3xl border border-border/80 bg-card p-5 sm:p-7 shadow-xs">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <GraduationCap className="h-5 w-5" />
+              </div>
+              <div>
+                <h1 className="text-lg sm:text-xl font-black text-foreground">DSC Practice Zone</h1>
+                <p className="text-xs text-muted-foreground">AP DSC / SGT • Smart Practice Engine</p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={onViewHistory}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card hover:bg-accent px-3 py-2 text-xs font-bold text-foreground transition cursor-pointer shadow-xs"
+            >
+              <History className="h-4 w-4 text-primary" />
+              <span className="hidden sm:inline">History</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Locked Hero Card */}
+        <div className="rounded-3xl border-2 border-amber-500/40 bg-gradient-to-b from-amber-500/10 via-card to-card p-6 sm:p-10 shadow-lg text-center space-y-6">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25">
+            <Lock className="h-8 w-8" />
+          </div>
+
+          <div className="max-w-lg mx-auto space-y-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/20 px-3 py-1 text-xs font-black text-amber-700 dark:text-amber-300 border border-amber-500/30">
+              Free Trial Finished • 1 of 1 Used
+            </span>
+            <h2 className="text-xl sm:text-2xl font-black text-foreground">
+              Practice Section is Locked
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              You have already completed your 1 free practice session. Free accounts cannot start additional practice tests. Upgrade to DSC Pro to unlock unlimited practice tests across all subjects!
+            </p>
+          </div>
+
+          {/* Pro Features Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto text-left">
+            <div className="flex items-center gap-2.5 p-3.5 rounded-2xl border border-border/80 bg-muted/30">
+              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+              <span className="text-xs font-bold text-foreground">Unlimited Practice Tests</span>
+            </div>
+            <div className="flex items-center gap-2.5 p-3.5 rounded-2xl border border-border/80 bg-muted/30">
+              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+              <span className="text-xs font-bold text-foreground">5,000+ Subject Questions</span>
+            </div>
+            <div className="flex items-center gap-2.5 p-3.5 rounded-2xl border border-border/80 bg-muted/30">
+              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+              <span className="text-xs font-bold text-foreground">Deep Practice (Up to 150 Qs)</span>
+            </div>
+            <div className="flex items-center gap-2.5 p-3.5 rounded-2xl border border-border/80 bg-muted/30">
+              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+              <span className="text-xs font-bold text-foreground">Mistake Retries & Analysis</span>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => openModal('practice_locked_hero')}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-primary hover:brightness-105 px-8 py-4 text-sm font-black text-white shadow-xl shadow-amber-500/25 transition cursor-pointer active:scale-98"
+            >
+              <Crown className="h-5 w-5 fill-white" />
+              <span>Unlock Unlimited Practice with Pro</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onViewHistory}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl border border-border bg-card hover:bg-accent px-6 py-4 text-xs font-bold text-foreground transition cursor-pointer"
+            >
+              <History className="h-4 w-4 text-muted-foreground" />
+              <span>View Past Practice History</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6 max-w-3xl mx-auto pb-24 sm:pb-8">
       {/* ── Header & Medium Toggle ───────────────────────────── */}
-      <div className="rounded-3xl border border-border/80 bg-card p-5 sm:p-7 shadow-xs">
-        <div className="flex items-center justify-between gap-3 mb-4">
+      <div className="rounded-3xl border border-border/80 bg-card p-5 sm:p-7 shadow-xs space-y-4">
+        <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
               <GraduationCap className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-lg sm:text-xl font-black text-foreground">DSC Practice Zone</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg sm:text-xl font-black text-foreground">DSC Practice Zone</h1>
+                {isPremium && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 px-2.5 py-0.5 text-[10px] font-black text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                    <Crown className="h-3 w-3 text-amber-500" /> PRO
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">AP DSC / SGT • Smart Practice Engine</p>
             </div>
           </div>
@@ -210,6 +356,60 @@ export default function PracticeSetup({
             <span className="hidden sm:inline">History</span>
           </button>
         </div>
+
+        {/* Pro vs Free Status Notice */}
+        {!isPremium && !quota.loading && (
+          <>
+            {!quota.canPractice ? (
+              <div className="rounded-2xl border-2 border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-card to-background p-4 sm:p-5 shadow-xs">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                      <Lock className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-sm font-black text-foreground">
+                          Free Practice Limit Reached
+                        </h2>
+                        <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-black text-amber-700 dark:text-amber-300">
+                          1 of 1 Used
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                        Free accounts can practice <strong>1 session (max 25 questions)</strong>. You have used your 1 free practice session. Upgrade to Pro for unlimited practice sessions across all subjects!
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openModal('practice_limit_card')}
+                    className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-primary hover:brightness-105 px-4 py-2.5 text-xs font-black text-white shadow-xs transition cursor-pointer"
+                  >
+                    <Crown className="h-3.5 w-3.5 fill-white" />
+                    <span>Upgrade to Pro</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-2.5 text-xs">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                  <span className="text-foreground">
+                    Free Tier: <strong>1 Practice Session Allowed (Max 25 Questions)</strong> • Choose 1 subject to practice.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => openModal('practice_setup_upgrade_notice')}
+                  className="font-bold text-primary hover:underline shrink-0"
+                >
+                  Unlock Unlimited with Pro →
+                </button>
+              </div>
+            )}
+          </>
+        )}
 
         {/* Medium Selector */}
         <MediumSelector
@@ -255,6 +455,7 @@ export default function PracticeSetup({
         finalQuestionCount={finalQuestionCount}
         isCustomCount={isCustomCount}
         customCountInput={customCountInput}
+        isPremium={isPremium}
         onSetQuestionCount={setQuestionCount}
         onSetIsCustomCount={setIsCustomCount}
         onCustomInputChange={(val) => {
@@ -262,6 +463,7 @@ export default function PracticeSetup({
           const n = parseInt(val, 10)
           if (!isNaN(n) && n > 0) setQuestionCount(n)
         }}
+        onOpenUpgradeModal={() => openModal('practice_question_count_preset')}
       />
 
       {/* ── Step 4: Practice Mode & Feedback ───────────────────── */}
@@ -291,7 +493,10 @@ export default function PracticeSetup({
         instantFeedback={instantFeedback}
         totalAvailable={totalAvailable}
         isLoading={isLoading}
+        canPractice={quota.canPractice}
+        isPremium={isPremium}
         onStart={handleStart}
+        onOpenUpgradeModal={() => openModal('practice_bottom_bar')}
       />
     </div>
   )

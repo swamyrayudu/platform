@@ -12,15 +12,19 @@ import type { PracticeHistoryItem } from '@/types/practice'
 import { HistorySessionCard, HistoryEmptyState } from './history'
 
 interface PracticeHistoryProps {
+  isPremium?: boolean
   onBackToSetup: () => void
   onReviewSession: (sessionId: string) => void
   onRetryIncorrect: (sessionId: string) => void
+  onOpenUpgradeModal?: () => void
 }
 
 export default function PracticeHistory({
+  isPremium = false,
   onBackToSetup,
   onReviewSession,
   onRetryIncorrect,
+  onOpenUpgradeModal,
 }: PracticeHistoryProps) {
   const [history, setHistory] = useState<PracticeHistoryItem[]>([])
   const [loading, setLoading] = useState<boolean>(true)
@@ -68,8 +72,10 @@ export default function PracticeHistory({
             <HistorySessionCard
               key={item.id}
               item={item}
+              isPremium={isPremium}
               onReviewSession={onReviewSession}
               onRetryIncorrect={onRetryIncorrect}
+              onOpenUpgradeModal={onOpenUpgradeModal}
             />
           ))}
         </div>

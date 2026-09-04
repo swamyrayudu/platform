@@ -4,96 +4,93 @@ import React, { useState } from 'react'
 import {
   Crown,
   Check,
-  Zap,
   Sparkles,
   X,
   ShieldCheck,
-  BookOpen,
   Trophy,
-  Flame,
   CheckCircle2,
+  Lock,
 } from 'lucide-react'
-import { usePremium, type PremiumPlan } from './PremiumContext'
+import { toast } from 'sonner'
+import { usePremium } from './PremiumContext'
+import {
+  PLAN_LIST,
+  discountLabel,
+  formatPaise,
+  getPlan,
+  isPlanId,
+  type PlanId,
+} from '@/lib/payments/plans'
 
-const PLANS = [
-  {
-    id: 'pro_sprint' as PremiumPlan,
-    name: '30-Day Sprint',
-    price: '₹299',
-    originalPrice: '₹599',
-    discount: '50% OFF',
-    period: '/ 1 Month',
-    badge: 'Popular for Quick Revision',
-    popular: false,
-    features: [
-      'Access to 25+ Full Grand Mocks',
-      'All 10,000+ Practice MCQs',
-      'Instant Answer Keys & Solutions',
-      'Chapter-wise Tests',
-    ],
-  },
-  {
-    id: 'pro_full' as PremiumPlan,
-    name: 'DSC SGT Pro Pass',
-    price: '₹599',
-    originalPrice: '₹1,499',
-    discount: '60% OFF',
-    period: '/ 6 Months',
-    badge: '★ Most Recommended',
-    popular: true,
-    features: [
-      'All 100+ Grand Mocks & Mini Tests',
-      'Previous Papers (2018–2024 with key)',
-      'Detailed AI Question Explanations',
-      'Live State-level Rank & Percentile',
-      'Weak Topic Diagnostic & Drills',
-      'Unlimited Mock Exam Simulator Attempts',
-      'Downloadable PDF High-Yield Notes',
-    ],
-  },
-  {
-    id: 'lifetime' as PremiumPlan,
-    name: 'Ultimate All-Exams Pass',
-    price: '₹999',
-    originalPrice: '₹2,999',
-    discount: '67% OFF',
-    period: '/ 1 Year',
-    badge: 'Best Value',
-    popular: false,
-    features: [
-      'Everything in DSC SGT Pro Pass',
-      'Free Access to DSC TET & APPSC',
-      'Priority Doubt Support',
-      'Future AP DSC Notification Updates',
-    ],
-  },
-]
+interface AppliedCoupon {
+  code: string
+  discountPercent: number
+  /** planId → discounted amount in paise */
+  prices: Record<string, number>
+}
+
+function formatDate(iso: string | null): string {
+  if (!iso) return ''
+  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+}
 
 export default function PremiumModal() {
-  const { isModalOpen, closeModal, isPremium, upgradePlan, resetToFree, currentPlan } = usePremium()
-  const [selectedPlan, setSelectedPlan] = useState<PremiumPlan>('pro_full')
+  const {
+    isModalOpen,
+    closeModal,
+    isPremium,
+    currentPlan,
+    expiresAt,
+    startCheckout,
+    isCheckingOut,
+  } = usePremium()
+  const [selectedPlan, setSelectedPlan] = useState<PlanId>('pro_full')
   const [couponCode, setCouponCode] = useState('')
-  const [couponApplied, setCouponApplied] = useState(false)
-  const [isProcessing, setIsProcessing] = useState(false)
+  const [coupon, setCoupon] = useState<AppliedCoupon | null>(null)
+  const [isCheckingCoupon, setIsCheckingCoupon] = useState(false)
 
   if (!isModalOpen) return null
 
-  const handleApplyCoupon = (e: React.FormEvent) => {
+  const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (couponCode.trim().toUpperCase() === 'APDSC50' || couponCode.trim().toUpperCase() === 'PRO100') {
-      setCouponApplied(true)
-    } else {
-      setCouponApplied(true) // accept any demo code for pleasant experience
+    const code = couponCode.trim().toUpperCase()
+    if (!code) return
+    setIsCheckingCoupon(true)
+    try {
+      const res = await fetch('/api/payments/coupons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ code }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.valid) {
+        setCoupon({ code: data.code, discountPercent: data.discountPercent, prices: data.prices })
+        toast.success(`Coupon ${data.code} applied — ${data.discountPercent}% off`)
+      } else {
+        setCoupon(null)
+        toast.error(
+          res.status === 429 ? 'Too many attempts. Please wait a moment.' : 'That promo code is not valid.'
+        )
+      }
+    } catch {
+      toast.error('Could not check the promo code. Please try again.')
+    } finally {
+      setIsCheckingCoupon(false)
     }
   }
 
-  const handleSubscribe = () => {
-    setIsProcessing(true)
-    setTimeout(() => {
-      upgradePlan(selectedPlan)
-      setIsProcessing(false)
-    }, 600)
+  const priceFor = (planId: PlanId): number => {
+    const plan = getPlan(planId)
+    return coupon?.prices[planId] ?? plan.amountPaise
   }
+
+  const handleSubscribe = async () => {
+    await startCheckout(selectedPlan, coupon?.code)
+  }
+
+  const activePlanName = isPlanId(currentPlan) ? getPlan(currentPlan).name : 'Pro'
+  const payAmount = formatPaise(priceFor(selectedPlan))
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
@@ -105,7 +102,8 @@ export default function PremiumModal() {
         {/* Close Button */}
         <button
           onClick={closeModal}
-          className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-muted/60 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+          disabled={isCheckingOut}
+          className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-muted/60 text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-40"
           aria-label="Close modal"
         >
           <X className="h-4 w-4" />
@@ -128,30 +126,24 @@ export default function PremiumModal() {
 
           {/* Current Status banner if already premium */}
           {isPremium && (
-            <div className="mt-4 flex items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-600 dark:text-emerald-400">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
-                <span>
-                  <strong>Pro Active!</strong> You currently have full access ({currentPlan}).
-                </span>
-              </div>
-              <button
-                onClick={resetToFree}
-                className="rounded-lg border border-border/80 bg-background/80 px-2.5 py-1 text-[11px] font-medium text-foreground hover:bg-muted"
-              >
-                Switch to Free Demo
-              </button>
+            <div className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-600 dark:text-emerald-400">
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+              <span>
+                <strong>Pro Active</strong> — {activePlanName}
+                {expiresAt && <> · valid until <strong>{formatDate(expiresAt)}</strong></>}.
+                Buying another plan extends your access from that date.
+              </span>
             </div>
           )}
 
           {/* Pricing Plans Grid */}
           <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {PLANS.map((plan) => {
+            {PLAN_LIST.map((plan) => {
               const isSelected = selectedPlan === plan.id
               return (
                 <div
                   key={plan.id}
-                  onClick={() => setSelectedPlan(plan.id)}
+                  onClick={() => !isCheckingOut && setSelectedPlan(plan.id)}
                   className={`group relative flex flex-col justify-between rounded-2xl border p-4.5 transition-all cursor-pointer ${
                     plan.popular
                       ? 'border-amber-500 bg-gradient-to-b from-amber-500/5 to-transparent shadow-lg ring-2 ring-amber-500/20'
@@ -188,10 +180,12 @@ export default function PremiumModal() {
 
                     <div className="mt-3 flex items-baseline gap-1.5">
                       <span className="text-2xl font-extrabold text-foreground">
-                        {couponApplied ? `₹${Math.round(parseInt(plan.price.replace('₹', '')) * 0.8)}` : plan.price}
+                        {formatPaise(priceFor(plan.id))}
                       </span>
-                      <span className="text-xs text-muted-foreground line-through">{plan.originalPrice}</span>
-                      <span className="text-[10px] font-bold text-emerald-500">{plan.discount}</span>
+                      <span className="text-xs text-muted-foreground line-through">
+                        {formatPaise(plan.originalAmountPaise)}
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-500">{discountLabel(plan)}</span>
                     </div>
                     <p className="text-[11px] text-muted-foreground">{plan.period}</p>
 
@@ -226,31 +220,39 @@ export default function PremiumModal() {
 
           {/* Promo code + Trust row */}
           <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-border/70 bg-muted/30 p-3.5 sm:flex-row sm:items-center sm:justify-between">
-            <form onSubmit={handleApplyCoupon} className="flex items-center gap-2">
+            <form onSubmit={handleApplyCoupon} className="flex flex-wrap items-center gap-2">
               <input
                 type="text"
                 value={couponCode}
                 onChange={(e) => setCouponCode(e.target.value)}
                 placeholder="Promo Code (e.g. APDSC50)"
-                className="h-8.5 w-44 rounded-lg border border-border bg-background px-3 text-xs uppercase placeholder:normal-case placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                disabled={isCheckingOut}
+                maxLength={32}
+                className="h-8.5 w-44 rounded-lg border border-border bg-background px-3 text-xs uppercase placeholder:normal-case placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:opacity-60"
               />
               <button
                 type="submit"
-                className="h-8.5 rounded-lg border border-border bg-background px-3 text-xs font-semibold hover:bg-accent"
+                disabled={isCheckingCoupon || isCheckingOut || !couponCode.trim()}
+                className="h-8.5 rounded-lg border border-border bg-background px-3 text-xs font-semibold hover:bg-accent disabled:opacity-60"
               >
-                Apply
+                {isCheckingCoupon ? 'Checking…' : 'Apply'}
               </button>
-              {couponApplied && (
-                <span className="text-[11px] font-bold text-emerald-500">✓ Extra 20% Applied!</span>
+              {coupon && (
+                <span className="text-[11px] font-bold text-emerald-500">
+                  ✓ {coupon.code}: {coupon.discountPercent}% off applied
+                </span>
               )}
             </form>
 
             <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
               <span className="flex items-center gap-1">
-                <ShieldCheck className="h-3.5 w-3.5 text-primary" /> Instant Unlock
+                <Lock className="h-3.5 w-3.5 text-primary" /> Secured by Razorpay
               </span>
               <span className="flex items-center gap-1">
-                <Trophy className="h-3.5 w-3.5 text-amber-500" /> 100% Syllabus Coverage
+                <ShieldCheck className="h-3.5 w-3.5 text-primary" /> Instant Unlock
+              </span>
+              <span className="hidden sm:flex items-center gap-1">
+                <Trophy className="h-3.5 w-3.5 text-amber-500" /> 100% Syllabus
               </span>
             </div>
           </div>
@@ -259,30 +261,35 @@ export default function PremiumModal() {
           <div className="mt-6 flex flex-col-reverse gap-2.5 sm:flex-row sm:items-center sm:justify-end">
             <button
               onClick={closeModal}
-              className="rounded-xl border border-border px-5 py-2.5 text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground"
+              disabled={isCheckingOut}
+              className="rounded-xl border border-border px-5 py-2.5 text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-60"
             >
-              Continue with Free Tier
+              {isPremium ? 'Close' : 'Continue with Free Tier'}
             </button>
             <button
               onClick={handleSubscribe}
-              disabled={isProcessing}
+              disabled={isCheckingOut}
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-primary px-6 py-2.5 text-xs font-bold text-white shadow-md hover:brightness-105 active:scale-[0.99] disabled:opacity-70 transition-all"
             >
-              {isProcessing ? (
+              {isCheckingOut ? (
                 <>
                   <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  <span>Unlocking Pro Access...</span>
+                  <span>Opening secure payment…</span>
                 </>
               ) : (
                 <>
                   <Crown className="h-4 w-4" />
                   <span>
-                    {isPremium ? 'Renew / Update Pro Plan' : 'Unlock DSC / SGT Pro Instantly'}
+                    {isPremium ? `Extend Pro Access · Pay ${payAmount}` : `Unlock Pro · Pay ${payAmount}`}
                   </span>
                 </>
               )}
             </button>
           </div>
+
+          <p className="mt-3 text-center text-[10px] text-muted-foreground">
+            UPI, cards, net banking and wallets accepted. Payments are processed by Razorpay; we never see your card details.
+          </p>
         </div>
       </div>
     </div>

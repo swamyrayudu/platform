@@ -211,6 +211,54 @@
  * ✓ ALWAYS handle SESSION_REVOKED by clearing tokens + navigating to Login
  * ✓ NEVER store the raw Google password (Google OAuth is used)
  * ✓ Device ID is persistent (survives app restarts) but not hardware-bound
+ *
+ * ============================================================
+ * 7. PAYMENTS (Razorpay) — same endpoints as the web app
+ * ============================================================
+ *
+ * Install: npm install react-native-razorpay
+ *
+ * ```typescript
+ * import RazorpayCheckout from 'react-native-razorpay'
+ *
+ * // 1. Ask OUR server for an order. Send only the planId — never an amount.
+ * //    planId: 'pro_sprint' | 'pro_full' | 'lifetime'
+ * const { data: order } = await api.post('/api/payments/orders', {
+ *   planId: 'pro_full',
+ *   couponCode: 'APDSC50', // optional
+ * })
+ * // order = { orderId, amount, currency, keyId, plan, prefill }
+ *
+ * // 2. Open Razorpay Checkout with those values
+ * const result = await RazorpayCheckout.open({
+ *   key: order.keyId,
+ *   order_id: order.orderId,
+ *   amount: order.amount,
+ *   currency: order.currency,
+ *   name: 'RSD Education',
+ *   description: order.plan.name,
+ *   prefill: order.prefill,
+ *   theme: { color: '#f59e0b' },
+ * })
+ *
+ * // 3. Verify on OUR server — this is what actually unlocks Pro
+ * const { data } = await api.post('/api/payments/verify', {
+ *   razorpay_order_id: result.razorpay_order_id,
+ *   razorpay_payment_id: result.razorpay_payment_id,
+ *   razorpay_signature: result.razorpay_signature,
+ * })
+ * // data.user is the refreshed PublicUser (accountType, subscriptionExpiresAt, ...)
+ *
+ * // GET /api/payments/history → { user, orders[] } for a "My purchases" screen
+ * ```
+ *
+ * Pro status rule (same as server requirePremium):
+ *   accountType === 'PREMIUM' && subscriptionStatus === 'ACTIVE'
+ *   && new Date(subscriptionExpiresAt) > new Date()
+ *
+ * If /api/payments/verify fails after a successful checkout, do NOT let
+ * the user pay again — the Razorpay webhook activates the plan server-side.
+ * Re-fetch /api/auth/me after a short delay instead.
  */
 
 export {}  // Make this a module (no actual exports — reference only)

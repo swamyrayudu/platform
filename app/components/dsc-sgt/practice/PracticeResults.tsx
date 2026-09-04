@@ -19,16 +19,20 @@ import {
 
 interface PracticeResultsProps {
   results: PracticeResultSummary
+  isPremium?: boolean
   onPracticeTopic: (topic: string, subject: string) => void
   onRetryIncorrect: (topic?: string) => void
   onStartNewPractice: () => void
+  onOpenUpgradeModal?: () => void
 }
 
 export default function PracticeResults({
   results,
+  isPremium = false,
   onPracticeTopic,
   onRetryIncorrect,
   onStartNewPractice,
+  onOpenUpgradeModal,
 }: PracticeResultsProps) {
   // Weakest topic determination
   const weakTopics = results.topic_breakdown.filter((t) => t.is_weak || t.accuracy_pct < 65)
@@ -47,7 +51,9 @@ export default function PracticeResults({
       <WeakRecommendationsCard
         weakRecommendations={results.weak_recommendations}
         subject={results.subject}
+        isPremium={isPremium}
         onPracticeTopic={onPracticeTopic}
+        onOpenUpgradeModal={onOpenUpgradeModal}
       />
 
       {/* ── Comprehensive Question Review ────────────────────── */}
@@ -58,9 +64,11 @@ export default function PracticeResults({
         hasIncorrect={hasIncorrect}
         weakestTopic={weakestTopic}
         subject={results.subject}
+        isPremium={isPremium}
         onRetryIncorrect={() => onRetryIncorrect(weakestTopic?.topic)}
         onPracticeTopic={onPracticeTopic}
         onStartNewPractice={onStartNewPractice}
+        onOpenUpgradeModal={onOpenUpgradeModal}
       />
     </div>
   )

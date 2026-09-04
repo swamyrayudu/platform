@@ -4,13 +4,32 @@
 
 import { NextResponse } from 'next/server'
 import { getOptionalAuth } from '@/lib/auth/session'
-import { createPracticeSession, getPracticeSessionById } from '@/lib/practice/db'
+import { createPracticeSession, getPracticeSessionById, canUserCreatePracticeSession } from '@/lib/practice/db'
 import type { PracticeFilterState } from '@/types/practice'
 
 export async function POST(request: Request) {
   try {
     const auth = await getOptionalAuth(request)
-    const userId = auth?.user?.id || null
+    if (!auth?.user) {
+      return NextResponse.json(
+        { success: false, error: 'Please sign in to access practice sessions.', code: 'AUTH_REQUIRED' },
+        { status: 401 }
+      )
+    }
+
+    const quota = await canUserCreatePracticeSession(auth.user)
+    if (!quota.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: quota.reason,
+          code: 'FREE_LIMIT_REACHED',
+          isPremium: quota.isPremium,
+          completedSessions: quota.completedSessions,
+        },
+        { status: 403 }
+      )
+    }
 
     const body = await request.json()
     const { fromSessionId, topic, subject, medium } = body
@@ -35,14 +54,14 @@ export async function POST(request: Request) {
       topics: targetTopic ? [targetTopic] : [],
       subtopics: [],
       difficulty: [],
-      question_count: 20,
+      question_count: Math.min(20, quota.maxQuestions),
       mode: 'previously_incorrect',
       feedback_mode: 'instant',
       has_timer: false,
       duration_minutes: 20,
     }
 
-    const newSession = await createPracticeSession(filter, userId)
+    const newSession = await createPracticeSession(filter, auth.user.id)
 
     return NextResponse.json({
       success: true,
