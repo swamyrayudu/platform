@@ -77,7 +77,7 @@ function mapRowToPracticeQuestion(row: any, medium: PracticeMedium = 'telugu'): 
     id: row.id || row.question_id,
     question_id: row.question_id || row.id,
     medium: derivedMedium,
-    subject: 'Pedagogy', // Standardized to 'Pedagogy' so UI card & filter counts sync perfectly
+    subject: 'Educational Psychology + Perspectives in Education', // Standardized so UI card & filter counts sync perfectly
     class_level: normalizeClassLevel(row.class_level),
     chapter: row.chapter || null,
     topic: row.topic || 'Child Development',

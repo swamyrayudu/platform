@@ -13,14 +13,14 @@ import {
 export * from './fetch-algorithms'
 
 export const PedagogyMetadata: SubjectMetadata = {
-  id: 'Pedagogy',
-  name: 'Pedagogy',
-  teluguName: 'సైకాలజీ & బోధన',
+  id: 'Educational Psychology + Perspectives in Education',
+  name: 'Educational Psychology + Perspectives in Education',
+  teluguName: 'విద్యా మనోవిజ్ఞాన శాస్త్రం & విద్యా దృక్పథాలు',
   code: 'CDP',
   iconName: 'Brain',
   color: 'text-purple-600 dark:text-purple-400',
   bg: 'bg-purple-500/10 border-purple-500/30',
-  tag: 'Child Development',
+  tag: 'Psychology & Perspectives in Education',
   tableName: 'pedagogy_subject_questions',
   fallbackToUnifiedTable: true,
   supportedMediums: ['telugu', 'english'],

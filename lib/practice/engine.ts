@@ -58,6 +58,32 @@ export function filterQuestionPool(
       filter.subject !== 'All' &&
       q.subject.toLowerCase() !== filter.subject.toLowerCase()
     ) {
+      const isGKFilter =
+        filter.subject.toLowerCase().includes('gk') ||
+        filter.subject.toLowerCase().includes('general knowledge') ||
+        filter.subject.toLowerCase().includes('current affairs')
+      const isGKQuestion =
+        q.subject.toLowerCase().includes('gk') ||
+        q.subject.toLowerCase().includes('general knowledge') ||
+        q.subject.toLowerCase().includes('current affairs')
+      if (isGKFilter && isGKQuestion) {
+        return true
+      }
+
+      const isPedFilter =
+        filter.subject.toLowerCase().includes('pedagogy') ||
+        filter.subject.toLowerCase().includes('educational psychology') ||
+        filter.subject.toLowerCase().includes('perspectives in education') ||
+        filter.subject.toLowerCase().includes('cdp')
+      const isPedQuestion =
+        q.subject.toLowerCase().includes('pedagogy') ||
+        q.subject.toLowerCase().includes('educational psychology') ||
+        q.subject.toLowerCase().includes('perspectives in education') ||
+        q.subject.toLowerCase().includes('cdp')
+      if (isPedFilter && isPedQuestion) {
+        return true
+      }
+
       return false
     }
 
@@ -327,7 +353,32 @@ export function extractFilterOptions(
 
   // Narrow pool by subject for topics / subtopics
   const subjectPool = currentFilter.subject && currentFilter.subject !== 'All'
-    ? mediumPool.filter((q) => q.subject.toLowerCase() === currentFilter.subject?.toLowerCase())
+    ? mediumPool.filter((q) => {
+        if (q.subject.toLowerCase() === currentFilter.subject?.toLowerCase()) return true
+        const isGKFilter =
+          currentFilter.subject?.toLowerCase().includes('gk') ||
+          currentFilter.subject?.toLowerCase().includes('general knowledge') ||
+          currentFilter.subject?.toLowerCase().includes('current affairs')
+        const isGKQuestion =
+          q.subject.toLowerCase().includes('gk') ||
+          q.subject.toLowerCase().includes('general knowledge') ||
+          q.subject.toLowerCase().includes('current affairs')
+        if (isGKFilter && isGKQuestion) return true
+
+        const isPedFilter =
+          currentFilter.subject?.toLowerCase().includes('pedagogy') ||
+          currentFilter.subject?.toLowerCase().includes('educational psychology') ||
+          currentFilter.subject?.toLowerCase().includes('perspectives in education') ||
+          currentFilter.subject?.toLowerCase().includes('cdp')
+        const isPedQuestion =
+          q.subject.toLowerCase().includes('pedagogy') ||
+          q.subject.toLowerCase().includes('educational psychology') ||
+          q.subject.toLowerCase().includes('perspectives in education') ||
+          q.subject.toLowerCase().includes('cdp')
+        if (isPedFilter && isPedQuestion) return true
+
+        return false
+      })
     : mediumPool
 
   // Available classes

@@ -11,6 +11,8 @@ export type SubjectId =
   | 'Science'
   | 'Social Studies'
   | 'Pedagogy'
+  | 'Educational Psychology + Perspectives in Education'
+  | 'GK & Current Affairs'
   | string
 
 export interface SubjectMetadata {
@@ -18,7 +20,7 @@ export interface SubjectMetadata {
   name: string
   teluguName: string
   code: string
-  iconName: 'Languages' | 'BookOpen' | 'Calculator' | 'FlaskConical' | 'Globe' | 'Brain'
+  iconName: 'Languages' | 'BookOpen' | 'Calculator' | 'FlaskConical' | 'Globe' | 'Brain' | 'Newspaper'
   color: string
   bg: string
   tag: string

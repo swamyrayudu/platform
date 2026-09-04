@@ -9,6 +9,7 @@ import { MathematicsSubjectProvider } from './mathematics'
 import { ScienceSubjectProvider } from './science'
 import { SocialStudiesSubjectProvider } from './social-studies'
 import { PedagogySubjectProvider } from './pedagogy'
+import { GKSubjectProvider } from './gk'
 
 // Registered subject providers map (keyed by lowercase subject id/name)
 const providersMap: Map<string, SubjectProvider> = new Map()
@@ -22,6 +23,7 @@ function initRegistry() {
     new ScienceSubjectProvider(),
     new SocialStudiesSubjectProvider(),
     new PedagogySubjectProvider(),
+    new GKSubjectProvider(),
   ]
 
   defaults.forEach((p) => {
@@ -40,15 +42,27 @@ function initRegistry() {
     providersMap.set('telugu medium mathematics', mathProvider)
   }
 
-  // Aliases for Pedagogy / CDP / Educational Psychology
-  const pedProvider = defaults.find((p) => p.metadata.id === 'Pedagogy')
+  // Aliases for Pedagogy / CDP / Educational Psychology + Perspectives in Education
+  const pedProvider = defaults.find(
+    (p) =>
+      p.metadata.id === 'Educational Psychology + Perspectives in Education' ||
+      p.metadata.id === 'Pedagogy'
+  )
   if (pedProvider) {
+    providersMap.set('pedagogy', pedProvider)
     providersMap.set('educational psychology', pedProvider)
+    providersMap.set('perspectives in education', pedProvider)
+    providersMap.set('educational psychology + perspectives in education', pedProvider)
+    providersMap.set('educational psychology & perspectives in education', pedProvider)
+    providersMap.set('educational psychology and perspectives in education', pedProvider)
     providersMap.set('psychology', pedProvider)
     providersMap.set('cdp', pedProvider)
     providersMap.set('child development', pedProvider)
     providersMap.set('సైకాలజీ & బోధన', pedProvider)
     providersMap.set('సైకాలజీ', pedProvider)
+    providersMap.set('విద్యా దృక్పథాలు', pedProvider)
+    providersMap.set('విద్యా మనోవిజ్ఞాన శాస్త్రం', pedProvider)
+    providersMap.set('విద్యా మనోవిజ్ఞాన శాస్త్రం & విద్యా దృక్పథాలు', pedProvider)
   }
 
   // Aliases for Science (Telugu & English Medium)
@@ -66,6 +80,23 @@ function initRegistry() {
     providersMap.set('english medium science', sciProvider)
     providersMap.set('evs', sciProvider)
     providersMap.set('పరిసరాల విజ్ఞానం', sciProvider)
+  }
+
+  // Aliases for GK & Current Affairs
+  const gkProvider = defaults.find((p) => p.metadata.id === 'GK & Current Affairs')
+  if (gkProvider) {
+    providersMap.set('gk', gkProvider)
+    providersMap.set('current affairs', gkProvider)
+    providersMap.set('general knowledge', gkProvider)
+    providersMap.set('general knowledge & current affairs', gkProvider)
+    providersMap.set('gk & current affairs', gkProvider)
+    providersMap.set('gk & ca', gkProvider)
+    providersMap.set('gk and current affairs', gkProvider)
+    providersMap.set('సాధారణ జ్ఞానం', gkProvider)
+    providersMap.set('సాధారణ జ్ఞానం & వర్తమాన వ్యవహారాలు', gkProvider)
+    providersMap.set('వర్తమాన వ్యవహారాలు', gkProvider)
+    providersMap.set('gk_english_medium', gkProvider)
+    providersMap.set('gk_telugu_medium', gkProvider)
   }
 }
 

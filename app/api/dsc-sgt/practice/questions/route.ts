@@ -30,11 +30,25 @@ export async function GET(request: Request) {
     const difficulty = searchParams.get('difficulty')
     const topic = searchParams.get('topic')
     const classLevel = searchParams.get('class_level')
+    const medium = (searchParams.get('medium') || 'english').toLowerCase()
     const isRandom = searchParams.get('random') !== 'false'
 
     // Determine target table based on subject provider
     const provider = getSubjectProvider(subject)
-    const tableName = provider ? provider.metadata.tableName : 'dsc_practice_questions'
+    let tableName = provider ? provider.metadata.tableName : 'dsc_practice_questions'
+    if (
+      subject.toLowerCase().includes('gk') ||
+      subject.toLowerCase().includes('general knowledge') ||
+      subject.toLowerCase().includes('current affairs')
+    ) {
+      tableName = medium === 'telugu' ? 'gk_telugu_medium' : 'gk_english_medium'
+    } else if (
+      subject.toLowerCase().includes('pedagogy') ||
+      subject.toLowerCase().includes('psychology') ||
+      subject.toLowerCase().includes('perspectives')
+    ) {
+      tableName = medium === 'english' ? 'pedagogy_english_medium' : 'pedagogy_subject_questions'
+    }
 
     let query = supabaseAdmin
       .from(tableName)

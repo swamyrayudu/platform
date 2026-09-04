@@ -12,6 +12,7 @@ import {
   FlaskConical,
   Globe,
   Brain,
+  Newspaper,
   HelpCircle,
   LucideIcon,
 } from 'lucide-react'
@@ -74,13 +75,22 @@ export const SUBJECT_LIST: SubjectConfig[] = [
     tag: 'Geography & Polity',
   },
   {
-    id: 'Pedagogy',
-    name: 'Pedagogy',
-    teluguName: 'సైకాలజీ & బోధన',
+    id: 'Educational Psychology + Perspectives in Education',
+    name: 'Educational Psychology + Perspectives in Education',
+    teluguName: 'విద్యా మనోవిజ్ఞాన శాస్త్రం & విద్యా దృక్పథాలు',
     icon: Brain,
     color: 'text-purple-600 dark:text-purple-400',
     bg: 'bg-purple-500/10 border-purple-500/30',
-    tag: 'Child Development',
+    tag: 'Psychology & Perspectives',
+  },
+  {
+    id: 'GK & Current Affairs',
+    name: 'GK & Current Affairs',
+    teluguName: 'సాధారణ జ్ఞానం & వర్తమాన వ్యవహారాలు',
+    icon: Newspaper,
+    color: 'text-indigo-600 dark:text-indigo-400',
+    bg: 'bg-indigo-500/10 border-indigo-500/30',
+    tag: 'Current Affairs & Static GK',
   },
 ]
 
@@ -114,7 +124,12 @@ export default function SubjectSelector({
           const isSelected = selectedSubject.toLowerCase() === sub.name.toLowerCase()
           const Icon = sub.icon
           const serverSubj = dynamicOptions?.available_subjects?.find(
-            (s) => s.name.toLowerCase() === sub.name.toLowerCase()
+            (s) =>
+              s.name.toLowerCase() === sub.name.toLowerCase() ||
+              ((sub.name.includes('GK') || sub.name.includes('Current Affairs')) &&
+                (s.name.includes('GK') || s.name.includes('General Knowledge') || s.name.includes('Current Affairs'))) ||
+              ((sub.name.includes('Psychology') || sub.name.includes('Pedagogy') || sub.name.includes('Perspectives')) &&
+                (s.name.includes('Psychology') || s.name.includes('Pedagogy') || s.name.includes('Perspectives')))
           )
           const qCount = serverSubj ? serverSubj.question_count : sub.name === 'English' ? 50 : 0
           const hasQuestions = qCount > 0
@@ -147,10 +162,13 @@ export default function SubjectSelector({
                 )}
               </div>
 
-              <span className="text-xs sm:text-sm font-bold truncate w-full text-foreground">
+              <span
+                className="text-xs sm:text-sm font-bold line-clamp-2 w-full text-foreground leading-tight min-h-[2.2rem] flex items-center"
+                title={sub.name}
+              >
                 {sub.name}
               </span>
-              <span className="text-[10px] text-muted-foreground truncate w-full mt-0.5">
+              <span className="text-[10px] text-muted-foreground truncate w-full mt-1">
                 {sub.teluguName}
               </span>
             </button>
