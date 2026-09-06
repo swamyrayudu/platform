@@ -1,38 +1,123 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Crown,
   Check,
-  Sparkles,
   X,
-  ShieldCheck,
-  Trophy,
   CheckCircle2,
+  RefreshCw,
+  FileCheck2,
+  BookOpen,
+  Timer,
+  BarChart3,
+  Brain,
+  Layers,
+  TrendingUp,
+  Download,
+  Zap,
+  Shield,
   Lock,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { usePremium } from './PremiumContext'
 import {
   PLAN_LIST,
-  discountLabel,
   formatPaise,
   getPlan,
   isPlanId,
+  type Plan,
   type PlanId,
 } from '@/lib/payments/plans'
+
+// ---- Types -------------------------------------------------------
 
 interface AppliedCoupon {
   code: string
   discountPercent: number
-  /** planId → discounted amount in paise */
   prices: Record<string, number>
 }
 
+// ---- Actual premium features (same for ALL plans) ----------------
+// Every plan unlocks the exact same feature set — only duration differs.
+
+const PREMIUM_FEATURES = [
+  {
+    icon: FileCheck2,
+    title: 'All 150+ Grand Mock Tests',
+    desc: 'Full-length AP DSC SGT mocks in Telugu & English medium',
+    color: 'text-amber-500',
+    bg: 'bg-amber-500/10',
+  },
+  {
+    icon: BookOpen,
+    title: '12,000+ Practice MCQs',
+    desc: 'Chapter-wise & subject-wise practice with unlimited attempts',
+    color: 'text-blue-500',
+    bg: 'bg-blue-500/10',
+  },
+  {
+    icon: Timer,
+    title: 'Previous Year Papers 2018–2024',
+    desc: 'Fully solved with answer keys and detailed explanations',
+    color: 'text-purple-500',
+    bg: 'bg-purple-500/10',
+  },
+  {
+    icon: Brain,
+    title: 'AI-powered Question Explanations',
+    desc: 'Instant hints and step-by-step solutions on every question',
+    color: 'text-pink-500',
+    bg: 'bg-pink-500/10',
+  },
+  {
+    icon: BarChart3,
+    title: 'Live State-level Rank & Percentile',
+    desc: 'See exactly where you stand among all AP DSC aspirants',
+    color: 'text-emerald-500',
+    bg: 'bg-emerald-500/10',
+  },
+  {
+    icon: Layers,
+    title: 'Chapter-wise Targeted Practice',
+    desc: 'Pick any topic, subject, or weak area for focused revision',
+    color: 'text-cyan-500',
+    bg: 'bg-cyan-500/10',
+  },
+  {
+    icon: TrendingUp,
+    title: 'Weak Topic Diagnostic & Drills',
+    desc: 'Automatic weak-area detection with targeted drill sessions',
+    color: 'text-orange-500',
+    bg: 'bg-orange-500/10',
+  },
+  {
+    icon: Download,
+    title: 'Downloadable PDF High-Yield Notes',
+    desc: 'Printable revision cards for last-minute exam preparation',
+    color: 'text-indigo-500',
+    bg: 'bg-indigo-500/10',
+  },
+]
+
+// ---- Helpers -----------------------------------------------------
+
 function formatDate(iso: string | null): string {
   if (!iso) return ''
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-IN', {
+    day: 'numeric', month: 'short', year: 'numeric',
+  })
 }
+
+// ---- Plan card skeleton ------------------------------------------
+
+function PlanSkeleton() {
+  return (
+    <div className="h-28 rounded-2xl border border-border/60 bg-muted/40 animate-pulse" />
+  )
+}
+
+// ---- Main Modal --------------------------------------------------
 
 export default function PremiumModal() {
   const {
@@ -44,13 +129,59 @@ export default function PremiumModal() {
     startCheckout,
     isCheckingOut,
   } = usePremium()
+
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('pro_full')
   const [couponCode, setCouponCode] = useState('')
   const [coupon, setCoupon] = useState<AppliedCoupon | null>(null)
   const [isCheckingCoupon, setIsCheckingCoupon] = useState(false)
 
+  // Live plan prices fetched from server (admin-managed)
+  const [livePlans, setLivePlans] = useState<Plan[]>([])
+  const [loadingPlans, setLoadingPlans] = useState(false)
+
+  useEffect(() => {
+    if (!isModalOpen) return
+    let cancelled = false
+    setLoadingPlans(true)
+
+    fetch('/api/payments/plans', { credentials: 'include' })
+      .then(res => {
+        if (!res.ok) throw new Error()
+        return res.json()
+      })
+      .then(data => {
+        if (!cancelled && Array.isArray(data.plans) && data.plans.length > 0) {
+          setLivePlans(data.plans as Plan[])
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setLivePlans(PLAN_LIST)
+      })
+      .finally(() => { if (!cancelled) setLoadingPlans(false) })
+
+    return () => { cancelled = true }
+  }, [isModalOpen])
+
   if (!isModalOpen) return null
 
+  const displayPlans = livePlans.length > 0 ? livePlans : PLAN_LIST
+
+  // ---- Price helpers
+  const priceFor = (planId: PlanId): number => {
+    if (coupon?.prices[planId] !== undefined) return coupon.prices[planId]
+    return displayPlans.find(p => p.id === planId)?.amountPaise ?? getPlan(planId).amountPaise
+  }
+
+  const origPriceFor = (planId: PlanId): number =>
+    displayPlans.find(p => p.id === planId)?.originalAmountPaise ?? getPlan(planId).originalAmountPaise
+
+  const discountPctFor = (planId: PlanId): number => {
+    const orig = origPriceFor(planId)
+    const sell = priceFor(planId)
+    return orig > 0 ? Math.round((1 - sell / orig) * 100) : 0
+  }
+
+  // ---- Coupon
   const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault()
     const code = couponCode.trim().toUpperCase()
@@ -66,23 +197,16 @@ export default function PremiumModal() {
       const data = await res.json().catch(() => ({}))
       if (res.ok && data.valid) {
         setCoupon({ code: data.code, discountPercent: data.discountPercent, prices: data.prices })
-        toast.success(`Coupon ${data.code} applied — ${data.discountPercent}% off`)
+        toast.success(`✓ ${data.code} applied — ${data.discountPercent}% off!`)
       } else {
         setCoupon(null)
-        toast.error(
-          res.status === 429 ? 'Too many attempts. Please wait a moment.' : 'That promo code is not valid.'
-        )
+        toast.error(res.status === 429 ? 'Too many attempts. Wait a moment.' : 'Invalid promo code.')
       }
     } catch {
-      toast.error('Could not check the promo code. Please try again.')
+      toast.error('Could not check the promo code.')
     } finally {
       setIsCheckingCoupon(false)
     }
-  }
-
-  const priceFor = (planId: PlanId): number => {
-    const plan = getPlan(planId)
-    return coupon?.prices[planId] ?? plan.amountPaise
   }
 
   const handleSubscribe = async () => {
@@ -90,206 +214,265 @@ export default function PremiumModal() {
   }
 
   const activePlanName = isPlanId(currentPlan) ? getPlan(currentPlan).name : 'Pro'
+  const selectedPlanData = displayPlans.find(p => p.id === selectedPlan)
   const payAmount = formatPaise(priceFor(selectedPlan))
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-3xl overflow-hidden rounded-3xl border border-amber-500/30 bg-background text-foreground shadow-2xl animate-in zoom-in-95 duration-200">
-        {/* Glow accent */}
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-amber-500/15 blur-3xl" />
-        <div className="absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-primary/15 blur-3xl" />
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200 p-0 sm:p-4">
+      <div className="relative w-full sm:max-w-5xl max-h-[95dvh] overflow-hidden sm:rounded-3xl rounded-t-3xl border border-white/10 bg-background text-foreground shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300 flex flex-col">
 
-        {/* Close Button */}
+        {/* Top gradient strip */}
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-primary" />
+
+        {/* Glow blobs */}
+        <div className="pointer-events-none absolute -right-32 -top-32 h-80 w-80 rounded-full bg-amber-500/10 blur-3xl" />
+        <div className="pointer-events-none absolute -left-32 -bottom-32 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
+
+        {/* Close */}
         <button
           onClick={closeModal}
           disabled={isCheckingOut}
-          className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-muted/60 text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-40"
-          aria-label="Close modal"
+          aria-label="Close"
+          className="absolute right-4 top-4 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-muted/80 text-muted-foreground backdrop-blur transition hover:bg-muted hover:text-foreground disabled:opacity-40"
         >
           <X className="h-4 w-4" />
         </button>
 
-        <div className="relative p-6 sm:p-8">
-          {/* Header */}
-          <div className="text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 text-xs font-bold text-amber-500">
-              <Sparkles className="h-3.5 w-3.5" />
-              <span>AP DSC / SGT PREPARATION PASS</span>
-            </div>
-            <h2 className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">
-              Unlock Your Teacher Rank with <span className="bg-gradient-to-r from-amber-500 via-orange-500 to-primary bg-clip-text text-transparent">Pro Access</span>
-            </h2>
-            <p className="mx-auto mt-2 max-w-lg text-xs sm:text-sm text-muted-foreground">
-              Get unlimited access to all AP DSC SGT Grand Mocks, 12,000+ Telugu medium & English medium questions, instant AI explanations, and rank analytics.
-            </p>
-          </div>
+        {/* ── Scrollable content ── */}
+        <div className="relative overflow-y-auto flex-1">
+          <div className="grid lg:grid-cols-[1fr_380px]">
 
-          {/* Current Status banner if already premium */}
-          {isPremium && (
-            <div className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-600 dark:text-emerald-400">
-              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
-              <span>
-                <strong>Pro Active</strong> — {activePlanName}
-                {expiresAt && <> · valid until <strong>{formatDate(expiresAt)}</strong></>}.
-                Buying another plan extends your access from that date.
-              </span>
-            </div>
-          )}
+            {/* ═══ LEFT — Features ═════════════════════════════════ */}
+            <div className="p-6 sm:p-8 lg:border-r border-border/60">
 
-          {/* Pricing Plans Grid */}
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {PLAN_LIST.map((plan) => {
-              const isSelected = selectedPlan === plan.id
-              return (
-                <div
-                  key={plan.id}
-                  onClick={() => !isCheckingOut && setSelectedPlan(plan.id)}
-                  className={`group relative flex flex-col justify-between rounded-2xl border p-4.5 transition-all cursor-pointer ${
-                    plan.popular
-                      ? 'border-amber-500 bg-gradient-to-b from-amber-500/5 to-transparent shadow-lg ring-2 ring-amber-500/20'
-                      : isSelected
-                      ? 'border-primary bg-primary/5 shadow-md'
-                      : 'border-border/80 bg-card hover:border-border'
-                  }`}
-                >
-                  {plan.badge && (
+              {/* Header */}
+              <div className="flex items-center gap-2.5 mb-1">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg shadow-amber-500/30">
+                  <Crown className="h-4.5 w-4.5 fill-white text-white" />
+                </div>
+                <div>
+                  <div className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">
+                    AP DSC / SGT Pro Pass
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-black tracking-tight text-foreground leading-tight">
+                    Everything Unlocked.<br className="hidden sm:block" />
+                    <span className="bg-gradient-to-r from-amber-500 via-orange-500 to-primary bg-clip-text text-transparent">
+                      Score 135+.
+                    </span>
+                  </h2>
+                </div>
+              </div>
+              <p className="mt-2 text-xs sm:text-sm text-muted-foreground leading-relaxed mb-5">
+                All plans unlock the <strong className="text-foreground">exact same features</strong> — the only difference is how long your access lasts. Pick the plan that fits your exam timeline.
+              </p>
+
+              {/* Active premium banner */}
+              {isPremium && (
+                <div className="mb-5 flex items-center gap-2.5 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3.5">
+                  <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
+                  <div className="text-xs">
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400">Pro Active</span>
+                    <span className="text-muted-foreground"> — {activePlanName}</span>
+                    {expiresAt && (
+                      <span className="text-muted-foreground"> · valid until <strong className="text-foreground">{formatDate(expiresAt)}</strong></span>
+                    )}
+                    <span className="block text-muted-foreground/70 mt-0.5">Buying another plan extends your access.</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Feature grid */}
+              <div className="grid sm:grid-cols-2 gap-2.5">
+                {PREMIUM_FEATURES.map((feat) => {
+                  const Icon = feat.icon
+                  return (
                     <div
-                      className={`absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-2.5 py-0.5 text-[10px] font-bold shadow-xs whitespace-nowrap ${
-                        plan.popular
-                          ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white'
-                          : 'bg-muted border border-border text-muted-foreground'
-                      }`}
+                      key={feat.title}
+                      className="group flex items-start gap-3 rounded-xl border border-border/50 bg-card/60 p-3 transition-all hover:border-amber-500/30 hover:bg-amber-500/5"
                     >
-                      {plan.badge}
-                    </div>
-                  )}
-
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-bold text-foreground">{plan.name}</h3>
-                      <div
-                        className={`flex h-4 w-4 items-center justify-center rounded-full border ${
-                          isSelected
-                            ? 'border-primary bg-primary text-primary-foreground'
-                            : 'border-muted-foreground/40'
-                        }`}
-                      >
-                        {isSelected && <Check className="h-2.5 w-2.5" />}
+                      <div className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-lg ${feat.bg} ${feat.color} mt-0.5`}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-foreground leading-tight">{feat.title}</div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{feat.desc}</div>
                       </div>
                     </div>
+                  )
+                })}
+              </div>
 
-                    <div className="mt-3 flex items-baseline gap-1.5">
-                      <span className="text-2xl font-extrabold text-foreground">
-                        {formatPaise(priceFor(plan.id))}
-                      </span>
-                      <span className="text-xs text-muted-foreground line-through">
-                        {formatPaise(plan.originalAmountPaise)}
-                      </span>
-                      <span className="text-[10px] font-bold text-emerald-500">{discountLabel(plan)}</span>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground">{plan.period}</p>
+              {/* Trust badges */}
+              <div className="mt-5 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground border-t border-border/50 pt-4">
+                <span className="flex items-center gap-1.5">
+                  <Lock className="h-3.5 w-3.5 text-primary" />
+                  Secured by Razorpay
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Zap className="h-3.5 w-3.5 text-amber-500" />
+                  Instant activation
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Shield className="h-3.5 w-3.5 text-emerald-500" />
+                  UPI · Cards · Net Banking
+                </span>
+              </div>
+            </div>
 
-                    <div className="my-3 border-t border-border/60" />
+            {/* ═══ RIGHT — Plan Selector + Checkout ════════════════ */}
+            <div className="p-6 sm:p-8 bg-muted/20 flex flex-col gap-5">
 
-                    <ul className="space-y-1.5">
-                      {plan.features.map((f, i) => (
-                        <li key={i} className="flex items-start gap-1.5 text-[11px] text-muted-foreground leading-tight">
-                          <Check className="mt-0.5 h-3 w-3 shrink-0 text-emerald-500" />
-                          <span>{f}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-bold text-foreground">Choose Your Plan</h3>
+                  {!loadingPlans && (
+                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground/60">
+                      <RefreshCw className="h-2.5 w-2.5" />
+                      Live pricing
+                    </span>
+                  )}
+                </div>
 
+                {/* Plan cards */}
+                <div className="flex flex-col gap-2.5">
+                  {loadingPlans ? (
+                    [1, 2, 3].map(i => <PlanSkeleton key={i} />)
+                  ) : (
+                    displayPlans.map((plan) => {
+                      const isSelected = selectedPlan === plan.id
+                      const pct = discountPctFor(plan.id)
+                      return (
+                        <button
+                          key={plan.id}
+                          type="button"
+                          disabled={isCheckingOut}
+                          onClick={() => setSelectedPlan(plan.id)}
+                          className={`relative w-full rounded-2xl border p-4 text-left transition-all focus:outline-none ${
+                            plan.popular && isSelected
+                              ? 'border-amber-500 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent ring-2 ring-amber-500/30 shadow-lg shadow-amber-500/10'
+                              : isSelected
+                              ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                              : 'border-border bg-card hover:border-border/80 hover:bg-card'
+                          }`}
+                        >
+                          {/* Popular pill */}
+                          {plan.popular && (
+                            <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-0.5 text-[10px] font-black text-white whitespace-nowrap shadow-sm">
+                              ★ MOST POPULAR
+                            </span>
+                          )}
+
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-bold text-foreground">{plan.name}</span>
+                                <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold ${
+                                  pct >= 60
+                                    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                    : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                                }`}>
+                                  {pct}% OFF
+                                </span>
+                              </div>
+                              <div className="mt-1 flex items-baseline gap-2">
+                                <span className="text-xl font-extrabold text-foreground">
+                                  {formatPaise(priceFor(plan.id))}
+                                </span>
+                                <span className="text-xs text-muted-foreground line-through">
+                                  {formatPaise(origPriceFor(plan.id))}
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-muted-foreground mt-0.5">
+                                {plan.period} · {plan.durationDays} days access
+                              </div>
+                            </div>
+
+                            {/* Radio indicator */}
+                            <div className={`shrink-0 flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all ${
+                              isSelected
+                                ? plan.popular
+                                  ? 'border-amber-500 bg-amber-500'
+                                  : 'border-primary bg-primary'
+                                : 'border-muted-foreground/30 bg-transparent'
+                            }`}>
+                              {isSelected && <Check className="h-3 w-3 text-white" />}
+                            </div>
+                          </div>
+                        </button>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* Promo code */}
+              <form onSubmit={handleApplyCoupon} className="space-y-2">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
+                  Promo Code
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value)}
+                    placeholder="e.g. APDSC50"
+                    disabled={isCheckingOut}
+                    maxLength={32}
+                    className="flex-1 h-9 rounded-xl border border-border bg-background px-3 text-xs uppercase placeholder:normal-case placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30 disabled:opacity-60"
+                  />
                   <button
-                    type="button"
-                    className={`mt-4 w-full rounded-xl py-2 text-xs font-bold transition-colors ${
-                      isSelected
-                        ? plan.popular
-                          ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:brightness-105 shadow-xs'
-                          : 'bg-primary text-primary-foreground hover:bg-primary/90'
-                        : 'border border-border bg-card text-foreground hover:bg-accent'
-                    }`}
+                    type="submit"
+                    disabled={isCheckingCoupon || isCheckingOut || !couponCode.trim()}
+                    className="h-9 rounded-xl border border-border bg-background px-3.5 text-xs font-bold hover:bg-accent disabled:opacity-50 transition-colors"
                   >
-                    {isSelected ? 'Selected' : 'Select Plan'}
+                    {isCheckingCoupon ? '…' : 'Apply'}
                   </button>
                 </div>
-              )
-            })}
-          </div>
+                {coupon && (
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-500">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    {coupon.code} — {coupon.discountPercent}% off applied
+                  </div>
+                )}
+              </form>
 
-          {/* Promo code + Trust row */}
-          <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-border/70 bg-muted/30 p-3.5 sm:flex-row sm:items-center sm:justify-between">
-            <form onSubmit={handleApplyCoupon} className="flex flex-wrap items-center gap-2">
-              <input
-                type="text"
-                value={couponCode}
-                onChange={(e) => setCouponCode(e.target.value)}
-                placeholder="Promo Code (e.g. APDSC50)"
-                disabled={isCheckingOut}
-                maxLength={32}
-                className="h-8.5 w-44 rounded-lg border border-border bg-background px-3 text-xs uppercase placeholder:normal-case placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:opacity-60"
-              />
-              <button
-                type="submit"
-                disabled={isCheckingCoupon || isCheckingOut || !couponCode.trim()}
-                className="h-8.5 rounded-lg border border-border bg-background px-3 text-xs font-semibold hover:bg-accent disabled:opacity-60"
-              >
-                {isCheckingCoupon ? 'Checking…' : 'Apply'}
-              </button>
-              {coupon && (
-                <span className="text-[11px] font-bold text-emerald-500">
-                  ✓ {coupon.code}: {coupon.discountPercent}% off applied
-                </span>
-              )}
-            </form>
+              {/* CTA */}
+              <div className="flex flex-col gap-2 mt-auto">
+                <button
+                  onClick={handleSubscribe}
+                  disabled={isCheckingOut || loadingPlans}
+                  className="group relative w-full overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-primary py-3.5 text-sm font-black text-white shadow-lg shadow-amber-500/25 transition-all hover:brightness-110 hover:shadow-xl hover:shadow-amber-500/30 active:scale-[0.99] disabled:opacity-70"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                  {isCheckingOut ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      Opening secure payment…
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      <Crown className="h-4 w-4 fill-white" />
+                      {isPremium
+                        ? `Extend Access · Pay ${payAmount}`
+                        : `Unlock Pro · Pay ${payAmount}`}
+                    </span>
+                  )}
+                </button>
 
-            <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Lock className="h-3.5 w-3.5 text-primary" /> Secured by Razorpay
-              </span>
-              <span className="flex items-center gap-1">
-                <ShieldCheck className="h-3.5 w-3.5 text-primary" /> Instant Unlock
-              </span>
-              <span className="hidden sm:flex items-center gap-1">
-                <Trophy className="h-3.5 w-3.5 text-amber-500" /> 100% Syllabus
-              </span>
+                <button
+                  onClick={closeModal}
+                  disabled={isCheckingOut}
+                  className="w-full rounded-2xl border border-border py-2.5 text-xs font-semibold text-muted-foreground transition hover:bg-accent hover:text-foreground disabled:opacity-50"
+                >
+                  {isPremium ? 'Close' : 'Continue with Free Tier'}
+                </button>
+
+                <p className="text-center text-[10px] text-muted-foreground/60 leading-relaxed">
+                  No auto-renewal · One-time payment · Razorpay secured
+                </p>
+              </div>
             </div>
           </div>
-
-          {/* Action Footer */}
-          <div className="mt-6 flex flex-col-reverse gap-2.5 sm:flex-row sm:items-center sm:justify-end">
-            <button
-              onClick={closeModal}
-              disabled={isCheckingOut}
-              className="rounded-xl border border-border px-5 py-2.5 text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-60"
-            >
-              {isPremium ? 'Close' : 'Continue with Free Tier'}
-            </button>
-            <button
-              onClick={handleSubscribe}
-              disabled={isCheckingOut}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-primary px-6 py-2.5 text-xs font-bold text-white shadow-md hover:brightness-105 active:scale-[0.99] disabled:opacity-70 transition-all"
-            >
-              {isCheckingOut ? (
-                <>
-                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  <span>Opening secure payment…</span>
-                </>
-              ) : (
-                <>
-                  <Crown className="h-4 w-4" />
-                  <span>
-                    {isPremium ? `Extend Pro Access · Pay ${payAmount}` : `Unlock Pro · Pay ${payAmount}`}
-                  </span>
-                </>
-              )}
-            </button>
-          </div>
-
-          <p className="mt-3 text-center text-[10px] text-muted-foreground">
-            UPI, cards, net banking and wallets accepted. Payments are processed by Razorpay; we never see your card details.
-          </p>
         </div>
       </div>
     </div>

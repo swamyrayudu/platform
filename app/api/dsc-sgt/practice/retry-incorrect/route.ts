@@ -47,6 +47,17 @@ export async function POST(request: Request) {
       }
     }
 
+    if (!quota.isPremium && targetTopic) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Retrying questions by specific topic requires a Pro subscription.',
+          code: 'PRO_TOPIC_REQUIRED',
+        },
+        { status: 403 }
+      )
+    }
+
     const filter: PracticeFilterState = {
       medium: targetMedium,
       subject: targetSubject,

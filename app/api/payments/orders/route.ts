@@ -4,6 +4,10 @@
 // Creates a Razorpay order for a plan. The browser sends ONLY a
 // planId (+ optional coupon); the price is looked up server-side.
 //
+// Price resolution order (highest priority first):
+//   1. plan_overrides table (admin-editable via /api/admin/plans)
+//   2. PLANS constant in lib/payments/plans.ts (code default)
+//
 // Response: { orderId, amount, currency, keyId, plan, prefill }
 // The browser hands these straight to Razorpay Checkout.
 // ============================================================
@@ -13,10 +17,57 @@ import { requireAuth } from '@/lib/auth/session'
 import { checkRateLimit } from '@/lib/auth/rate-limit'
 import { logSecurityEvent } from '@/lib/auth/db'
 import { getHashedIp } from '@/lib/auth/ip'
-import { CURRENCY, applyDiscount, getPlan, isPlanId } from '@/lib/payments/plans'
+import { CURRENCY, applyDiscount, getPlan, isPlanId, type Plan } from '@/lib/payments/plans'
 import { findCoupon } from '@/lib/payments/coupons'
 import { getRazorpay, getRazorpayKeyId, isRazorpayConfigured } from '@/lib/payments/razorpay'
 import { createPaymentOrder } from '@/lib/payments/db'
+import { supabaseAdmin } from '@/lib/supabase-admin'
+
+// ---- Price resolution -------------------------------------------
+
+interface PlanOverrideRow {
+  plan_id: string
+  amount_paise: number
+  original_amount_paise: number
+  name: string | null
+  period: string | null
+  badge: string | null
+  features: string[] | null
+}
+
+/**
+ * Returns the effective plan, merging DB overrides with code defaults.
+ * Falls back gracefully if the DB call fails.
+ */
+async function getEffectivePlan(planId: string): Promise<Plan> {
+  const codePlan = getPlan(planId as Parameters<typeof getPlan>[0])
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('plan_overrides')
+      .select('amount_paise, original_amount_paise, name, period, badge, features')
+      .eq('plan_id', planId)
+      .maybeSingle()
+
+    if (error || !data) return codePlan
+
+    const override = data as PlanOverrideRow
+    return {
+      ...codePlan,
+      amountPaise: override.amount_paise,
+      originalAmountPaise: override.original_amount_paise,
+      name: override.name ?? codePlan.name,
+      period: override.period ?? codePlan.period,
+      badge: override.badge ?? codePlan.badge,
+      features: (override.features as string[] | null) ?? codePlan.features,
+    }
+  } catch {
+    // Never fail an order creation due to DB override lookup
+    return codePlan
+  }
+}
+
+// ---- Route handler ----------------------------------------------
 
 export const POST = requireAuth(async (request, _ctx, { user, session }) => {
   if (!isRazorpayConfigured()) {
@@ -43,7 +94,8 @@ export const POST = requireAuth(async (request, _ctx, { user, session }) => {
     return NextResponse.json({ error: 'INVALID_PLAN' }, { status: 400 })
   }
 
-  const plan = getPlan(body.planId)
+  // Resolve effective plan — DB override wins over code default
+  const plan = await getEffectivePlan(body.planId)
 
   // Coupon: silently ignore unknown codes (the UI already validated them),
   // but never trust a client-provided discount.

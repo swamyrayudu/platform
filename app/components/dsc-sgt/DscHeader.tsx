@@ -57,7 +57,7 @@ export const DSC_NAV_ITEMS = [
 export default function DscHeader() {
   const pathname = usePathname()
   const { user, logout, logoutAll } = useAuth()
-  const { isPremium, openModal } = usePremium()
+  const { isPremium, openModal, devTierOverride, setDevTierOverride } = usePremium()
   const [profileOpen, setProfileOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const profileRef = useRef<HTMLDivElement>(null)
@@ -208,6 +208,59 @@ export default function DscHeader() {
                     <Crown className="h-3.5 w-3.5" />
                     <span>{isPremium ? 'Manage Pro Subscription' : 'Upgrade to DSC Pro Pass'}</span>
                   </button>
+
+                  {/* Admin Dashboard Link — visible only to admin users */}
+                  {user?.role === 'admin' && (
+                    <Link
+                      href="/admin"
+                      onClick={() => setProfileOpen(false)}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-500/10 transition-colors"
+                    >
+                      <ShieldAlert className="h-3.5 w-3.5" />
+                      <span>Admin Dashboard</span>
+                      <span className="ml-auto rounded-md bg-red-500/10 px-1.5 py-0.2 text-[9px] font-black text-red-500 uppercase tracking-wide">Admin</span>
+                    </Link>
+                  )}
+
+                  {/* Dev Testing Toggle: Admin-only — test as Free vs Pro without a DB edit */}
+                  {user?.role === 'admin' && (
+                    <div className="mx-1 my-1.5 rounded-xl bg-muted/40 p-2 border border-border/60">
+                      <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground mb-1.5">
+                        <span>Subscription Testing:</span>
+                        <span className="uppercase text-primary font-black text-[9px]">{devTierOverride}</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setDevTierOverride('auto')}
+                          className={`px-1.5 py-1 rounded text-[10px] font-bold transition cursor-pointer ${
+                            devTierOverride === 'auto' ? 'bg-primary text-primary-foreground shadow-xs' : 'bg-background hover:bg-muted text-foreground'
+                          }`}
+                        >
+                          Auto
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDevTierOverride('free')}
+                          className={`px-1.5 py-1 rounded text-[10px] font-bold transition cursor-pointer ${
+                            devTierOverride === 'free' ? 'bg-amber-500 text-white shadow-xs' : 'bg-background hover:bg-muted text-foreground'
+                          }`}
+                        >
+                          Free
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDevTierOverride('pro')}
+                          className={`px-1.5 py-1 rounded text-[10px] font-bold transition cursor-pointer ${
+                            devTierOverride === 'pro' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-background hover:bg-muted text-foreground'
+                          }`}
+                        >
+                          Pro
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   <Link
                     href="/home"
                     onClick={() => setProfileOpen(false)}

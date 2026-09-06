@@ -36,6 +36,23 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
+
+    // Enforce Topic-wise selection: Free accounts cannot practice specific topics
+    const rawTopics: string[] = Array.isArray(body.topics) ? body.topics : []
+    const requestedTopics = rawTopics.filter(
+      (t) => typeof t === 'string' && t.trim() !== '' && t !== 'All'
+    )
+    if (!quota.isPremium && requestedTopics.length > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Topic-wise practice requires a Pro subscription. Upgrade to Pro to practice specific topics.',
+          code: 'PRO_TOPIC_REQUIRED',
+        },
+        { status: 403 }
+      )
+    }
+
     const requestedCount = parseInt(body.question_count || '25', 10)
     // Enforce question count cap: 25 for Free tier, up to 150 for Pro
     const cappedCount = Math.max(5, Math.min(requestedCount || 25, quota.maxQuestions))
@@ -44,8 +61,8 @@ export async function POST(request: Request) {
       medium: body.medium || 'english',
       subject: body.subject || 'English',
       class_levels: body.class_levels || [],
-      topics: body.topics || [],
-      subtopics: body.subtopics || [],
+      topics: quota.isPremium ? (body.topics || []) : ['All'],
+      subtopics: quota.isPremium ? (body.subtopics || []) : [],
       difficulty: body.difficulty || [],
       question_count: cappedCount,
       mode: body.mode || 'balanced',

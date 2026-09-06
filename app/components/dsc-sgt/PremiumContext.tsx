@@ -25,6 +25,8 @@ export type PremiumPlan = PlanId | 'free'
 
 export type CheckoutOutcome = 'success' | 'cancelled' | 'failed' | 'error'
 
+export type DevTierOverride = 'auto' | 'free' | 'pro'
+
 interface PremiumContextType {
   isPremium: boolean
   currentPlan: PremiumPlan
@@ -37,6 +39,8 @@ interface PremiumContextType {
   /** Opens Razorpay Checkout for a plan and resolves when the flow ends. */
   startCheckout: (planId: PlanId, couponCode?: string) => Promise<CheckoutOutcome>
   isCheckingOut: boolean
+  devTierOverride: DevTierOverride
+  setDevTierOverride: (tier: DevTierOverride) => void
 }
 
 const PremiumContext = createContext<PremiumContextType | undefined>(undefined)
@@ -77,7 +81,40 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
   const [modalSource, setModalSource] = useState('header')
   const [isCheckingOut, setIsCheckingOut] = useState(false)
 
-  const isPremium = useMemo(() => computeIsPremium(user), [user])
+  const [devTierOverride, setDevTierOverrideState] = useState<DevTierOverride>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('dsc_dev_tier_override')
+        if (saved === 'free' || saved === 'pro') return saved
+      } catch {}
+    }
+    return 'auto'
+  })
+
+  const setDevTierOverride = useCallback((tier: DevTierOverride) => {
+    setDevTierOverrideState(tier)
+    try {
+      if (tier === 'auto') {
+        localStorage.removeItem('dsc_dev_tier_override')
+      } else {
+        localStorage.setItem('dsc_dev_tier_override', tier)
+      }
+    } catch {}
+    toast.success(
+      tier === 'auto'
+        ? 'Switched to live account subscription status'
+        : tier === 'free'
+        ? 'Testing as Free User (locks & limits active)'
+        : 'Testing as Pro User (all features unlocked)'
+    )
+  }, [])
+
+  const isPremium = useMemo(() => {
+    if (devTierOverride === 'free') return false
+    if (devTierOverride === 'pro') return true
+    return computeIsPremium(user)
+  }, [user, devTierOverride])
+
   const currentPlan: PremiumPlan = useMemo(() => {
     if (!isPremium) return 'free'
     return isPlanId(user?.subscriptionPlan) ? user!.subscriptionPlan : 'pro_full'
@@ -241,6 +278,8 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
         modalSource,
         startCheckout,
         isCheckingOut,
+        devTierOverride,
+        setDevTierOverride,
       }}
     >
       {children}

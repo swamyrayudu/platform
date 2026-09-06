@@ -57,6 +57,11 @@ export default function PracticePage() {
             description: data.error || 'Upgrade to Pro for unlimited practice sessions across all subjects!',
           })
           openModal('practice_limit_attempt')
+        } else if (data.code === 'PRO_TOPIC_REQUIRED') {
+          toast.info('👑 DSC Pro Feature', {
+            description: data.error || 'Topic-wise practice requires a Pro subscription.',
+          })
+          openModal('practice_topic_selection')
         } else {
           toast.error(data.error || 'Failed to start practice session')
         }

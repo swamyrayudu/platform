@@ -27,6 +27,23 @@ export interface Plan {
 
 export const CURRENCY = 'INR'
 
+// All plans unlock the SAME feature set — duration is the only difference.
+// These features are the fallback shown when the admin has not set DB overrides.
+// The PremiumModal renders a shared feature list from PREMIUM_FEATURES (in PremiumModal.tsx)
+// and only uses the plan.features field inside the admin pricing editor.
+const ALL_PLAN_FEATURES = [
+  'All 150+ Grand Mock Tests (Telugu & English medium)',
+  '12,000+ Practice MCQs — Chapter-wise & Subject-wise',
+  'Previous Year Papers 2018–2024 with Answer Keys',
+  'AI-powered Instant Question Explanations',
+  'Live State-level Rank & Percentile Tracking',
+  'Mock Exam Simulator — Full Paper Mode',
+  'Weak Topic Diagnostic & Targeted Drills',
+  'Performance Analytics Dashboard',
+  'Chapter-wise Topic Picker (unlimited topics)',
+  'Downloadable PDF High-Yield Revision Notes',
+]
+
 export const PLANS: Record<PlanId, Plan> = {
   pro_sprint: {
     id: 'pro_sprint',
@@ -35,14 +52,9 @@ export const PLANS: Record<PlanId, Plan> = {
     originalAmountPaise: 59900,
     period: '/ 1 Month',
     durationDays: 30,
-    badge: 'Popular for Quick Revision',
+    badge: 'Quick Exam Revision',
     popular: false,
-    features: [
-      'Access to 25+ Full Grand Mocks',
-      'All 10,000+ Practice MCQs',
-      'Instant Answer Keys & Solutions',
-      'Chapter-wise Tests',
-    ],
+    features: ALL_PLAN_FEATURES,
   },
   pro_full: {
     id: 'pro_full',
@@ -53,15 +65,7 @@ export const PLANS: Record<PlanId, Plan> = {
     durationDays: 180,
     badge: '★ Most Recommended',
     popular: true,
-    features: [
-      'All 100+ Grand Mocks & Mini Tests',
-      'Previous Papers (2018–2024 with key)',
-      'Detailed AI Question Explanations',
-      'Live State-level Rank & Percentile',
-      'Weak Topic Diagnostic & Drills',
-      'Unlimited Mock Exam Simulator Attempts',
-      'Downloadable PDF High-Yield Notes',
-    ],
+    features: ALL_PLAN_FEATURES,
   },
   lifetime: {
     id: 'lifetime',
@@ -72,12 +76,7 @@ export const PLANS: Record<PlanId, Plan> = {
     durationDays: 365,
     badge: 'Best Value',
     popular: false,
-    features: [
-      'Everything in DSC SGT Pro Pass',
-      'Free Access to DSC TET & APPSC',
-      'Priority Doubt Support',
-      'Future AP DSC Notification Updates',
-    ],
+    features: ALL_PLAN_FEATURES,
   },
 }
 
