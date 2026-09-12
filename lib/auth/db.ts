@@ -5,6 +5,7 @@
 // Uses service-role key to bypass RLS. Never call from client.
 // ============================================================
 
+import { randomBytes } from 'node:crypto'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import type {
   DbUser,
@@ -335,15 +336,87 @@ export async function findSessionByRefreshTokenHash(
  * Rotate the refresh token: replace the stored hash with a new one.
  * Atomically updates last_activity_at too.
  */
+/**
+ * Find the session whose PREVIOUS refresh token matches this hash.
+ *
+ * A hit means the caller presented a token that has already been rotated away
+ * — the signature of refresh-token theft: whoever refreshed second is holding
+ * a stale token, and one of the two parties is an attacker. Since we cannot
+ * tell which, the safe response is to revoke the whole family.
+ */
+export async function findSessionByPreviousRefreshTokenHash(
+  tokenHash: string
+): Promise<(DbSession & { user: DbUser }) | null> {
+  const { data, error } = await supabaseAdmin
+    .from('sessions')
+    .select(`*, user:users(*)`)
+    .eq('previous_refresh_token_hash', tokenHash)
+    .maybeSingle()
+
+  if (error) {
+    console.error('[DB] findSessionByPreviousRefreshTokenHash error:', error)
+    return null
+  }
+  return data as (DbSession & { user: DbUser }) | null
+}
+
+/**
+ * Contain a detected refresh-token reuse.
+ *
+ * Revokes every session for the user AND bumps session_version, which kills all
+ * outstanding access tokens too (validateSession compares the token's `sv`
+ * against users.session_version on every request). Both halves are required:
+ * revoking sessions alone would leave an attacker's 30-day access token valid.
+ */
+export async function revokeSessionFamily(userId: string, reason: string): Promise<void> {
+  // refresh_token_hash is NOT NULL, so the hash is overwritten with an
+  // unguessable value rather than nulled — that both satisfies the constraint
+  // and makes the stolen token unmatchable, instead of relying only on the
+  // status check downstream.
+  const deadHash = `revoked:${randomBytes(32).toString('hex')}`
+
+  const { error } = await supabaseAdmin
+    .from('sessions')
+    .update({
+      status: 'REVOKED',
+      revoked_at: new Date().toISOString(),
+      revocation_reason: reason,
+      refresh_token_hash: deadHash,
+      previous_refresh_token_hash: null,
+    })
+    .eq('user_id', userId)
+    .neq('status', 'REVOKED')
+
+  // Never fail silently here: this is the containment step. An earlier version
+  // set refresh_token_hash to null, violated the NOT NULL constraint, and the
+  // unchecked error meant sessions stayed ACTIVE while the caller believed the
+  // family had been revoked.
+  if (error) {
+    console.error('[DB] revokeSessionFamily FAILED — sessions remain active:', error)
+    throw new AuthError('INTERNAL_ERROR', 500)
+  }
+
+  await incrementSessionVersion(userId)
+}
+
 export async function rotateRefreshToken(
   sessionId: string,
-  newTokenHash: string
+  newTokenHash: string,
+  previousTokenHash?: string
 ): Promise<DbSession> {
+  const nowIso = new Date().toISOString()
+
+  // The replaced hash is retained for ONE generation so that a later
+  // presentation of the old token can still be attributed to this session.
+  // Without it, reuse detection cannot identify a user and therefore cannot
+  // revoke anything.
   const { data, error } = await supabaseAdmin
     .from('sessions')
     .update({
       refresh_token_hash: newTokenHash,
-      last_activity_at: new Date().toISOString(),
+      previous_refresh_token_hash: previousTokenHash ?? null,
+      rotated_at: nowIso,
+      last_activity_at: nowIso,
     })
     .eq('id', sessionId)
     .select('*')

@@ -1,0 +1,3334 @@
+[
+ {
+  "chapter": "Plant Life Processes",
+  "subject": "Biology",
+  "topic": "Plant Life Processes",
+  "subtopic": "Auxin",
+  "class_level": "10",
+  "difficulty": "Medium",
+  "question": "Which plant hormone promotes the elongation of cells in the growing shoot tip?",
+  "options": [
+   "Auxin",
+   "Abscisic acid",
+   "Ethylene",
+   "Cytokinin"
+  ],
+  "answer": "A",
+  "explanation": "Auxin is produced at the shoot tip and controls elongation growth as well as the bending of shoots towards light."
+ },
+ {
+  "chapter": "Plant Life Processes",
+  "subject": "Biology",
+  "topic": "Plant Life Processes",
+  "subtopic": "Gibberellin",
+  "class_level": "10",
+  "difficulty": "Medium",
+  "question": "Which plant hormone is used commercially to increase the length of stems and to break seed dormancy?",
+  "options": [
+   "Gibberellin",
+   "Abscisic acid",
+   "Auxin",
+   "Ethylene"
+  ],
+  "answer": "A",
+  "explanation": "Gibberellins promote stem elongation, flowering and the germination of dormant seeds."
+ },
+ {
+  "chapter": "Plant Life Processes",
+  "subject": "Biology",
+  "topic": "Plant Life Processes",
+  "subtopic": "Cytokinin",
+  "class_level": "10",
+  "difficulty": "Hard",
+  "question": "Which plant hormone chiefly promotes cell division and delays the ageing of leaves?",
+  "options": [
+   "Cytokinin",
+   "Auxin",
+   "Abscisic acid",
+   "Ethylene"
+  ],
+  "answer": "A",
+  "explanation": "Cytokinins are present in high concentration in areas of rapid division, such as fruits and seeds."
+ },
+ {
+  "chapter": "Plant Life Processes",
+  "subject": "Biology",
+  "topic": "Plant Life Processes",
+  "subtopic": "Abscisic acid",
+  "class_level": "10",
+  "difficulty": "Hard",
+  "question": "Which plant hormone acts as a growth inhibitor and causes the closing of stomata during water stress?",
+  "options": [
+   "Abscisic acid",
+   "Gibberellin",
+   "Auxin",
+   "Cytokinin"
+  ],
+  "answer": "A",
+  "explanation": "Abscisic acid is called the stress hormone, since it helps the plant conserve water and promotes the shedding of leaves."
+ },
+ {
+  "chapter": "Plant Life Processes",
+  "subject": "Biology",
+  "topic": "Plant Life Processes",
+  "subtopic": "Ethylene",
+  "class_level": "10",
+  "difficulty": "Medium",
+  "question": "Which gaseous plant hormone hastens the ripening of fruits?",
+  "options": [
+   "Ethylene",
+   "Auxin",
+   "Gibberellin",
+   "Cytokinin"
+  ],
+  "answer": "A",
+  "explanation": "Ethylene is why one ripe fruit placed among unripe ones makes the whole lot ripen faster."
+ },
+ {
+  "chapter": "Plant Life Processes",
+  "subject": "Biology",
+  "topic": "Plant Life Processes",
+  "subtopic": "Phototropism",
+  "class_level": "10",
+  "difficulty": "Medium",
+  "question": "The bending of a plant shoot towards a source of light is called what?",
+  "options": [
+   "Phototropism",
+   "Geotropism",
+   "Hydrotropism",
+   "Thigmotropism"
+  ],
+  "answer": "A",
+  "explanation": "Auxin gathers on the shaded side and makes those cells elongate more, so the shoot curves towards the light."
+ },
+ {
+  "chapter": "Plant Life Processes",
+  "subject": "Biology",
+  "topic": "Plant Life Processes",
+  "subtopic": "Geotropism",
+  "class_level": "10",
+  "difficulty": "Medium",
+  "question": "The growth of a root downward in response to gravity is called what?",
+  "options": [
+   "Geotropism",
+   "Phototropism",
+   "Chemotropism",
+   "Hydrotropism"
+  ],
+  "answer": "A",
+  "explanation": "Roots are positively geotropic while shoots are negatively geotropic, growing away from the pull of gravity."
+ },
+ {
+  "chapter": "Plant Life Processes",
+  "subject": "Biology",
+  "topic": "Plant Life Processes",
+  "subtopic": "Hydrotropism",
+  "class_level": "10",
+  "difficulty": "Hard",
+  "question": "The growth of a root towards a source of water is called what?",
+  "options": [
+   "Hydrotropism",
+   "Geotropism",
+   "Phototropism",
+   "Thermotropism"
+  ],
+  "answer": "A",
+  "explanation": "Hydrotropism lets roots locate moisture in the soil even when it lies away from the vertical."
+ },
+ {
+  "chapter": "Plant Life Processes",
+  "subject": "Biology",
+  "topic": "Plant Life Processes",
+  "subtopic": "Thigmotropism",
+  "class_level": "10",
+  "difficulty": "Hard",
+  "question": "The coiling of a tendril around a support in response to touch is called what?",
+  "options": [
+   "Thigmotropism",
+   "Phototropism",
+   "Geotropism",
+   "Nyctinasty"
+  ],
+  "answer": "A",
+  "explanation": "The side of the tendril touching the support grows more slowly, so the tendril curls around it."
+ },
+ {
+  "chapter": "Plant Life Processes",
+  "subject": "Biology",
+  "topic": "Plant Life Processes",
+  "subtopic": "Photosynthesis raw materials",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Which two raw materials does a green plant need for photosynthesis?",
+  "options": [
+   "Carbon dioxide and water",
+   "Oxygen and water",
+   "Nitrogen and water",
+   "Carbon dioxide and oxygen"
+  ],
+  "answer": "A",
+  "explanation": "Using sunlight and chlorophyll, the plant combines these two substances to make glucose and release oxygen."
+ },
+ {
+  "chapter": "Plant Life Processes",
+  "subject": "Biology",
+  "topic": "Plant Life Processes",
+  "subtopic": "Photosynthesis product",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Which gas is released into the air during photosynthesis?",
+  "options": [
+   "Oxygen",
+   "Carbon dioxide",
+   "Nitrogen",
+   "Hydrogen"
+  ],
+  "answer": "A",
+  "explanation": "Oxygen is released as a by-product when water molecules are split during the light phase."
+ },
+ {
+  "chapter": "Plant Life Processes",
+  "subject": "Biology",
+  "topic": "Plant Life Processes",
+  "subtopic": "Site of photosynthesis",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "In which part of a plant does most of the photosynthesis take place?",
+  "options": [
+   "The leaf",
+   "The root",
+   "The stem",
+   "The flower"
+  ],
+  "answer": "A",
+  "explanation": "Leaves are broad, thin and full of chloroplasts, which makes them well suited for trapping light."
+ },
+ {
+  "chapter": "Classification of Organisms",
+  "subject": "Biology",
+  "topic": "Classification of Organisms",
+  "subtopic": "Invertebrates",
+  "class_level": "9",
+  "difficulty": "Easy",
+  "question": "Animals that do not possess a backbone are called what?",
+  "options": [
+   "Invertebrates",
+   "Vertebrates",
+   "Chordates",
+   "Mammals"
+  ],
+  "answer": "A",
+  "explanation": "Insects, worms, molluscs and sponges are invertebrates and make up the great majority of animal species."
+ },
+ {
+  "chapter": "Classification of Organisms",
+  "subject": "Biology",
+  "topic": "Classification of Organisms",
+  "subtopic": "Amphibia",
+  "class_level": "9",
+  "difficulty": "Easy",
+  "question": "Animals such as the frog, which can live both in water and on land, belong to which class?",
+  "options": [
+   "Amphibia",
+   "Reptilia",
+   "Pisces",
+   "Aves"
+  ],
+  "answer": "A",
+  "explanation": "Amphibians have a moist skin, breathe through gills as larvae and through lungs and skin as adults."
+ },
+ {
+  "chapter": "Classification of Organisms",
+  "subject": "Biology",
+  "topic": "Classification of Organisms",
+  "subtopic": "Aves",
+  "class_level": "9",
+  "difficulty": "Easy",
+  "question": "Warm-blooded vertebrates whose forelimbs are modified into wings and whose body is covered with feathers belong to which class?",
+  "options": [
+   "Aves",
+   "Mammalia",
+   "Reptilia",
+   "Amphibia"
+  ],
+  "answer": "A",
+  "explanation": "Birds have hollow bones and a beak without teeth, features that help them to fly."
+ },
+ {
+  "chapter": "Human Body",
+  "subject": "Biology",
+  "topic": "Human Body",
+  "subtopic": "Skeletal system function",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Which system of the human body gives shape and support and protects the internal organs?",
+  "options": [
+   "The skeletal system",
+   "The digestive system",
+   "The excretory system",
+   "The endocrine system"
+  ],
+  "answer": "A",
+  "explanation": "Bones also serve as levers for movement and the marrow inside them makes blood cells."
+ },
+ {
+  "chapter": "Human Body",
+  "subject": "Biology",
+  "topic": "Human Body",
+  "subtopic": "Hinge joint",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "The elbow, which allows movement in only one plane, is an example of which type of joint?",
+  "options": [
+   "A hinge joint",
+   "A ball and socket joint",
+   "A pivot joint",
+   "A gliding joint"
+  ],
+  "answer": "A",
+  "explanation": "A hinge joint works like the hinge of a door, allowing bending and straightening only."
+ },
+ {
+  "chapter": "Human Body",
+  "subject": "Biology",
+  "topic": "Human Body",
+  "subtopic": "Tendon and ligament",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "Which tough tissue joins a muscle to a bone?",
+  "options": [
+   "A tendon",
+   "A ligament",
+   "Cartilage",
+   "Areolar tissue"
+  ],
+  "answer": "A",
+  "explanation": "A tendon joins muscle to bone, whereas a ligament joins one bone to another at a joint."
+ },
+ {
+  "chapter": "Human Body",
+  "subject": "Biology",
+  "topic": "Human Body",
+  "subtopic": "Rib cage function",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "The rib cage of the human body chiefly protects which organs?",
+  "options": [
+   "The heart and the lungs",
+   "The kidneys and the liver",
+   "The brain and the eyes",
+   "The stomach and the intestine"
+  ],
+  "answer": "A",
+  "explanation": "The curved ribs form a strong bony box around the chest cavity that also helps in breathing."
+ },
+ {
+  "chapter": "Human Body",
+  "subject": "Biology",
+  "topic": "Human Body",
+  "subtopic": "Skull function",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Which part of the human skeleton protects the brain?",
+  "options": [
+   "The skull",
+   "The vertebral column",
+   "The rib cage",
+   "The pelvic girdle"
+  ],
+  "answer": "A",
+  "explanation": "The bones of the cranium fuse together to form a rigid protective case around the brain."
+ },
+ {
+  "chapter": "Human Body",
+  "subject": "Biology",
+  "topic": "Human Body",
+  "subtopic": "Involuntary muscle",
+  "class_level": "9",
+  "difficulty": "Medium",
+  "question": "The muscles present in the walls of the stomach and the intestine, which work without our control, are called what?",
+  "options": [
+   "Smooth involuntary muscles",
+   "Striated voluntary muscles",
+   "Cardiac muscles",
+   "Skeletal muscles"
+  ],
+  "answer": "A",
+  "explanation": "Smooth muscle fibres are spindle shaped and unstriated, and they move food along the alimentary canal."
+ },
+ {
+  "chapter": "Human Body",
+  "subject": "Biology",
+  "topic": "Human Body",
+  "subtopic": "Number of teeth",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "How many permanent teeth are present in a normal adult human being?",
+  "options": [
+   "32",
+   "20",
+   "28",
+   "24"
+  ],
+  "answer": "A",
+  "explanation": "An adult has 32 permanent teeth of four kinds, while a child has 20 temporary milk teeth."
+ },
+ {
+  "chapter": "Human Body",
+  "subject": "Biology",
+  "topic": "Human Body",
+  "subtopic": "Types of teeth",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "Which type of teeth is best suited for tearing food?",
+  "options": [
+   "Canines",
+   "Incisors",
+   "Molars",
+   "Premolars"
+  ],
+  "answer": "A",
+  "explanation": "Canines are pointed and are used for tearing, incisors for cutting and molars for grinding."
+ },
+ {
+  "chapter": "Human Body",
+  "subject": "Biology",
+  "topic": "Human Body",
+  "subtopic": "Enamel",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "Which is the hardest substance in the human body?",
+  "options": [
+   "Tooth enamel",
+   "Bone",
+   "Cartilage",
+   "Nail"
+  ],
+  "answer": "A",
+  "explanation": "Enamel covers the outer surface of a tooth and protects it, but it is damaged by acids formed from sugary food."
+ },
+ {
+  "chapter": "Human Body",
+  "subject": "Biology",
+  "topic": "Human Body",
+  "subtopic": "Pulse rate",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "The normal pulse rate of a resting adult human being is about how many beats per minute?",
+  "options": [
+   "72",
+   "150",
+   "40",
+   "200"
+  ],
+  "answer": "A",
+  "explanation": "The pulse felt at the wrist corresponds to each beat of the heart, and it rises during exercise."
+ },
+ {
+  "chapter": "Light",
+  "subject": "Physics",
+  "topic": "Light",
+  "subtopic": "Rectilinear propagation",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Shadows are formed because light travels in which manner?",
+  "options": [
+   "In straight lines",
+   "Along curved paths",
+   "In circles",
+   "Only through transparent bodies"
+  ],
+  "answer": "A",
+  "explanation": "The rectilinear propagation of light means an opaque object blocks it and casts a shadow behind itself."
+ },
+ {
+  "chapter": "Light",
+  "subject": "Physics",
+  "topic": "Light",
+  "subtopic": "Transparent and opaque",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "A body through which we cannot see at all is described as what?",
+  "options": [
+   "Opaque",
+   "Transparent",
+   "Translucent",
+   "Luminous"
+  ],
+  "answer": "A",
+  "explanation": "Transparent bodies allow light to pass freely, translucent ones partly, and opaque ones not at all."
+ },
+ {
+  "chapter": "Light",
+  "subject": "Physics",
+  "topic": "Light",
+  "subtopic": "Luminous object",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "An object that gives out its own light is called what?",
+  "options": [
+   "A luminous object",
+   "A non-luminous object",
+   "An opaque object",
+   "A translucent object"
+  ],
+  "answer": "A",
+  "explanation": "The Sun and a burning candle are luminous, whereas the moon and a table are seen only by reflected light."
+ },
+ {
+  "chapter": "Light",
+  "subject": "Physics",
+  "topic": "Light",
+  "subtopic": "Lateral inversion",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "In the image formed by a plane mirror, the left side of the object appears on the right. This effect is called what?",
+  "options": [
+   "Lateral inversion",
+   "Vertical inversion",
+   "Magnification",
+   "Dispersion"
+  ],
+  "answer": "A",
+  "explanation": "Lateral inversion is why the word AMBULANCE is written in mirror form on the front of the vehicle."
+ },
+ {
+  "chapter": "Light",
+  "subject": "Physics",
+  "topic": "Light",
+  "subtopic": "Speed of light",
+  "class_level": "10",
+  "difficulty": "Easy",
+  "question": "What is the speed of light in vacuum?",
+  "options": [
+   "3 × 10⁸ m/s",
+   "3 × 10⁵ m/s",
+   "330 m/s",
+   "1.5 × 10⁸ m/s"
+  ],
+  "answer": "A",
+  "explanation": "Light travels at about three hundred thousand kilometres per second in vacuum, the greatest possible speed."
+ },
+ {
+  "chapter": "Light",
+  "subject": "Physics",
+  "topic": "Light",
+  "subtopic": "Refraction in water",
+  "class_level": "10",
+  "difficulty": "Medium",
+  "question": "A pencil partly dipped in water appears bent at the surface because of which phenomenon?",
+  "options": [
+   "Refraction of light",
+   "Reflection of light",
+   "Dispersion of light",
+   "Diffraction of light"
+  ],
+  "answer": "A",
+  "explanation": "Light changes direction as it passes from water into air, so the submerged part appears displaced."
+ },
+ {
+  "chapter": "Light",
+  "subject": "Physics",
+  "topic": "Light",
+  "subtopic": "Apparent depth",
+  "class_level": "10",
+  "difficulty": "Medium",
+  "question": "A swimming pool appears shallower than it really is because of which phenomenon?",
+  "options": [
+   "Refraction of light",
+   "Total internal reflection",
+   "Scattering of light",
+   "Reflection at the surface"
+  ],
+  "answer": "A",
+  "explanation": "Rays from the bottom bend away from the normal on leaving the water, so the bottom seems raised."
+ },
+ {
+  "chapter": "Light",
+  "subject": "Physics",
+  "topic": "Light",
+  "subtopic": "Twinkling of stars",
+  "class_level": "10",
+  "difficulty": "Hard",
+  "question": "Stars appear to twinkle at night because of which effect?",
+  "options": [
+   "Continuous refraction of starlight by the moving atmosphere",
+   "Rotation of the stars on their axes",
+   "Reflection of light by the moon",
+   "Total internal reflection in the clouds"
+  ],
+  "answer": "A",
+  "explanation": "Changing air layers refract the faint starlight by varying amounts, so the apparent brightness keeps altering."
+ },
+ {
+  "chapter": "Light",
+  "subject": "Physics",
+  "topic": "Light",
+  "subtopic": "Red colour of the Sun at sunrise",
+  "class_level": "10",
+  "difficulty": "Hard",
+  "question": "The Sun appears reddish at sunrise and sunset because of which reason?",
+  "options": [
+   "Blue light is scattered away over the long path through the atmosphere",
+   "The Sun actually becomes cooler at those times",
+   "The Sun is nearest to the Earth at those times",
+   "Red light travels faster in air"
+  ],
+  "answer": "A",
+  "explanation": "Near the horizon sunlight passes through a thick layer of air that scatters away most of the shorter wavelengths."
+ },
+ {
+  "chapter": "Light",
+  "subject": "Physics",
+  "topic": "Light",
+  "subtopic": "Primary colours of light",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "Which are the three primary colours of light?",
+  "options": [
+   "Red, green and blue",
+   "Red, yellow and blue",
+   "Green, orange and violet",
+   "Cyan, magenta and yellow"
+  ],
+  "answer": "A",
+  "explanation": "These three colours combine in suitable proportions to produce white light and all other colours on a screen."
+ },
+ {
+  "chapter": "Electricity",
+  "subject": "Physics",
+  "topic": "Electricity",
+  "subtopic": "Unit of current",
+  "class_level": "10",
+  "difficulty": "Easy",
+  "question": "What is the SI unit of electric current?",
+  "options": [
+   "Ampere",
+   "Volt",
+   "Ohm",
+   "Watt"
+  ],
+  "answer": "A",
+  "explanation": "One ampere is a flow of one coulomb of charge per second through a conductor."
+ },
+ {
+  "chapter": "Electricity",
+  "subject": "Physics",
+  "topic": "Electricity",
+  "subtopic": "Unit of charge",
+  "class_level": "10",
+  "difficulty": "Easy",
+  "question": "What is the SI unit of electric charge?",
+  "options": [
+   "Coulomb",
+   "Ampere",
+   "Volt",
+   "Farad"
+  ],
+  "answer": "A",
+  "explanation": "One coulomb is the charge carried by about 6.25 × 10¹⁸ electrons."
+ },
+ {
+  "chapter": "Electricity",
+  "subject": "Physics",
+  "topic": "Electricity",
+  "subtopic": "Unit of resistance",
+  "class_level": "10",
+  "difficulty": "Easy",
+  "question": "What is the SI unit of electrical resistance?",
+  "options": [
+   "Ohm",
+   "Volt",
+   "Ampere",
+   "Joule"
+  ],
+  "answer": "A",
+  "explanation": "A conductor has a resistance of one ohm if a potential difference of one volt drives a current of one ampere through it."
+ },
+ {
+  "chapter": "Electricity",
+  "subject": "Physics",
+  "topic": "Electricity",
+  "subtopic": "Conductors and insulators",
+  "class_level": "10",
+  "difficulty": "Easy",
+  "question": "Which of these is the best conductor of electricity?",
+  "options": [
+   "Silver",
+   "Rubber",
+   "Glass",
+   "Dry wood"
+  ],
+  "answer": "A",
+  "explanation": "Silver is the best conductor, though copper and aluminium are used in wiring because they are cheaper."
+ },
+ {
+  "chapter": "Electricity",
+  "subject": "Physics",
+  "topic": "Electricity",
+  "subtopic": "Direction of current",
+  "class_level": "10",
+  "difficulty": "Medium",
+  "question": "By convention, the direction of electric current in a circuit is taken to be which one?",
+  "options": [
+   "Opposite to the direction of electron flow",
+   "The same as the direction of electron flow",
+   "Always from the negative to the positive terminal inside the wire",
+   "Perpendicular to the electron flow"
+  ],
+  "answer": "A",
+  "explanation": "Conventional current was defined before the electron was discovered, so it runs from positive to negative outside the cell."
+ },
+ {
+  "chapter": "Electricity",
+  "subject": "Physics",
+  "topic": "Electricity",
+  "subtopic": "Battery",
+  "class_level": "10",
+  "difficulty": "Easy",
+  "question": "A combination of two or more electric cells joined together is called what?",
+  "options": [
+   "A battery",
+   "A circuit",
+   "A resistor",
+   "A switch"
+  ],
+  "answer": "A",
+  "explanation": "Cells are joined in series in a battery so that their voltages add up."
+ },
+ {
+  "chapter": "Electrical Measurement",
+  "subject": "Physics",
+  "topic": "Electrical Measurement",
+  "subtopic": "Rheostat",
+  "class_level": "10",
+  "difficulty": "Medium",
+  "question": "Which device is used to vary the current in a circuit without changing the source of voltage?",
+  "options": [
+   "Rheostat",
+   "Ammeter",
+   "Fuse",
+   "Transformer"
+  ],
+  "answer": "A",
+  "explanation": "A rheostat is a variable resistor whose effective length of wire, and hence resistance, can be adjusted."
+ },
+ {
+  "chapter": "Magnetism",
+  "subject": "Physics",
+  "topic": "Magnetism",
+  "subtopic": "Like and unlike poles",
+  "class_level": "6",
+  "difficulty": "Easy",
+  "question": "What happens when the north poles of two bar magnets are brought close together?",
+  "options": [
+   "They repel each other",
+   "They attract each other",
+   "They lose their magnetism",
+   "Nothing happens at all"
+  ],
+  "answer": "A",
+  "explanation": "Like poles repel and unlike poles attract, and repulsion is the sure test of magnetism."
+ },
+ {
+  "chapter": "Magnets",
+  "subject": "Physics",
+  "topic": "Magnets",
+  "subtopic": "Magnetic materials",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Which of these materials is attracted by a magnet?",
+  "options": [
+   "Iron",
+   "Copper",
+   "Aluminium",
+   "Plastic"
+  ],
+  "answer": "A",
+  "explanation": "Iron, cobalt and nickel are magnetic materials, while copper, aluminium and plastic are not."
+ },
+ {
+  "chapter": "Magnets",
+  "subject": "Physics",
+  "topic": "Magnets",
+  "subtopic": "Demagnetisation",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "Which action is likely to make a bar magnet lose its magnetism?",
+  "options": [
+   "Heating it strongly and hammering it",
+   "Keeping it in a magnetic keeper",
+   "Storing it in pairs with unlike poles together",
+   "Wrapping it in a soft cloth"
+  ],
+  "answer": "A",
+  "explanation": "Heating and rough handling disturb the ordered alignment of the magnetic domains inside the magnet."
+ },
+ {
+  "chapter": "Heat",
+  "subject": "Physics",
+  "topic": "Heat",
+  "subtopic": "Unit of heat",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "What is the SI unit of heat energy?",
+  "options": [
+   "Joule",
+   "Newton",
+   "Kelvin",
+   "Watt"
+  ],
+  "answer": "A",
+  "explanation": "Heat is a form of energy, so it is measured in joules, though the calorie is also used."
+ },
+ {
+  "chapter": "Temperature",
+  "subject": "General Science",
+  "topic": "Temperature",
+  "subtopic": "Clinical thermometer range",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "A clinical thermometer used to measure body temperature is usually marked over which range?",
+  "options": [
+   "35 °C to 42 °C",
+   "0 °C to 100 °C",
+   "−10 °C to 110 °C",
+   "0 °C to 50 °C"
+  ],
+  "answer": "A",
+  "explanation": "Human body temperature varies within a narrow band, so the clinical thermometer needs only a short range."
+ },
+ {
+  "chapter": "Temperature",
+  "subject": "General Science",
+  "topic": "Temperature",
+  "subtopic": "Normal body temperature",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "What is the normal temperature of the human body?",
+  "options": [
+   "37 °C",
+   "42 °C",
+   "30 °C",
+   "25 °C"
+  ],
+  "answer": "A",
+  "explanation": "Normal body temperature is about 37 degrees Celsius, which is 98.6 degrees on the Fahrenheit scale."
+ },
+ {
+  "chapter": "Temperature",
+  "subject": "General Science",
+  "topic": "Temperature",
+  "subtopic": "Absolute zero",
+  "class_level": "8",
+  "difficulty": "Hard",
+  "question": "The lowest possible temperature, at which molecular motion theoretically ceases, is which value?",
+  "options": [
+   "−273 °C",
+   "0 °C",
+   "−100 °C",
+   "−373 °C"
+  ],
+  "answer": "A",
+  "explanation": "This temperature is taken as zero on the Kelvin scale and is called absolute zero."
+ },
+ {
+  "chapter": "Measurements",
+  "subject": "Physics",
+  "topic": "Measurements",
+  "subtopic": "SI unit of length",
+  "class_level": "9",
+  "difficulty": "Easy",
+  "question": "What is the SI unit of length?",
+  "options": [
+   "Metre",
+   "Centimetre",
+   "Kilometre",
+   "Foot"
+  ],
+  "answer": "A",
+  "explanation": "The metre is the SI base unit of length, and all other units of length are derived from it."
+ },
+ {
+  "chapter": "Measurements",
+  "subject": "Physics",
+  "topic": "Measurements",
+  "subtopic": "SI unit of mass",
+  "class_level": "9",
+  "difficulty": "Easy",
+  "question": "What is the SI unit of mass?",
+  "options": [
+   "Kilogram",
+   "Gram",
+   "Newton",
+   "Tonne"
+  ],
+  "answer": "A",
+  "explanation": "The kilogram is the SI base unit of mass and must not be confused with weight, which is a force."
+ },
+ {
+  "chapter": "Measurements",
+  "subject": "Physics",
+  "topic": "Measurements",
+  "subtopic": "SI unit of time",
+  "class_level": "9",
+  "difficulty": "Easy",
+  "question": "What is the SI unit of time?",
+  "options": [
+   "Second",
+   "Minute",
+   "Hour",
+   "Day"
+  ],
+  "answer": "A",
+  "explanation": "The second is the SI base unit of time and is defined using the vibrations of the caesium atom."
+ },
+ {
+  "chapter": "Measurements",
+  "subject": "Physics",
+  "topic": "Measurements",
+  "subtopic": "SI unit of temperature",
+  "class_level": "9",
+  "difficulty": "Easy",
+  "question": "What is the SI unit of thermodynamic temperature?",
+  "options": [
+   "Kelvin",
+   "Degree Celsius",
+   "Degree Fahrenheit",
+   "Joule"
+  ],
+  "answer": "A",
+  "explanation": "The kelvin is the SI base unit of temperature, and a rise of one kelvin equals a rise of one degree Celsius."
+ },
+ {
+  "chapter": "Measurements",
+  "subject": "Physics",
+  "topic": "Measurements",
+  "subtopic": "Vernier calliper",
+  "class_level": "9",
+  "difficulty": "Medium",
+  "question": "Which instrument is used to measure the internal diameter of a small tube accurately?",
+  "options": [
+   "Vernier calliper",
+   "Metre scale",
+   "Measuring tape",
+   "Spring balance"
+  ],
+  "answer": "A",
+  "explanation": "A vernier calliper has inside jaws and can measure to a precision of a tenth of a millimetre."
+ },
+ {
+  "chapter": "Measurements",
+  "subject": "Physics",
+  "topic": "Measurements",
+  "subtopic": "Screw gauge",
+  "class_level": "9",
+  "difficulty": "Medium",
+  "question": "Which instrument is used to measure the thickness of a thin wire to a hundredth of a millimetre?",
+  "options": [
+   "Screw gauge",
+   "Vernier calliper",
+   "Metre scale",
+   "Beam balance"
+  ],
+  "answer": "A",
+  "explanation": "A screw gauge, also called a micrometer, uses a fine screw to achieve very high precision."
+ },
+ {
+  "chapter": "Measurements",
+  "subject": "Physics",
+  "topic": "Measurements",
+  "subtopic": "Measuring volume of liquid",
+  "class_level": "9",
+  "difficulty": "Easy",
+  "question": "Which instrument is used to measure the volume of a liquid in the laboratory?",
+  "options": [
+   "Measuring cylinder",
+   "Spring balance",
+   "Screw gauge",
+   "Thermometer"
+  ],
+  "answer": "A",
+  "explanation": "The reading is taken at the lowest point of the meniscus with the eye level with the mark."
+ },
+ {
+  "chapter": "Scientific Instruments",
+  "subject": "Physics",
+  "topic": "Scientific Instruments",
+  "subtopic": "Microscope",
+  "class_level": "9",
+  "difficulty": "Easy",
+  "question": "Which instrument is used to observe very small objects such as cells?",
+  "options": [
+   "Microscope",
+   "Telescope",
+   "Periscope",
+   "Stethoscope"
+  ],
+  "answer": "A",
+  "explanation": "A compound microscope uses two lenses to produce a highly magnified image of a tiny object."
+ },
+ {
+  "chapter": "Scientific Instruments",
+  "subject": "Physics",
+  "topic": "Scientific Instruments",
+  "subtopic": "Telescope",
+  "class_level": "9",
+  "difficulty": "Easy",
+  "question": "Which instrument is used to view distant heavenly bodies?",
+  "options": [
+   "Telescope",
+   "Microscope",
+   "Periscope",
+   "Hygrometer"
+  ],
+  "answer": "A",
+  "explanation": "A telescope gathers light from a distant object with a large lens or mirror and forms a magnified image."
+ },
+ {
+  "chapter": "Scientific Instruments",
+  "subject": "Physics",
+  "topic": "Scientific Instruments",
+  "subtopic": "Stethoscope",
+  "class_level": "9",
+  "difficulty": "Easy",
+  "question": "Which instrument does a doctor use to listen to the sounds of the heart and lungs?",
+  "options": [
+   "Stethoscope",
+   "Sphygmomanometer",
+   "Thermometer",
+   "Audiometer"
+  ],
+  "answer": "A",
+  "explanation": "A stethoscope conducts the faint body sounds through tubes to the ears by multiple reflections."
+ },
+ {
+  "chapter": "Scientific Instruments",
+  "subject": "Physics",
+  "topic": "Scientific Instruments",
+  "subtopic": "Sphygmomanometer",
+  "class_level": "9",
+  "difficulty": "Medium",
+  "question": "Which instrument is used to measure blood pressure?",
+  "options": [
+   "Sphygmomanometer",
+   "Stethoscope",
+   "Barometer",
+   "Lactometer"
+  ],
+  "answer": "A",
+  "explanation": "An inflatable cuff is used to find the systolic and diastolic pressures of the blood."
+ },
+ {
+  "chapter": "Scientific Instruments",
+  "subject": "Physics",
+  "topic": "Scientific Instruments",
+  "subtopic": "Lactometer",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "Which instrument is used to check the purity of milk?",
+  "options": [
+   "Lactometer",
+   "Hydrometer for acids",
+   "Barometer",
+   "Anemometer"
+  ],
+  "answer": "A",
+  "explanation": "A lactometer measures the relative density of milk, which falls if the milk has been diluted with water."
+ },
+ {
+  "chapter": "Scientific Instruments",
+  "subject": "Physics",
+  "topic": "Scientific Instruments",
+  "subtopic": "Periscope",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "Which instrument, used in submarines, allows one to see over an obstacle by using two mirrors?",
+  "options": [
+   "Periscope",
+   "Telescope",
+   "Kaleidoscope",
+   "Microscope"
+  ],
+  "answer": "A",
+  "explanation": "Two plane mirrors fixed at 45 degrees reflect light along a bent path to the observer's eye."
+ },
+ {
+  "chapter": "Scientific Method",
+  "subject": "General Science",
+  "topic": "Scientific Method",
+  "subtopic": "Steps in order",
+  "class_level": "9",
+  "difficulty": "Medium",
+  "question": "Which is the correct order of the main steps of the scientific method?",
+  "options": [
+   "Problem, hypothesis, experiment, conclusion",
+   "Conclusion, experiment, hypothesis, problem",
+   "Experiment, problem, conclusion, hypothesis",
+   "Hypothesis, conclusion, problem, experiment"
+  ],
+  "answer": "A",
+  "explanation": "Scientific enquiry begins with a clearly stated problem and ends with a conclusion drawn from the evidence."
+ },
+ {
+  "chapter": "Scientific Method",
+  "subject": "General Science",
+  "topic": "Scientific Method",
+  "subtopic": "Hypothesis",
+  "class_level": "9",
+  "difficulty": "Easy",
+  "question": "A tentative explanation put forward to be tested by experiment is called what?",
+  "options": [
+   "A hypothesis",
+   "A law",
+   "A theory",
+   "A conclusion"
+  ],
+  "answer": "A",
+  "explanation": "A hypothesis is an intelligent guess that must be capable of being tested and possibly disproved."
+ },
+ {
+  "chapter": "Scientific Method",
+  "subject": "General Science",
+  "topic": "Scientific Method",
+  "subtopic": "Observation and inference",
+  "class_level": "9",
+  "difficulty": "Medium",
+  "question": "A pupil notes that the ground is damp and then concludes that it rained during the night. The conclusion drawn is an example of what?",
+  "options": [
+   "An inference",
+   "A direct observation",
+   "A measurement",
+   "A controlled variable"
+  ],
+  "answer": "A",
+  "explanation": "An observation is what the senses report directly, whereas an inference is an explanation drawn from that observation."
+ },
+ {
+  "chapter": "Scientific Method",
+  "subject": "General Science",
+  "topic": "Scientific Method",
+  "subtopic": "Variable",
+  "class_level": "9",
+  "difficulty": "Medium",
+  "question": "In an experiment, the factor that the investigator deliberately changes is called what?",
+  "options": [
+   "The independent variable",
+   "The dependent variable",
+   "The controlled variable",
+   "The constant"
+  ],
+  "answer": "A",
+  "explanation": "The dependent variable is the one measured to see whether it responds to the change made."
+ },
+ {
+  "chapter": "Scientific Method",
+  "subject": "General Science",
+  "topic": "Scientific Method",
+  "subtopic": "Scientific law",
+  "class_level": "9",
+  "difficulty": "Hard",
+  "question": "How does a scientific law differ from a scientific theory?",
+  "options": [
+   "A law states what happens while a theory explains why it happens",
+   "A law is only a guess while a theory is proved",
+   "A theory is always older than a law",
+   "There is no difference between them"
+  ],
+  "answer": "A",
+  "explanation": "A law summarises a regular pattern in nature, whereas a theory offers a tested explanation of that pattern."
+ },
+ {
+  "chapter": "Scientific Method",
+  "subject": "General Science",
+  "topic": "Scientific Method",
+  "subtopic": "Scientific attitude",
+  "class_level": "9",
+  "difficulty": "Medium",
+  "question": "Which behaviour best shows a scientific attitude in a pupil?",
+  "options": [
+   "Asking for evidence before accepting a claim",
+   "Accepting whatever the textbook states",
+   "Believing a statement because an elder said it",
+   "Rejecting all new ideas"
+  ],
+  "answer": "A",
+  "explanation": "Open-mindedness, curiosity, objectivity and a readiness to change opinion on evidence mark the scientific attitude."
+ },
+ {
+  "chapter": "Cells and Microorganisms",
+  "subject": "Biology",
+  "topic": "Cell",
+  "subtopic": "Discovery of cell",
+  "class_level": "9",
+  "difficulty": "Easy",
+  "question": "Who first observed and named the cell while examining a thin slice of cork?",
+  "options": [
+   "Robert Hooke",
+   "Robert Brown",
+   "Anton van Leeuwenhoek",
+   "Theodor Schwann"
+  ],
+  "answer": "A",
+  "explanation": "In 1665 Robert Hooke saw box-like compartments in cork through his own microscope and called them cells."
+ },
+ {
+  "chapter": "Cells and Microorganisms",
+  "subject": "Biology",
+  "topic": "Cell",
+  "subtopic": "First living cell observed",
+  "class_level": "9",
+  "difficulty": "Medium",
+  "question": "Who was the first to observe free living cells in pond water using a simple microscope?",
+  "options": [
+   "Anton van Leeuwenhoek",
+   "Robert Hooke",
+   "Rudolf Virchow",
+   "Matthias Schleiden"
+  ],
+  "answer": "A",
+  "explanation": "Leeuwenhoek made his own lenses and described the tiny organisms he saw as animalcules."
+ },
+ {
+  "chapter": "Cells and Microorganisms",
+  "subject": "Biology",
+  "topic": "Cell",
+  "subtopic": "Discovery of nucleus",
+  "class_level": "9",
+  "difficulty": "Medium",
+  "question": "Who discovered the nucleus of the cell?",
+  "options": [
+   "Robert Brown",
+   "Robert Hooke",
+   "Camillo Golgi",
+   "Purkinje"
+  ],
+  "answer": "A",
+  "explanation": "Robert Brown identified the nucleus in 1831 as a dense body present within the cell."
+ },
+ {
+  "chapter": "Cells and Microorganisms",
+  "subject": "Biology",
+  "topic": "Cell",
+  "subtopic": "Largest cell",
+  "class_level": "9",
+  "difficulty": "Medium",
+  "question": "Which is the largest cell known among living organisms?",
+  "options": [
+   "The egg of an ostrich",
+   "The human nerve cell",
+   "The red blood cell",
+   "The bacterial cell"
+  ],
+  "answer": "A",
+  "explanation": "The ostrich egg is the largest single cell, while the longest cells are nerve cells."
+ },
+ {
+  "chapter": "Cells and Microorganisms",
+  "subject": "Biology",
+  "topic": "Cell",
+  "subtopic": "Smallest cell",
+  "class_level": "9",
+  "difficulty": "Hard",
+  "question": "Which is regarded as the smallest cell?",
+  "options": [
+   "Mycoplasma",
+   "A red blood cell",
+   "A bacterial spore",
+   "A yeast cell"
+  ],
+  "answer": "A",
+  "explanation": "Mycoplasma is about a tenth of a micrometre across and lacks even a cell wall."
+ },
+ {
+  "chapter": "Cells and Microorganisms",
+  "subject": "Biology",
+  "topic": "Cell",
+  "subtopic": "Cell wall composition",
+  "class_level": "9",
+  "difficulty": "Medium",
+  "question": "The cell wall of a plant cell is made chiefly of which substance?",
+  "options": [
+   "Cellulose",
+   "Chitin",
+   "Protein",
+   "Lipid"
+  ],
+  "answer": "A",
+  "explanation": "The rigid cellulose wall gives a plant cell its definite shape and protects it from bursting."
+ },
+ {
+  "chapter": "Cells and Microorganisms",
+  "subject": "Biology",
+  "topic": "Cell",
+  "subtopic": "Selectively permeable membrane",
+  "class_level": "9",
+  "difficulty": "Medium",
+  "question": "The cell membrane is described as selectively permeable because it does what?",
+  "options": [
+   "Allows only certain substances to pass through",
+   "Allows every substance to pass freely",
+   "Prevents all movement of substances",
+   "Dissolves in water easily"
+  ],
+  "answer": "A",
+  "explanation": "This property lets the cell regulate what enters and leaves, maintaining its internal balance."
+ },
+ {
+  "chapter": "Cells and Microorganisms",
+  "subject": "Biology",
+  "topic": "Microorganisms",
+  "subtopic": "Useful microorganisms",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Which microorganism is used in the making of bread and in brewing?",
+  "options": [
+   "Yeast",
+   "Amoeba",
+   "Plasmodium",
+   "Chlamydomonas"
+  ],
+  "answer": "A",
+  "explanation": "Yeast ferments sugar to give carbon dioxide, which makes the dough rise, along with alcohol."
+ },
+ {
+  "chapter": "Cells and Microorganisms",
+  "subject": "Biology",
+  "topic": "Microorganisms",
+  "subtopic": "Curd formation",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Milk is converted into curd by the action of which microorganism?",
+  "options": [
+   "Lactobacillus",
+   "Yeast",
+   "Rhizobium",
+   "Penicillium"
+  ],
+  "answer": "A",
+  "explanation": "Lactobacillus bacteria convert the milk sugar lactose into lactic acid, which sets the milk into curd."
+ },
+ {
+  "chapter": "Cells and Microorganisms",
+  "subject": "Biology",
+  "topic": "Microorganisms",
+  "subtopic": "Nitrogen fixing bacteria",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "Which bacterium living in the root nodules of pulses fixes atmospheric nitrogen?",
+  "options": [
+   "Rhizobium",
+   "Lactobacillus",
+   "Salmonella",
+   "Vibrio"
+  ],
+  "answer": "A",
+  "explanation": "Rhizobium lives in a mutually beneficial relationship with leguminous plants and enriches the soil with nitrogen."
+ },
+ {
+  "chapter": "Microorganisms",
+  "subject": "Biology",
+  "topic": "Microorganisms",
+  "subtopic": "Fungal disease in plants",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "Rust of wheat, a common crop disease, is caused by which type of microorganism?",
+  "options": [
+   "A fungus",
+   "A bacterium",
+   "A virus",
+   "A protozoan"
+  ],
+  "answer": "A",
+  "explanation": "Fungal spores spread through air and water and can destroy a large part of a standing crop."
+ },
+ {
+  "chapter": "Microorganisms",
+  "subject": "Biology",
+  "topic": "Microorganisms",
+  "subtopic": "Decomposition by microbes",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Which role do soil bacteria and fungi play in nature?",
+  "options": [
+   "They decompose dead remains and return nutrients to the soil",
+   "They produce food by photosynthesis",
+   "They cause all plant growth to stop",
+   "They fix carbon dioxide in the atmosphere"
+  ],
+  "answer": "A",
+  "explanation": "Without decomposers, dead bodies would pile up and the nutrients in them would never be recycled."
+ },
+ {
+  "chapter": "Metals",
+  "subject": "Chemistry",
+  "topic": "Metals",
+  "subtopic": "Best conductor of heat",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Which metal is the best conductor of heat?",
+  "options": [
+   "Silver",
+   "Iron",
+   "Lead",
+   "Zinc"
+  ],
+  "answer": "A",
+  "explanation": "Silver conducts heat and electricity best of all metals, followed closely by copper."
+ },
+ {
+  "chapter": "Metals",
+  "subject": "Chemistry",
+  "topic": "Metals",
+  "subtopic": "Liquid metal",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Which metal is a liquid at ordinary room temperature?",
+  "options": [
+   "Mercury",
+   "Sodium",
+   "Aluminium",
+   "Tin"
+  ],
+  "answer": "A",
+  "explanation": "Mercury is the only metal that is liquid at room temperature, which is why it is used in thermometers."
+ },
+ {
+  "chapter": "Metals",
+  "subject": "Chemistry",
+  "topic": "Metals",
+  "subtopic": "Most abundant metal",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "Which is the most abundant metal in the Earth's crust?",
+  "options": [
+   "Aluminium",
+   "Iron",
+   "Copper",
+   "Gold"
+  ],
+  "answer": "A",
+  "explanation": "Aluminium is the most abundant metal and is extracted mainly from its ore bauxite."
+ },
+ {
+  "chapter": "Metals",
+  "subject": "Chemistry",
+  "topic": "Metals",
+  "subtopic": "Softest metal",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "Which metal is so soft that it can be cut easily with a knife?",
+  "options": [
+   "Sodium",
+   "Iron",
+   "Nickel",
+   "Chromium"
+  ],
+  "answer": "A",
+  "explanation": "Sodium and potassium are very soft and so reactive that they are stored under kerosene."
+ },
+ {
+  "chapter": "Metals",
+  "subject": "Chemistry",
+  "topic": "Metals",
+  "subtopic": "Sonority",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "The property of metals by which they produce a ringing sound when struck is called what?",
+  "options": [
+   "Sonority",
+   "Malleability",
+   "Ductility",
+   "Lustre"
+  ],
+  "answer": "A",
+  "explanation": "Sonority is why metals are used to make bells, gongs and wires for musical instruments."
+ },
+ {
+  "chapter": "Metals",
+  "subject": "Chemistry",
+  "topic": "Metals",
+  "subtopic": "Lustre",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "The shine seen on the freshly cut surface of a metal is called what?",
+  "options": [
+   "Metallic lustre",
+   "Sonority",
+   "Ductility",
+   "Hardness"
+  ],
+  "answer": "A",
+  "explanation": "Metals lose their lustre in moist air because a dull layer of oxide or carbonate forms on the surface."
+ },
+ {
+  "chapter": "Metals and Non-metals",
+  "subject": "Chemistry",
+  "topic": "Metals and Non-metals",
+  "subtopic": "Liquid non-metal",
+  "class_level": "8",
+  "difficulty": "Hard",
+  "question": "Which non-metal is a liquid at room temperature?",
+  "options": [
+   "Bromine",
+   "Iodine",
+   "Sulphur",
+   "Phosphorus"
+  ],
+  "answer": "A",
+  "explanation": "Bromine is the only non-metal that is liquid at room temperature and gives off a reddish brown vapour."
+ },
+ {
+  "chapter": "Metals and Non-metals",
+  "subject": "Chemistry",
+  "topic": "Metals and Non-metals",
+  "subtopic": "Hardest non-metal",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "Which non-metal is the hardest naturally occurring substance?",
+  "options": [
+   "Diamond",
+   "Graphite",
+   "Sulphur",
+   "Silicon"
+  ],
+  "answer": "A",
+  "explanation": "In diamond each carbon atom is bonded to four others in a rigid three-dimensional network."
+ },
+ {
+  "chapter": "Acids and Bases",
+  "subject": "Chemistry",
+  "topic": "Acids and Bases",
+  "subtopic": "Acid taste",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Which taste is characteristic of an acid?",
+  "options": [
+   "Sour",
+   "Bitter",
+   "Salty",
+   "Sweet"
+  ],
+  "answer": "A",
+  "explanation": "Acids taste sour while bases taste bitter and feel soapy, though laboratory chemicals must never be tasted."
+ },
+ {
+  "chapter": "Acids and Bases",
+  "subject": "Chemistry",
+  "topic": "Acids and Bases",
+  "subtopic": "Litmus test for acid",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "What happens to blue litmus paper when it is dipped in an acid?",
+  "options": [
+   "It turns red",
+   "It turns green",
+   "It remains blue",
+   "It becomes colourless"
+  ],
+  "answer": "A",
+  "explanation": "Acids turn blue litmus red, and bases turn red litmus blue."
+ },
+ {
+  "chapter": "Acids and Bases",
+  "subject": "Chemistry",
+  "topic": "Acids and Bases",
+  "subtopic": "Acid in lemon",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Which acid is present in lemon and orange juice?",
+  "options": [
+   "Citric acid",
+   "Acetic acid",
+   "Lactic acid",
+   "Oxalic acid"
+  ],
+  "answer": "A",
+  "explanation": "Citrus fruits owe their sour taste to citric acid, and they are also rich in vitamin C."
+ },
+ {
+  "chapter": "Acids and Bases",
+  "subject": "Chemistry",
+  "topic": "Acids and Bases",
+  "subtopic": "Acid in curd",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Which acid gives curd its sour taste?",
+  "options": [
+   "Lactic acid",
+   "Citric acid",
+   "Formic acid",
+   "Tartaric acid"
+  ],
+  "answer": "A",
+  "explanation": "Bacteria convert the lactose of milk into lactic acid during the setting of curd."
+ },
+ {
+  "chapter": "Acids and Bases",
+  "subject": "Chemistry",
+  "topic": "Acids and Bases",
+  "subtopic": "Acid in stomach",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "Which acid is present in the gastric juice of the human stomach?",
+  "options": [
+   "Hydrochloric acid",
+   "Sulphuric acid",
+   "Nitric acid",
+   "Citric acid"
+  ],
+  "answer": "A",
+  "explanation": "This acid kills germs in the food and provides the acidic medium needed for pepsin to act."
+ },
+ {
+  "chapter": "Acids and Bases",
+  "subject": "Chemistry",
+  "topic": "Acids and Bases",
+  "subtopic": "Natural indicator",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "From which organism is litmus, the common natural indicator, obtained?",
+  "options": [
+   "Lichen",
+   "Rose",
+   "Turmeric plant",
+   "Hibiscus"
+  ],
+  "answer": "A",
+  "explanation": "Litmus is a purple dye extracted from lichens and is used in solution or on paper strips."
+ },
+ {
+  "chapter": "Change of State",
+  "subject": "Chemistry",
+  "topic": "Change of State",
+  "subtopic": "Melting",
+  "class_level": "7",
+  "difficulty": "Easy",
+  "question": "The change of a solid into a liquid on heating is called what?",
+  "options": [
+   "Melting",
+   "Freezing",
+   "Condensation",
+   "Sublimation"
+  ],
+  "answer": "A",
+  "explanation": "A pure solid melts at a fixed temperature called its melting point, which stays constant during the change."
+ },
+ {
+  "chapter": "Change of State",
+  "subject": "Chemistry",
+  "topic": "Change of State",
+  "subtopic": "Condensation",
+  "class_level": "7",
+  "difficulty": "Easy",
+  "question": "The change of water vapour into liquid water on cooling is called what?",
+  "options": [
+   "Condensation",
+   "Evaporation",
+   "Sublimation",
+   "Melting"
+  ],
+  "answer": "A",
+  "explanation": "Water droplets appearing on the outside of a cold glass are formed by the condensation of vapour from the air."
+ },
+ {
+  "chapter": "Change of State",
+  "subject": "Chemistry",
+  "topic": "Change of State",
+  "subtopic": "Freezing point of water",
+  "class_level": "7",
+  "difficulty": "Easy",
+  "question": "At what temperature does pure water freeze at normal atmospheric pressure?",
+  "options": [
+   "0 °C",
+   "4 °C",
+   "100 °C",
+   "−10 °C"
+  ],
+  "answer": "A",
+  "explanation": "Water freezes and ice melts at the same temperature of zero degrees Celsius."
+ },
+ {
+  "chapter": "States of Matter",
+  "subject": "Chemistry",
+  "topic": "States of Matter",
+  "subtopic": "Properties of solids",
+  "class_level": "6",
+  "difficulty": "Easy",
+  "question": "Which property is characteristic of a solid?",
+  "options": [
+   "A definite shape and a definite volume",
+   "A definite volume but no definite shape",
+   "Neither definite shape nor definite volume",
+   "High compressibility"
+  ],
+  "answer": "A",
+  "explanation": "Particles in a solid are closely packed and can only vibrate about fixed positions."
+ },
+ {
+  "chapter": "States of Matter",
+  "subject": "Chemistry",
+  "topic": "States of Matter",
+  "subtopic": "Properties of liquids",
+  "class_level": "6",
+  "difficulty": "Easy",
+  "question": "A liquid has a definite volume but takes the shape of its container because of which reason?",
+  "options": [
+   "Its particles can slide over one another",
+   "Its particles are fixed in position",
+   "Its particles have no attraction at all",
+   "Its particles are very far apart"
+  ],
+  "answer": "A",
+  "explanation": "Intermolecular forces in a liquid are weaker than in a solid, so the particles move about while staying close."
+ },
+ {
+  "chapter": "Matter",
+  "subject": "Chemistry",
+  "topic": "Matter",
+  "subtopic": "Particle nature of matter",
+  "class_level": "6",
+  "difficulty": "Easy",
+  "question": "A spoonful of sugar dissolves in water and disappears from view. What does this show about matter?",
+  "options": [
+   "Matter is made of very tiny particles",
+   "Matter has been destroyed",
+   "Sugar has changed into water",
+   "Water has changed into sugar"
+  ],
+  "answer": "A",
+  "explanation": "The sugar particles are so small that they fit into the spaces between the water particles."
+ },
+ {
+  "chapter": "Mixtures",
+  "subject": "Chemistry",
+  "topic": "Mixtures",
+  "subtopic": "Homogeneous mixture",
+  "class_level": "7",
+  "difficulty": "Easy",
+  "question": "Salt dissolved completely in water forms which kind of mixture?",
+  "options": [
+   "A homogeneous mixture",
+   "A heterogeneous mixture",
+   "A compound",
+   "An element"
+  ],
+  "answer": "A",
+  "explanation": "A homogeneous mixture has the same composition throughout and its components cannot be seen separately."
+ },
+ {
+  "chapter": "Separation of Mixtures",
+  "subject": "Chemistry",
+  "topic": "Separation of Mixtures",
+  "subtopic": "Filtration",
+  "class_level": "7",
+  "difficulty": "Easy",
+  "question": "Which method is used to separate an insoluble solid from a liquid?",
+  "options": [
+   "Filtration",
+   "Distillation",
+   "Sublimation",
+   "Crystallisation"
+  ],
+  "answer": "A",
+  "explanation": "The insoluble solid stays behind on the filter paper as residue while the liquid passes through as filtrate."
+ },
+ {
+  "chapter": "Separation of Mixtures",
+  "subject": "Chemistry",
+  "topic": "Separation of Mixtures",
+  "subtopic": "Winnowing",
+  "class_level": "7",
+  "difficulty": "Easy",
+  "question": "Which method is used by farmers to separate lighter husk from heavier grains using wind?",
+  "options": [
+   "Winnowing",
+   "Threshing",
+   "Sieving",
+   "Hand picking"
+  ],
+  "answer": "A",
+  "explanation": "The wind carries the lighter husk further away while the heavier grain falls in a heap nearby."
+ },
+ {
+  "chapter": "Separation of Mixtures",
+  "subject": "Chemistry",
+  "topic": "Separation of Mixtures",
+  "subtopic": "Sedimentation and decantation",
+  "class_level": "7",
+  "difficulty": "Medium",
+  "question": "Muddy water is left undisturbed and the clear water is then poured off. Which pair of processes has been used?",
+  "options": [
+   "Sedimentation and decantation",
+   "Filtration and evaporation",
+   "Distillation and condensation",
+   "Sublimation and deposition"
+  ],
+  "answer": "A",
+  "explanation": "The heavier mud settles down as sediment and the clear liquid above it is carefully poured away."
+ },
+ {
+  "chapter": "Water",
+  "subject": "Environmental Science",
+  "topic": "Water",
+  "subtopic": "Three states of water",
+  "class_level": "7",
+  "difficulty": "Easy",
+  "question": "Water is the only common substance found naturally on the Earth in how many physical states?",
+  "options": [
+   "Three",
+   "Two",
+   "One",
+   "Four"
+  ],
+  "answer": "A",
+  "explanation": "Water occurs as ice, as liquid water and as water vapour within the ordinary range of Earth temperatures."
+ },
+ {
+  "chapter": "Water",
+  "subject": "Environmental Science",
+  "topic": "Water",
+  "subtopic": "Potable water",
+  "class_level": "7",
+  "difficulty": "Easy",
+  "question": "Water that is fit for drinking is described as what?",
+  "options": [
+   "Potable",
+   "Distilled only",
+   "Hard",
+   "Saline"
+  ],
+  "answer": "A",
+  "explanation": "Potable water is free from harmful germs and chemicals, and boiling or chlorination makes water safe to drink."
+ },
+ {
+  "chapter": "Water Cycle",
+  "subject": "Environmental Science",
+  "topic": "Water Cycle",
+  "subtopic": "Stages of the water cycle",
+  "class_level": "7",
+  "difficulty": "Easy",
+  "question": "Which process in the water cycle turns liquid water from oceans into vapour?",
+  "options": [
+   "Evaporation",
+   "Condensation",
+   "Precipitation",
+   "Infiltration"
+  ],
+  "answer": "A",
+  "explanation": "Solar heat evaporates water from seas, lakes and land, and the vapour later condenses into clouds."
+ },
+ {
+  "chapter": "Pollution",
+  "subject": "Environmental Science",
+  "topic": "Pollution",
+  "subtopic": "Air pollutant from vehicles",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Which poisonous gas produced by the incomplete burning of fuel in vehicles combines with haemoglobin?",
+  "options": [
+   "Carbon monoxide",
+   "Carbon dioxide",
+   "Nitrogen",
+   "Oxygen"
+  ],
+  "answer": "A",
+  "explanation": "Carbon monoxide binds to haemoglobin far more strongly than oxygen, which starves the tissues of oxygen."
+ },
+ {
+  "chapter": "Pollution",
+  "subject": "Environmental Science",
+  "topic": "Pollution",
+  "subtopic": "Taj Mahal damage",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "The yellowing of the marble of the Taj Mahal is caused mainly by which problem?",
+  "options": [
+   "Acidic gases and suspended particles in the air",
+   "Excessive rainfall in the region",
+   "The age of the marble alone",
+   "Underground water seepage"
+  ],
+  "answer": "A",
+  "explanation": "Sulphur dioxide and soot from nearby industry and traffic corrode and discolour the marble surface."
+ },
+ {
+  "chapter": "Pollution",
+  "subject": "Environmental Science",
+  "topic": "Pollution",
+  "subtopic": "Reducing air pollution",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Which step would most directly reduce air pollution in a city?",
+  "options": [
+   "Using public transport and cleaner fuels",
+   "Building more private parking lots",
+   "Burning garbage in the open",
+   "Cutting roadside trees"
+  ],
+  "answer": "A",
+  "explanation": "Fewer vehicles on the road and cleaner fuels cut the emission of smoke and harmful gases at source."
+ },
+ {
+  "chapter": "Environmental Issues",
+  "subject": "Environmental Science",
+  "topic": "Environmental Issues",
+  "subtopic": "Plastic pollution",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Why is the careless disposal of plastic bags harmful to the environment?",
+  "options": [
+   "Plastic is non-biodegradable and chokes drains and animals",
+   "Plastic dissolves quickly and poisons the soil",
+   "Plastic increases the fertility of soil",
+   "Plastic evaporates into harmless gases"
+  ],
+  "answer": "A",
+  "explanation": "Plastic persists for centuries, blocks drainage, and animals that swallow it often die."
+ },
+ {
+  "chapter": "Ecosystem",
+  "subject": "Environmental Science",
+  "topic": "Ecosystem",
+  "subtopic": "Herbivore",
+  "class_level": "10",
+  "difficulty": "Easy",
+  "question": "Animals that feed only on plants are called what?",
+  "options": [
+   "Herbivores",
+   "Carnivores",
+   "Omnivores",
+   "Scavengers"
+  ],
+  "answer": "A",
+  "explanation": "Cows, goats and deer are herbivores and occupy the second trophic level of a food chain."
+ },
+ {
+  "chapter": "Ecosystem",
+  "subject": "Environmental Science",
+  "topic": "Ecosystem",
+  "subtopic": "Scavenger",
+  "class_level": "10",
+  "difficulty": "Medium",
+  "question": "Animals that feed on the flesh of dead animals are called what?",
+  "options": [
+   "Scavengers",
+   "Producers",
+   "Herbivores",
+   "Parasites"
+  ],
+  "answer": "A",
+  "explanation": "Vultures, crows and hyenas are scavengers and help keep the environment clean."
+ },
+ {
+  "chapter": "Food Chain",
+  "subject": "Environmental Science",
+  "topic": "Food Chain",
+  "subtopic": "Source of energy",
+  "class_level": "7",
+  "difficulty": "Easy",
+  "question": "What is the ultimate source of energy for almost every food chain on the Earth?",
+  "options": [
+   "The Sun",
+   "The soil",
+   "Water",
+   "Wind"
+  ],
+  "answer": "A",
+  "explanation": "Green plants capture solar energy by photosynthesis, and this energy then passes along the food chain."
+ },
+ {
+  "chapter": "Food Chain",
+  "subject": "Environmental Science",
+  "topic": "Food Chain",
+  "subtopic": "Effect of removing a link",
+  "class_level": "7",
+  "difficulty": "Hard",
+  "question": "If all the frogs in a field are killed, what is the most likely immediate effect?",
+  "options": [
+   "The number of insects will increase",
+   "The number of insects will fall sharply",
+   "The grass will disappear at once",
+   "The snakes will increase in number"
+  ],
+  "answer": "A",
+  "explanation": "Removing a predator releases its prey from control, so the insect population rises and damages the crop."
+ },
+ {
+  "chapter": "Biodiversity",
+  "subject": "Environmental Science",
+  "topic": "Biodiversity",
+  "subtopic": "Meaning of biodiversity",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "The variety of plants, animals and microorganisms found in an area is called what?",
+  "options": [
+   "Biodiversity",
+   "Biomass",
+   "Biosphere",
+   "Biome"
+  ],
+  "answer": "A",
+  "explanation": "High biodiversity makes an ecosystem more stable and better able to withstand disturbance."
+ },
+ {
+  "chapter": "Environmental Conservation",
+  "subject": "Environmental Science",
+  "topic": "Environmental Conservation",
+  "subtopic": "Conservation meaning",
+  "class_level": "7",
+  "difficulty": "Easy",
+  "question": "The careful use and protection of natural resources so that they last is called what?",
+  "options": [
+   "Conservation",
+   "Exploitation",
+   "Extraction",
+   "Consumption"
+  ],
+  "answer": "A",
+  "explanation": "Conservation includes preventing waste, recycling materials and protecting habitats and species."
+ },
+ {
+  "chapter": "Forests",
+  "subject": "Environmental Science",
+  "topic": "Forests",
+  "subtopic": "Forest as a resource",
+  "class_level": "7",
+  "difficulty": "Easy",
+  "question": "Forests are often called the lungs of the Earth because they do what?",
+  "options": [
+   "Absorb carbon dioxide and release oxygen",
+   "Absorb oxygen and release carbon dioxide",
+   "Store large amounts of nitrogen",
+   "Increase the salinity of soil"
+  ],
+  "answer": "A",
+  "explanation": "Photosynthesis in forests removes carbon dioxide from the air and returns oxygen to it."
+ },
+ {
+  "chapter": "Waste",
+  "subject": "Environmental Science",
+  "topic": "Waste",
+  "subtopic": "Segregation of waste",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Why should household waste be separated into different bins at the source?",
+  "options": [
+   "So that biodegradable and recyclable waste can be treated differently",
+   "So that the total quantity of waste increases",
+   "So that all waste can be burnt together",
+   "So that waste collection becomes unnecessary"
+  ],
+  "answer": "A",
+  "explanation": "Segregated waste can be composted or recycled, whereas mixed waste usually ends up in a landfill."
+ },
+ {
+  "chapter": "Health and Hygiene",
+  "subject": "Health and Everyday Science",
+  "topic": "Health and Hygiene",
+  "subtopic": "Hand washing",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Washing hands with soap before eating chiefly helps to prevent what?",
+  "options": [
+   "The entry of germs into the body",
+   "The loss of body heat",
+   "Deficiency of vitamins",
+   "Loss of appetite"
+  ],
+  "answer": "A",
+  "explanation": "Soap loosens dirt and germs from the skin so that they are washed away with the water."
+ },
+ {
+  "chapter": "Health and Hygiene",
+  "subject": "Health and Everyday Science",
+  "topic": "Health and Hygiene",
+  "subtopic": "Safe drinking water",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Which is the simplest household method of making water safe to drink?",
+  "options": [
+   "Boiling it for a few minutes",
+   "Keeping it in an open vessel",
+   "Adding sugar to it",
+   "Stirring it well"
+  ],
+  "answer": "A",
+  "explanation": "Boiling kills most disease-causing germs present in the water."
+ },
+ {
+  "chapter": "Health and Hygiene",
+  "subject": "Health and Everyday Science",
+  "topic": "Health and Hygiene",
+  "subtopic": "Personal hygiene",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Which habit is an example of good personal hygiene?",
+  "options": [
+   "Brushing the teeth twice a day",
+   "Sharing a towel with others",
+   "Wearing the same clothes for a week",
+   "Eating uncovered street food"
+  ],
+  "answer": "A",
+  "explanation": "Regular cleanliness of the body, teeth and clothes keeps germs away and maintains health."
+ },
+ {
+  "chapter": "First Aid",
+  "subject": "Health and Everyday Science",
+  "topic": "First Aid",
+  "subtopic": "Burn treatment",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "What is the correct first aid for a minor burn?",
+  "options": [
+   "Pour plenty of clean cool water over the burnt part",
+   "Apply ink or toothpaste to the burn",
+   "Prick the blisters immediately",
+   "Cover it tightly with a woollen cloth"
+  ],
+  "answer": "A",
+  "explanation": "Cool running water lowers the temperature of the tissue and reduces pain and further damage."
+ },
+ {
+  "chapter": "First Aid",
+  "subject": "Health and Everyday Science",
+  "topic": "First Aid",
+  "subtopic": "Bleeding control",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "What is the first step in giving first aid to a bleeding cut?",
+  "options": [
+   "Press a clean cloth firmly over the wound",
+   "Rub soil on the wound",
+   "Wash it with hot oil",
+   "Leave it open to the air"
+  ],
+  "answer": "A",
+  "explanation": "Direct pressure with a clean cloth helps the blood to clot and reduces the loss of blood."
+ },
+ {
+  "chapter": "Everyday Science",
+  "subject": "Health and Everyday Science",
+  "topic": "Everyday Science",
+  "subtopic": "Pressure cooker",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "Food cooks faster in a pressure cooker because of which reason?",
+  "options": [
+   "The boiling point of water rises under increased pressure",
+   "The pressure lowers the boiling point of water",
+   "The steam has a higher specific heat",
+   "The cooker conducts heat better than other vessels"
+  ],
+  "answer": "A",
+  "explanation": "Water inside boils above 100 degrees Celsius, so the food is cooked at a higher temperature."
+ },
+ {
+  "chapter": "Everyday Science",
+  "subject": "Health and Everyday Science",
+  "topic": "Everyday Science",
+  "subtopic": "Cooking at high altitude",
+  "class_level": "8",
+  "difficulty": "Hard",
+  "question": "Cooking takes longer on a high mountain because of which reason?",
+  "options": [
+   "Atmospheric pressure is lower, so water boils below 100 °C",
+   "The air is too cold to heat the vessel",
+   "Water contains more minerals there",
+   "Fuel burns much faster at that height"
+  ],
+  "answer": "A",
+  "explanation": "At reduced pressure water boils at a lower temperature, so the food receives less heat."
+ },
+ {
+  "chapter": "Everyday Science",
+  "subject": "Health and Everyday Science",
+  "topic": "Everyday Science",
+  "subtopic": "Refrigerator working",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "A refrigerator keeps food cold chiefly because of which process?",
+  "options": [
+   "Evaporation of a refrigerant absorbs heat from inside",
+   "Cold air is manufactured in the freezer",
+   "Ice is formed directly from the air",
+   "The metal walls create cold by friction"
+  ],
+  "answer": "A",
+  "explanation": "The refrigerant takes latent heat from inside the cabinet as it vaporises, and gives it out at the coils behind."
+ },
+ {
+  "chapter": "Everyday Science",
+  "subject": "Health and Everyday Science",
+  "topic": "Everyday Science",
+  "subtopic": "Sweating and cooling",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "Sweating cools the human body because of which process?",
+  "options": [
+   "Evaporation of sweat takes latent heat from the skin",
+   "Sweat conducts heat out of the body",
+   "Sweat reflects sunlight from the skin",
+   "Sweat lowers the blood pressure"
+  ],
+  "answer": "A",
+  "explanation": "Evaporation needs latent heat, which is drawn from the body surface, so the skin cools."
+ },
+ {
+  "chapter": "Everyday Science",
+  "subject": "Health and Everyday Science",
+  "topic": "Everyday Science",
+  "subtopic": "Ice floats on water",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "Ice floats on water because of which reason?",
+  "options": [
+   "Ice is less dense than water",
+   "Ice is colder than water",
+   "Ice contains trapped salt",
+   "Water has greater surface tension than ice"
+  ],
+  "answer": "A",
+  "explanation": "Water expands on freezing, so ice has a lower density and about one tenth of it stays above the surface."
+ },
+ {
+  "chapter": "Everyday Science",
+  "subject": "Health and Everyday Science",
+  "topic": "Everyday Science",
+  "subtopic": "Iron handle insulation",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Why are the handles of cooking vessels made of plastic or wood?",
+  "options": [
+   "They are poor conductors of heat",
+   "They are good conductors of heat",
+   "They are heavier than metal",
+   "They conduct electricity well"
+  ],
+  "answer": "A",
+  "explanation": "Poor conductors do not let heat travel quickly to the hand, so the handle stays comfortable to hold."
+ },
+ {
+  "chapter": "Food",
+  "subject": "Health and Everyday Science",
+  "topic": "Food",
+  "subtopic": "Energy giving food",
+  "class_level": "6",
+  "difficulty": "Easy",
+  "question": "Which class of nutrients is the chief source of energy in our food?",
+  "options": [
+   "Carbohydrates",
+   "Vitamins",
+   "Minerals",
+   "Water"
+  ],
+  "answer": "A",
+  "explanation": "Rice, wheat and potato are rich in carbohydrates, which the body breaks down to release energy."
+ },
+ {
+  "chapter": "Food",
+  "subject": "Health and Everyday Science",
+  "topic": "Food",
+  "subtopic": "Body building food",
+  "class_level": "6",
+  "difficulty": "Easy",
+  "question": "Which nutrient is called the body building nutrient?",
+  "options": [
+   "Protein",
+   "Carbohydrate",
+   "Fat",
+   "Vitamin C"
+  ],
+  "answer": "A",
+  "explanation": "Pulses, milk, eggs and fish are rich in protein, which is needed for growth and repair of tissues."
+ },
+ {
+  "chapter": "Food",
+  "subject": "Health and Everyday Science",
+  "topic": "Food",
+  "subtopic": "Test for starch",
+  "class_level": "6",
+  "difficulty": "Medium",
+  "question": "Which chemical is used to test the presence of starch in a food sample?",
+  "options": [
+   "Iodine solution",
+   "Copper sulphate solution",
+   "Lime water",
+   "Litmus solution"
+  ],
+  "answer": "A",
+  "explanation": "Iodine gives a blue black colour with starch, which is a simple and reliable test."
+ },
+ {
+  "chapter": "Health",
+  "subject": "Health and Everyday Science",
+  "topic": "Health",
+  "subtopic": "Definition of health",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "According to the World Health Organisation, health means what?",
+  "options": [
+   "Complete physical, mental and social well being",
+   "The absence of disease alone",
+   "Physical strength alone",
+   "Freedom from all worries"
+  ],
+  "answer": "A",
+  "explanation": "This definition treats health as positive well being rather than merely the absence of illness."
+ },
+ {
+  "chapter": "Health and Safety",
+  "subject": "Health and Everyday Science",
+  "topic": "Health and Safety",
+  "subtopic": "Road safety",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Wearing a helmet while riding a two wheeler chiefly protects which part of the body?",
+  "options": [
+   "The head",
+   "The chest",
+   "The legs",
+   "The hands"
+  ],
+  "answer": "A",
+  "explanation": "A helmet absorbs and spreads the force of an impact, which greatly reduces the risk of a serious head injury."
+ },
+ {
+  "chapter": "Health and Safety",
+  "subject": "Health and Everyday Science",
+  "topic": "Health and Safety",
+  "subtopic": "Electrical safety at home",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "Why should one never touch an electrical switch with wet hands?",
+  "options": [
+   "Water conducts electricity and can cause a shock",
+   "Water makes the switch heavier",
+   "Water increases the resistance of the body",
+   "Water cools the wires too much"
+  ],
+  "answer": "A",
+  "explanation": "Wet skin has a much lower resistance, so a dangerous current can pass through the body."
+ },
+ {
+  "chapter": "Laboratory Safety",
+  "subject": "General Science",
+  "topic": "Laboratory Safety",
+  "subtopic": "Handling chemicals",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "What should a pupil do before using any chemical in the laboratory?",
+  "options": [
+   "Read the label on the bottle carefully",
+   "Smell it deeply to identify it",
+   "Taste a small quantity",
+   "Mix it with water at once"
+  ],
+  "answer": "A",
+  "explanation": "The label gives the identity of the chemical and any hazard warnings that must be observed."
+ },
+ {
+  "chapter": "Combustion",
+  "subject": "Chemistry",
+  "topic": "Combustion",
+  "subtopic": "Conditions for burning",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Which three conditions are needed for combustion to take place?",
+  "options": [
+   "Fuel, air and heat",
+   "Fuel, water and light",
+   "Air, water and soil",
+   "Heat, light and sound"
+  ],
+  "answer": "A",
+  "explanation": "Removing any one of the three stops the fire, which is the principle behind all methods of extinguishing it."
+ },
+ {
+  "chapter": "Combustion",
+  "subject": "Chemistry",
+  "topic": "Combustion",
+  "subtopic": "Hottest part of flame",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "Which zone of a candle flame is the hottest?",
+  "options": [
+   "The outer non-luminous zone",
+   "The innermost dark zone",
+   "The middle luminous zone",
+   "All zones are equally hot"
+  ],
+  "answer": "A",
+  "explanation": "Complete combustion occurs in the outer zone where oxygen is plentiful, so that zone is the hottest."
+ },
+ {
+  "chapter": "Gravitation",
+  "subject": "Physics",
+  "topic": "Gravitation",
+  "subtopic": "Value of g",
+  "class_level": "9",
+  "difficulty": "Easy",
+  "question": "What is the approximate value of the acceleration due to gravity on the surface of the Earth?",
+  "options": [
+   "9.8 m/s²",
+   "1.6 m/s²",
+   "98 m/s²",
+   "0.98 m/s²"
+  ],
+  "answer": "A",
+  "explanation": "All freely falling bodies near the Earth's surface gain speed at about 9.8 metres per second every second."
+ },
+ {
+  "chapter": "Gravitation",
+  "subject": "Physics",
+  "topic": "Gravitation",
+  "subtopic": "Mass and weight",
+  "class_level": "9",
+  "difficulty": "Medium",
+  "question": "How does the weight of a body differ from its mass?",
+  "options": [
+   "Weight is a force and changes with location while mass stays constant",
+   "Weight is constant everywhere while mass changes",
+   "Both are exactly the same quantity",
+   "Mass is measured in newtons and weight in kilograms"
+  ],
+  "answer": "A",
+  "explanation": "Mass is the quantity of matter in a body, while weight is the gravitational force acting on that mass."
+ },
+ {
+  "chapter": "Gravitation",
+  "subject": "Physics",
+  "topic": "Gravitation",
+  "subtopic": "Weight on the moon",
+  "class_level": "9",
+  "difficulty": "Hard",
+  "question": "The weight of a body on the moon is about how much of its weight on the Earth?",
+  "options": [
+   "One sixth",
+   "One half",
+   "Six times",
+   "The same"
+  ],
+  "answer": "A",
+  "explanation": "The moon's gravitational pull is about one sixth of the Earth's, though the mass of the body is unchanged."
+ },
+ {
+  "chapter": "Force",
+  "subject": "Physics",
+  "topic": "Force",
+  "subtopic": "Effects of force",
+  "class_level": "6",
+  "difficulty": "Easy",
+  "question": "Which of these can a force do to a body?",
+  "options": [
+   "Change its speed, direction or shape",
+   "Change only its colour",
+   "Change only its mass",
+   "Change only its temperature"
+  ],
+  "answer": "A",
+  "explanation": "A force can start or stop motion, change the direction or speed of motion, or alter the shape of a body."
+ },
+ {
+  "chapter": "Force",
+  "subject": "Physics",
+  "topic": "Force",
+  "subtopic": "Unit of force",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "What is the SI unit of force?",
+  "options": [
+   "Newton",
+   "Joule",
+   "Watt",
+   "Pascal"
+  ],
+  "answer": "A",
+  "explanation": "One newton is the force that gives a mass of one kilogram an acceleration of one metre per second squared."
+ },
+ {
+  "chapter": "Force",
+  "subject": "Physics",
+  "topic": "Force",
+  "subtopic": "Contact and non-contact force",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "Which of these is a non-contact force?",
+  "options": [
+   "Magnetic force",
+   "Muscular force",
+   "Frictional force",
+   "Normal reaction"
+  ],
+  "answer": "A",
+  "explanation": "Magnetic, electrostatic and gravitational forces act at a distance without any physical contact."
+ },
+ {
+  "chapter": "Friction",
+  "subject": "Physics",
+  "topic": "Friction",
+  "subtopic": "Friction direction",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Frictional force between two surfaces always acts in which direction?",
+  "options": [
+   "Opposite to the direction of relative motion",
+   "Along the direction of motion",
+   "Perpendicular to the surfaces",
+   "Vertically upward always"
+  ],
+  "answer": "A",
+  "explanation": "Friction opposes relative motion, which is why a rolling ball on the ground gradually slows and stops."
+ },
+ {
+  "chapter": "Friction",
+  "subject": "Physics",
+  "topic": "Friction",
+  "subtopic": "Advantages of friction",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Which everyday action is possible because of friction?",
+  "options": [
+   "Walking on the ground without slipping",
+   "Falling of a stone towards the Earth",
+   "Floating of a ship on water",
+   "Shining of a bulb"
+  ],
+  "answer": "A",
+  "explanation": "Friction between the feet and the ground provides the grip needed to push the body forward."
+ },
+ {
+  "chapter": "Work and Energy",
+  "subject": "Physics",
+  "topic": "Work and Energy",
+  "subtopic": "Unit of work",
+  "class_level": "9",
+  "difficulty": "Easy",
+  "question": "What is the SI unit of work?",
+  "options": [
+   "Joule",
+   "Newton",
+   "Watt",
+   "Pascal"
+  ],
+  "answer": "A",
+  "explanation": "One joule of work is done when a force of one newton moves a body one metre along its own direction."
+ },
+ {
+  "chapter": "Work and Energy",
+  "subject": "Physics",
+  "topic": "Work and Energy",
+  "subtopic": "Condition for work",
+  "class_level": "9",
+  "difficulty": "Medium",
+  "question": "When is the work done by a force on a body zero even though the force is applied?",
+  "options": [
+   "When there is no displacement of the body",
+   "When the body moves in the direction of the force",
+   "When the force is very large",
+   "When the body moves very fast"
+  ],
+  "answer": "A",
+  "explanation": "Work is the product of force and displacement along the force, so no displacement means no work."
+ },
+ {
+  "chapter": "Power",
+  "subject": "Physics",
+  "topic": "Power",
+  "subtopic": "Definition of power",
+  "class_level": "9",
+  "difficulty": "Easy",
+  "question": "The rate of doing work is called what?",
+  "options": [
+   "Power",
+   "Energy",
+   "Momentum",
+   "Impulse"
+  ],
+  "answer": "A",
+  "explanation": "Power is work divided by the time taken, and its SI unit is the watt."
+ },
+ {
+  "chapter": "Sound",
+  "subject": "Physics",
+  "topic": "Sound",
+  "subtopic": "Speed of sound in air",
+  "class_level": "9",
+  "difficulty": "Easy",
+  "question": "What is the approximate speed of sound in air at room temperature?",
+  "options": [
+   "340 m/s",
+   "3 × 10⁸ m/s",
+   "1500 m/s",
+   "34 m/s"
+  ],
+  "answer": "A",
+  "explanation": "Sound travels at about 340 metres per second in air, and much faster in water and in solids."
+ },
+ {
+  "chapter": "Sound",
+  "subject": "Physics",
+  "topic": "Sound",
+  "subtopic": "Sound needs a medium",
+  "class_level": "9",
+  "difficulty": "Medium",
+  "question": "Sound cannot travel through a vacuum because of which reason?",
+  "options": [
+   "It needs a material medium whose particles can vibrate",
+   "It is absorbed by the vacuum",
+   "It travels too fast in a vacuum",
+   "It changes into light in a vacuum"
+  ],
+  "answer": "A",
+  "explanation": "Sound is a mechanical wave, so it requires particles of matter to transmit the vibrations."
+ },
+ {
+  "chapter": "Sound",
+  "subject": "Physics",
+  "topic": "Sound",
+  "subtopic": "Audible range",
+  "class_level": "9",
+  "difficulty": "Medium",
+  "question": "What is the range of frequencies audible to a normal human ear?",
+  "options": [
+   "20 Hz to 20000 Hz",
+   "1 Hz to 100 Hz",
+   "20000 Hz to 40000 Hz",
+   "0 Hz to 20 Hz"
+  ],
+  "answer": "A",
+  "explanation": "Frequencies below this range are called infrasonic and those above it ultrasonic."
+ },
+ {
+  "chapter": "Sound",
+  "subject": "Physics",
+  "topic": "Sound",
+  "subtopic": "Noise and music",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "How does a musical sound differ from a noise?",
+  "options": [
+   "A musical sound is pleasant and has a regular waveform",
+   "A musical sound is always louder",
+   "A noise always has a higher frequency",
+   "A noise cannot be heard by the human ear"
+  ],
+  "answer": "A",
+  "explanation": "Musical sounds have regular periodic waveforms, while noise has an irregular and abrupt waveform."
+ },
+ {
+  "chapter": "Pressure",
+  "subject": "Physics",
+  "topic": "Pressure",
+  "subtopic": "Unit of pressure",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "What is the SI unit of pressure?",
+  "options": [
+   "Pascal",
+   "Newton",
+   "Joule",
+   "Watt"
+  ],
+  "answer": "A",
+  "explanation": "One pascal is a force of one newton acting on an area of one square metre."
+ },
+ {
+  "chapter": "Pressure",
+  "subject": "Physics",
+  "topic": "Pressure",
+  "subtopic": "Pressure and area",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "A sharp knife cuts better than a blunt one because of which reason?",
+  "options": [
+   "The smaller area of the edge produces greater pressure",
+   "A sharp knife applies a greater force",
+   "A sharp knife is always heavier",
+   "A blunt knife has more friction"
+  ],
+  "answer": "A",
+  "explanation": "For the same force, pressure increases as the area of contact decreases."
+ },
+ {
+  "chapter": "Pressure",
+  "subject": "Physics",
+  "topic": "Pressure",
+  "subtopic": "Liquid pressure and depth",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "The pressure exerted by a liquid at a point inside it depends on which factor?",
+  "options": [
+   "The depth of the point below the surface",
+   "The shape of the containing vessel",
+   "The total volume of the liquid",
+   "The area of the base of the vessel"
+  ],
+  "answer": "A",
+  "explanation": "Liquid pressure increases with depth, which is why the walls of a dam are made thicker at the bottom."
+ },
+ {
+  "chapter": "Atomic Structure",
+  "subject": "Physics",
+  "topic": "Atomic Structure",
+  "subtopic": "Charge on electron",
+  "class_level": "9",
+  "difficulty": "Easy",
+  "question": "Which subatomic particle carries a negative charge?",
+  "options": [
+   "Electron",
+   "Proton",
+   "Neutron",
+   "Positron"
+  ],
+  "answer": "A",
+  "explanation": "Electrons revolve around the nucleus, while protons carry the positive charge and neutrons none."
+ },
+ {
+  "chapter": "Atomic Structure",
+  "subject": "Physics",
+  "topic": "Atomic Structure",
+  "subtopic": "Atomic number meaning",
+  "class_level": "9",
+  "difficulty": "Easy",
+  "question": "The atomic number of an element is equal to the number of which particles?",
+  "options": [
+   "Protons in the nucleus",
+   "Neutrons in the nucleus",
+   "Protons and neutrons together",
+   "Electrons in the outermost shell"
+  ],
+  "answer": "A",
+  "explanation": "The atomic number identifies the element, and in a neutral atom it also equals the number of electrons."
+ },
+ {
+  "chapter": "Atomic Structure",
+  "subject": "Physics",
+  "topic": "Atomic Structure",
+  "subtopic": "Mass number meaning",
+  "class_level": "9",
+  "difficulty": "Medium",
+  "question": "The mass number of an atom is the total number of which particles?",
+  "options": [
+   "Protons and neutrons",
+   "Protons and electrons",
+   "Electrons and neutrons",
+   "Protons only"
+  ],
+  "answer": "A",
+  "explanation": "Protons and neutrons are together called nucleons, and almost the entire mass of an atom lies in the nucleus."
+ },
+ {
+  "chapter": "Elements",
+  "subject": "Chemistry",
+  "topic": "Elements",
+  "subtopic": "Symbol of elements",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "What is the chemical symbol of sodium?",
+  "options": [
+   "Na",
+   "So",
+   "Sd",
+   "S"
+  ],
+  "answer": "A",
+  "explanation": "The symbol comes from the Latin name natrium, just as potassium takes its symbol from kalium."
+ },
+ {
+  "chapter": "Elements",
+  "subject": "Chemistry",
+  "topic": "Elements",
+  "subtopic": "Most abundant element in crust",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "Which is the most abundant element in the Earth's crust?",
+  "options": [
+   "Oxygen",
+   "Silicon",
+   "Aluminium",
+   "Iron"
+  ],
+  "answer": "A",
+  "explanation": "Oxygen makes up nearly half the mass of the crust, mostly combined in silicates and oxides."
+ },
+ {
+  "chapter": "Elements",
+  "subject": "Chemistry",
+  "topic": "Elements",
+  "subtopic": "Most abundant element in universe",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "Which is the most abundant element in the universe?",
+  "options": [
+   "Hydrogen",
+   "Oxygen",
+   "Helium",
+   "Carbon"
+  ],
+  "answer": "A",
+  "explanation": "Hydrogen is the simplest and most plentiful element, and it is the chief constituent of stars."
+ },
+ {
+  "chapter": "Digestion",
+  "subject": "Biology",
+  "topic": "Digestion",
+  "subtopic": "Length of small intestine",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "Which is the longest part of the human alimentary canal?",
+  "options": [
+   "The small intestine",
+   "The large intestine",
+   "The oesophagus",
+   "The stomach"
+  ],
+  "answer": "A",
+  "explanation": "The small intestine is about six metres long, which gives ample time and surface for digestion and absorption."
+ },
+ {
+  "chapter": "Digestion",
+  "subject": "Biology",
+  "topic": "Digestion",
+  "subtopic": "Function of large intestine",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "What is the chief function of the large intestine?",
+  "options": [
+   "Absorption of water from undigested food",
+   "Digestion of proteins",
+   "Secretion of bile",
+   "Absorption of fats"
+  ],
+  "answer": "A",
+  "explanation": "The large intestine absorbs water and salts, leaving semi-solid waste to be passed out."
+ },
+ {
+  "chapter": "Respiration",
+  "subject": "Biology",
+  "topic": "Respiration",
+  "subtopic": "Breathing in plants",
+  "class_level": "9",
+  "difficulty": "Medium",
+  "question": "Through which structures do the stems of woody plants exchange gases?",
+  "options": [
+   "Lenticels",
+   "Stomata of roots",
+   "Root hairs",
+   "Cuticle"
+  ],
+  "answer": "A",
+  "explanation": "Lenticels are small openings in the bark that allow gaseous exchange where stomata are absent."
+ },
+ {
+  "chapter": "Respiration",
+  "subject": "Biology",
+  "topic": "Respiration",
+  "subtopic": "Respiration versus photosynthesis",
+  "class_level": "9",
+  "difficulty": "Hard",
+  "question": "How does respiration differ from photosynthesis in green plants?",
+  "options": [
+   "Respiration releases energy while photosynthesis stores it",
+   "Both processes release energy",
+   "Respiration occurs only in daylight",
+   "Photosynthesis occurs only at night"
+  ],
+  "answer": "A",
+  "explanation": "Photosynthesis builds up food and traps energy, while respiration breaks food down and releases that energy."
+ },
+ {
+  "chapter": "Excretion",
+  "subject": "Biology",
+  "topic": "Excretion",
+  "subtopic": "Excretory organs",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Which pair of organs is the chief excretory organ of the human body?",
+  "options": [
+   "The kidneys",
+   "The lungs",
+   "The liver",
+   "The intestines"
+  ],
+  "answer": "A",
+  "explanation": "The kidneys filter nitrogenous waste from the blood and pass it out as urine."
+ },
+ {
+  "chapter": "Excretion",
+  "subject": "Biology",
+  "topic": "Excretion",
+  "subtopic": "Skin as excretory organ",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "Besides the kidneys, which organ excretes water and salts in the form of sweat?",
+  "options": [
+   "The skin",
+   "The heart",
+   "The spleen",
+   "The pancreas"
+  ],
+  "answer": "A",
+  "explanation": "Sweat glands in the skin remove water, salts and a little urea, and also help regulate body temperature."
+ },
+ {
+  "chapter": "Heredity",
+  "subject": "Biology",
+  "topic": "Heredity",
+  "subtopic": "Number of chromosome pairs",
+  "class_level": "10",
+  "difficulty": "Easy",
+  "question": "How many pairs of chromosomes are present in a normal human body cell?",
+  "options": [
+   "23",
+   "46",
+   "22",
+   "24"
+  ],
+  "answer": "A",
+  "explanation": "A human body cell has 23 pairs, of which 22 are autosomes and one pair determines the sex."
+ },
+ {
+  "chapter": "Heredity",
+  "subject": "Biology",
+  "topic": "Heredity",
+  "subtopic": "Variation",
+  "class_level": "10",
+  "difficulty": "Medium",
+  "question": "The differences seen among the offspring of the same parents are called what?",
+  "options": [
+   "Variations",
+   "Mutations only",
+   "Adaptations",
+   "Acquired characters"
+  ],
+  "answer": "A",
+  "explanation": "Variations arise chiefly from the reshuffling of genes during sexual reproduction and are vital for evolution."
+ },
+ {
+  "chapter": "Eclipses",
+  "subject": "Astronomy",
+  "topic": "Eclipses",
+  "subtopic": "Solar eclipse",
+  "class_level": "6",
+  "difficulty": "Medium",
+  "question": "A solar eclipse occurs when which body comes between the other two?",
+  "options": [
+   "The moon comes between the Sun and the Earth",
+   "The Earth comes between the Sun and the moon",
+   "The Sun comes between the Earth and the moon",
+   "Mars comes between the Sun and the Earth"
+  ],
+  "answer": "A",
+  "explanation": "A solar eclipse can happen only on a new moon day, when the moon's shadow falls on the Earth."
+ },
+ {
+  "chapter": "Eclipses",
+  "subject": "Astronomy",
+  "topic": "Eclipses",
+  "subtopic": "Lunar eclipse",
+  "class_level": "6",
+  "difficulty": "Medium",
+  "question": "A lunar eclipse occurs when which body comes between the other two?",
+  "options": [
+   "The Earth comes between the Sun and the moon",
+   "The moon comes between the Sun and the Earth",
+   "The Sun comes between the Earth and the moon",
+   "Venus comes between the Sun and the moon"
+  ],
+  "answer": "A",
+  "explanation": "A lunar eclipse occurs only on a full moon day, when the Earth's shadow falls on the moon."
+ },
+ {
+  "chapter": "Solar System",
+  "subject": "Astronomy",
+  "topic": "Solar System",
+  "subtopic": "Number of planets",
+  "class_level": "10",
+  "difficulty": "Easy",
+  "question": "How many planets are there in the solar system according to the present classification?",
+  "options": [
+   "Eight",
+   "Nine",
+   "Seven",
+   "Ten"
+  ],
+  "answer": "A",
+  "explanation": "Pluto was reclassified as a dwarf planet in 2006, leaving eight planets in the solar system."
+ },
+ {
+  "chapter": "Solar System",
+  "subject": "Astronomy",
+  "topic": "Solar System",
+  "subtopic": "Sun composition",
+  "class_level": "10",
+  "difficulty": "Medium",
+  "question": "The Sun is composed mainly of which two elements?",
+  "options": [
+   "Hydrogen and helium",
+   "Oxygen and nitrogen",
+   "Carbon and oxygen",
+   "Iron and nickel"
+  ],
+  "answer": "A",
+  "explanation": "Hydrogen fuses into helium at the Sun's core, which is the source of its enormous energy."
+ },
+ {
+  "chapter": "Atmosphere",
+  "subject": "Earth and Environmental Science",
+  "topic": "Atmosphere",
+  "subtopic": "Importance of atmosphere",
+  "class_level": "8",
+  "difficulty": "Easy",
+  "question": "Which is a vital function of the Earth's atmosphere?",
+  "options": [
+   "It supplies oxygen and shields us from harmful radiation",
+   "It supplies all the water we drink",
+   "It provides the soil for plants",
+   "It generates the Earth's magnetic field"
+  ],
+  "answer": "A",
+  "explanation": "The atmosphere also keeps the temperature moderate and burns up most meteors before they reach the ground."
+ },
+ {
+  "chapter": "Our Surroundings",
+  "subject": "Earth and Environmental Science",
+  "topic": "Our Surroundings",
+  "subtopic": "Living and non-living",
+  "class_level": "5",
+  "difficulty": "Easy",
+  "question": "Which characteristic is shown by all living things?",
+  "options": [
+   "Growth and reproduction",
+   "A fixed unchanging size",
+   "The ability to conduct electricity",
+   "A metallic lustre"
+  ],
+  "answer": "A",
+  "explanation": "Living things grow, reproduce, respire, respond to stimuli and eventually die."
+ },
+ {
+  "chapter": "Our Surroundings",
+  "subject": "Earth and Environmental Science",
+  "topic": "Our Surroundings",
+  "subtopic": "Natural and man made",
+  "class_level": "5",
+  "difficulty": "Easy",
+  "question": "Which of these is a natural thing in our surroundings?",
+  "options": [
+   "A river",
+   "A bridge",
+   "A bicycle",
+   "A building"
+  ],
+  "answer": "A",
+  "explanation": "Natural things exist without human effort, whereas man-made things are built by people."
+ },
+ {
+  "chapter": "Animals",
+  "subject": "Biology",
+  "topic": "Animals",
+  "subtopic": "Hibernation",
+  "class_level": "6",
+  "difficulty": "Medium",
+  "question": "The winter sleep of animals such as frogs, during which their activity slows greatly, is called what?",
+  "options": [
+   "Hibernation",
+   "Aestivation",
+   "Migration",
+   "Camouflage"
+  ],
+  "answer": "A",
+  "explanation": "Hibernation helps animals survive cold months when food is scarce by lowering their energy needs."
+ },
+ {
+  "chapter": "Animals",
+  "subject": "Biology",
+  "topic": "Animals",
+  "subtopic": "Camouflage",
+  "class_level": "6",
+  "difficulty": "Medium",
+  "question": "The ability of a chameleon to blend with its surroundings is called what?",
+  "options": [
+   "Camouflage",
+   "Mimicry of sound",
+   "Hibernation",
+   "Regeneration"
+  ],
+  "answer": "A",
+  "explanation": "Camouflage helps an animal escape the notice of its predators and also helps predators approach prey."
+ },
+ {
+  "chapter": "Plant Structure",
+  "subject": "Biology",
+  "topic": "Plant Structure",
+  "subtopic": "Functions of root",
+  "class_level": "5",
+  "difficulty": "Easy",
+  "question": "Which is the chief function of the roots of a plant?",
+  "options": [
+   "To absorb water and minerals and anchor the plant",
+   "To prepare food by photosynthesis",
+   "To produce seeds",
+   "To transport food to the leaves"
+  ],
+  "answer": "A",
+  "explanation": "Root hairs greatly increase the surface for absorption, and the root system holds the plant firmly in the soil."
+ },
+ {
+  "chapter": "Plant Structure",
+  "subject": "Biology",
+  "topic": "Plant Structure",
+  "subtopic": "Functions of stem",
+  "class_level": "5",
+  "difficulty": "Easy",
+  "question": "Which is the chief function of the stem of a plant?",
+  "options": [
+   "To support the plant and conduct water and food",
+   "To absorb minerals from the soil",
+   "To carry out photosynthesis only",
+   "To produce root hairs"
+  ],
+  "answer": "A",
+  "explanation": "The stem holds up the leaves and flowers and contains the vascular tissues that conduct materials."
+ },
+ {
+  "chapter": "Agricultural Science",
+  "subject": "Biology",
+  "topic": "Agriculture",
+  "subtopic": "Kharif and rabi crops",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "Crops such as paddy and maize that are sown at the beginning of the rainy season are called what?",
+  "options": [
+   "Kharif crops",
+   "Rabi crops",
+   "Zaid crops",
+   "Plantation crops"
+  ],
+  "answer": "A",
+  "explanation": "Kharif crops are grown from June to September, while rabi crops such as wheat are grown in winter."
+ },
+ {
+  "chapter": "Agricultural Science",
+  "subject": "Biology",
+  "topic": "Agriculture",
+  "subtopic": "Crop rotation benefit",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "Growing a leguminous crop between two cereal crops mainly helps to do what?",
+  "options": [
+   "Restore the nitrogen content of the soil",
+   "Increase the acidity of the soil",
+   "Remove all pests permanently",
+   "Reduce the need for sunlight"
+  ],
+  "answer": "A",
+  "explanation": "Nitrogen-fixing bacteria in the root nodules of legumes enrich the soil for the next cereal crop."
+ },
+ {
+  "chapter": "Soil",
+  "subject": "Earth and Environmental Science",
+  "topic": "Soil",
+  "subtopic": "Clayey soil",
+  "class_level": "7",
+  "difficulty": "Medium",
+  "question": "Which type of soil holds the most water and is best suited for growing paddy?",
+  "options": [
+   "Clayey soil",
+   "Sandy soil",
+   "Loamy soil",
+   "Gravelly soil"
+  ],
+  "answer": "A",
+  "explanation": "Clay particles are very fine and pack closely, so the soil retains water well."
+ },
+ {
+  "chapter": "Soil",
+  "subject": "Earth and Environmental Science",
+  "topic": "Soil",
+  "subtopic": "Loamy soil",
+  "class_level": "7",
+  "difficulty": "Medium",
+  "question": "Which type of soil is considered best for the growth of most crops?",
+  "options": [
+   "Loamy soil",
+   "Pure sandy soil",
+   "Pure clayey soil",
+   "Rocky soil"
+  ],
+  "answer": "A",
+  "explanation": "Loam is a balanced mixture of sand, clay and silt with humus, so it both retains moisture and drains well."
+ },
+ {
+  "chapter": "Disasters",
+  "subject": "Earth and Environmental Science",
+  "topic": "Disasters",
+  "subtopic": "Cyclone",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "A violent storm with very low pressure at its centre and high speed winds spiralling inward is called what?",
+  "options": [
+   "A cyclone",
+   "An earthquake",
+   "A landslide",
+   "A drought"
+  ],
+  "answer": "A",
+  "explanation": "Cyclones form over warm seas and bring destructive winds, heavy rain and storm surges to coastal areas."
+ },
+ {
+  "chapter": "Disasters",
+  "subject": "Earth and Environmental Science",
+  "topic": "Disasters",
+  "subtopic": "Lightning safety",
+  "class_level": "8",
+  "difficulty": "Medium",
+  "question": "During a thunderstorm, which place is the safest to take shelter?",
+  "options": [
+   "Inside a closed building",
+   "Under a tall isolated tree",
+   "In an open field",
+   "On a hilltop"
+  ],
+  "answer": "A",
+  "explanation": "A building with wiring and plumbing conducts the charge safely to the ground, whereas an isolated tree attracts a strike."
+ },
+ {
+  "chapter": "Technology",
+  "subject": "General Science",
+  "topic": "Technology",
+  "subtopic": "Artificial satellite use",
+  "class_level": "10",
+  "difficulty": "Easy",
+  "question": "Which is a major practical use of artificial satellites?",
+  "options": [
+   "Communication and weather forecasting",
+   "Producing rainfall directly",
+   "Increasing the Earth's gravity",
+   "Creating the ozone layer"
+  ],
+  "answer": "A",
+  "explanation": "Satellites relay television and telephone signals, observe weather systems and help in navigation and remote sensing."
+ },
+ {
+  "chapter": "Technology",
+  "subject": "General Science",
+  "topic": "Technology",
+  "subtopic": "Optical fibre",
+  "class_level": "10",
+  "difficulty": "Hard",
+  "question": "Optical fibres carry light signals over long distances using which phenomenon?",
+  "options": [
+   "Total internal reflection",
+   "Diffraction",
+   "Dispersion",
+   "Polarisation"
+  ],
+  "answer": "A",
+  "explanation": "Light entering a fibre is repeatedly totally internally reflected at the boundary, so it travels along the fibre with little loss."
+ },
+ {
+  "chapter": "History of Science",
+  "subject": "General Science",
+  "topic": "History of Science",
+  "subtopic": "Discovery of penicillin",
+  "class_level": "10",
+  "difficulty": "Medium",
+  "question": "Who discovered penicillin, the first antibiotic?",
+  "options": [
+   "Alexander Fleming",
+   "Louis Pasteur",
+   "Robert Koch",
+   "Edward Jenner"
+  ],
+  "answer": "A",
+  "explanation": "Fleming noticed in 1928 that a mould growing on a culture plate had stopped the growth of bacteria around it."
+ },
+ {
+  "chapter": "History of Science",
+  "subject": "General Science",
+  "topic": "History of Science",
+  "subtopic": "Discovery of vaccination",
+  "class_level": "10",
+  "difficulty": "Medium",
+  "question": "Who developed the first successful vaccine, against smallpox?",
+  "options": [
+   "Edward Jenner",
+   "Louis Pasteur",
+   "Alexander Fleming",
+   "Joseph Lister"
+  ],
+  "answer": "A",
+  "explanation": "Jenner showed in 1796 that inoculation with cowpox material protected a person against smallpox."
+ },
+ {
+  "chapter": "History of Science",
+  "subject": "General Science",
+  "topic": "History of Science",
+  "subtopic": "Father of genetics",
+  "class_level": "10",
+  "difficulty": "Easy",
+  "question": "Who is regarded as the father of genetics?",
+  "options": [
+   "Gregor Mendel",
+   "Charles Darwin",
+   "Hugo de Vries",
+   "Thomas Hunt Morgan"
+  ],
+  "answer": "A",
+  "explanation": "Mendel's experiments on pea plants established the basic laws of inheritance."
+ },
+ {
+  "chapter": "History of Science",
+  "subject": "General Science",
+  "topic": "History of Science",
+  "subtopic": "DNA structure",
+  "class_level": "10",
+  "difficulty": "Medium",
+  "question": "Who proposed the double helix model of the DNA molecule?",
+  "options": [
+   "Watson and Crick",
+   "Mendel and Morgan",
+   "Darwin and Wallace",
+   "Hooke and Brown"
+  ],
+  "answer": "A",
+  "explanation": "Watson and Crick described the double helix in 1953 using the X-ray diffraction data of Rosalind Franklin."
+ },
+ {
+  "chapter": "History of Science",
+  "subject": "General Science",
+  "topic": "History of Science",
+  "subtopic": "Raman effect",
+  "class_level": "10",
+  "difficulty": "Hard",
+  "question": "Which Indian scientist won the Nobel Prize in Physics for his work on the scattering of light?",
+  "options": [
+   "C. V. Raman",
+   "Homi Bhabha",
+   "S. Chandrasekhar",
+   "Vikram Sarabhai"
+  ],
+  "answer": "A",
+  "explanation": "C. V. Raman was awarded the Nobel Prize in 1930, and National Science Day marks the discovery of the Raman effect."
+ },
+ {
+  "chapter": "History of Science",
+  "subject": "General Science",
+  "topic": "History of Science",
+  "subtopic": "Father of Indian space programme",
+  "class_level": "10",
+  "difficulty": "Medium",
+  "question": "Who is regarded as the father of the Indian space programme?",
+  "options": [
+   "Vikram Sarabhai",
+   "Homi Bhabha",
+   "A. P. J. Abdul Kalam",
+   "Satish Dhawan"
+  ],
+  "answer": "A",
+  "explanation": "Vikram Sarabhai founded the organisation that became ISRO and guided its early growth."
+ }
+]

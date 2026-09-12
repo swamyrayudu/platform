@@ -71,10 +71,31 @@ export function verifyCheckoutSignature(
  * Verify the X-Razorpay-Signature header on a webhook.
  * expected = HMAC_SHA256(raw_body, webhook_secret)
  */
+/**
+ * Minimum acceptable length for the webhook HMAC key.
+ *
+ * A short secret is brute-forceable offline: an attacker who captures one
+ * signed webhook body has an oracle and can search the keyspace, after which
+ * they can forge `payment.captured` events and mint subscriptions at will.
+ * Razorpay lets you choose this string, so it must actually be long.
+ */
+const MIN_WEBHOOK_SECRET_LENGTH = 24
+let warnedWeakWebhookSecret = false
+
 export function verifyWebhookSignature(rawBody: string, signature: string): boolean {
-  const expected = createHmac('sha256', requireEnv('RAZORPAY_WEBHOOK_SECRET'))
-    .update(rawBody)
-    .digest('hex')
+  const secret = requireEnv('RAZORPAY_WEBHOOK_SECRET')
+
+  if (secret.length < MIN_WEBHOOK_SECRET_LENGTH && !warnedWeakWebhookSecret) {
+    warnedWeakWebhookSecret = true
+    console.error(
+      `[Razorpay] RAZORPAY_WEBHOOK_SECRET is ${secret.length} characters; ` +
+        `at least ${MIN_WEBHOOK_SECRET_LENGTH} is recommended. A short secret can be ` +
+        'brute-forced from a single captured webhook, allowing forged payment events. ' +
+        'Regenerate it in the Razorpay dashboard (Settings -> Webhooks).'
+    )
+  }
+
+  const expected = createHmac('sha256', secret).update(rawBody).digest('hex')
   return safeEqualHex(expected, signature)
 }
 

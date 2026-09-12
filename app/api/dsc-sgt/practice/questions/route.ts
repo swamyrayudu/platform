@@ -1,14 +1,47 @@
 // ============================================================
 // app/api/dsc-sgt/practice/questions/route.ts — GET Questions
 // ============================================================
-// Fetches questions from english_subject_questions table
-// Supports random ordering and limit (50, 100, 150)
+// Returns questions from the shared question bank for a subject/medium.
+//
+// SECURITY
+//   • Authentication is REQUIRED. This endpoint previously had none, which
+//     made the entire 48,000-question bank downloadable by anyone.
+//   • `correct_answer` and `explanation` are NEVER returned. They previously
+//     leaked because the handler used `select('*')`, so a single unauthenticated
+//     request returned the answer key alongside each question.
+//
+//   Grading happens server-side in the practice session flow
+//   (/api/dsc-sgt/practice/sessions/[id]/answer), which is the only place an
+//   answer is revealed, and only for a question the user has just answered.
 // ============================================================
 
 import { NextResponse } from 'next/server'
+import { requireAuth } from '@/lib/auth/session'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getSubjectProvider } from '@/lib/practice/subjects'
-import type { EnglishQuestion } from '@/types/questions'
+
+/**
+ * Explicit column allowlist — never `select('*')` on a question table.
+ * Adding a column to the bank must not silently start exposing it.
+ */
+const CLIENT_SAFE_COLUMNS = [
+  'id',
+  'question_id',
+  'class_level',
+  'subject',
+  'chapter',
+  'topic',
+  'subtopic',
+  'difficulty',
+  'question_type',
+  'question',
+  'option_a',
+  'option_b',
+  'option_c',
+  'option_d',
+  'source_type',
+  'language',
+].join(', ')
 
 // Helper to shuffle array (Fisher-Yates)
 function shuffleArray<T>(array: T[]): T[] {
@@ -20,7 +53,14 @@ function shuffleArray<T>(array: T[]): T[] {
   return shuffled
 }
 
-export async function GET(request: Request) {
+interface ClientSafeQuestion {
+  question_id: string
+  topic?: string | null
+  difficulty?: string | null
+  class_level?: string | null
+}
+
+export const GET = requireAuth(async (request: Request) => {
   try {
     const { searchParams } = new URL(request.url)
 
@@ -33,7 +73,8 @@ export async function GET(request: Request) {
     const medium = (searchParams.get('medium') || 'english').toLowerCase()
     const isRandom = searchParams.get('random') !== 'false'
 
-    // Determine target table based on subject provider
+    // Table comes from the registered subject provider, never from raw input,
+    // so the table name is not attacker-controlled.
     const provider = getSubjectProvider(subject)
     let tableName = provider ? provider.metadata.tableName : 'dsc_practice_questions'
     if (
@@ -50,58 +91,35 @@ export async function GET(request: Request) {
       tableName = medium === 'english' ? 'pedagogy_english_medium' : 'pedagogy_subject_questions'
     }
 
-    let query = supabaseAdmin
-      .from(tableName)
-      .select('*')
+    let query = supabaseAdmin.from(tableName).select(CLIENT_SAFE_COLUMNS)
 
     if (difficulty && difficulty !== 'All') {
       query = query.ilike('difficulty', difficulty)
     }
-
     if (topic && topic !== 'All') {
       query = query.ilike('topic', `%${topic}%`)
     }
-
     if (classLevel && classLevel !== 'All') {
       query = query.ilike('class_level', `%${classLevel}%`)
     }
 
-    // Fetch a pool of up to 300 to allow high-quality random distribution
+    // Fetch a pool to allow reasonable random distribution
     const fetchLimit = isRandom ? Math.max(limit * 2, 200) : limit
     const { data, error } = await query.limit(fetchLimit)
 
     if (error) {
       console.error('[Questions API] Supabase fetch error:', error)
       return NextResponse.json(
-        {
-          error: 'Failed to fetch questions from database',
-          details: error.message,
-          questions: [],
-          total: 0,
-        },
+        { success: false, error: 'Failed to fetch questions', questions: [], total: 0 },
         { status: 500 }
       )
     }
 
-    const rows: EnglishQuestion[] = (data || []) as EnglishQuestion[]
+    const rows = (data || []) as unknown as ClientSafeQuestion[]
+    const selectedQuestions = isRandom ? shuffleArray(rows).slice(0, limit) : rows.slice(0, limit)
 
-    // Randomize if requested
-    const selectedQuestions = isRandom
-      ? shuffleArray(rows).slice(0, limit)
-      : rows.slice(0, limit)
-
-    // Extract unique available topics and difficulties for filtering
-    const availableTopics = Array.from(
-      new Set(rows.map((q) => q.topic).filter(Boolean))
-    ) as string[]
-
-    const availableDifficulties = Array.from(
-      new Set(rows.map((q) => q.difficulty).filter(Boolean))
-    ) as string[]
-
-    const availableClassLevels = Array.from(
-      new Set(rows.map((q) => q.class_level).filter(Boolean))
-    ) as string[]
+    const uniq = (key: keyof ClientSafeQuestion) =>
+      Array.from(new Set(rows.map((q) => q[key]).filter(Boolean))) as string[]
 
     return NextResponse.json({
       success: true,
@@ -109,17 +127,17 @@ export async function GET(request: Request) {
       count: selectedQuestions.length,
       limit,
       totalInPool: rows.length,
-      availableTopics,
-      availableDifficulties,
-      availableClassLevels,
+      availableTopics: uniq('topic'),
+      availableDifficulties: uniq('difficulty'),
+      availableClassLevels: uniq('class_level'),
       questions: selectedQuestions,
+      // correct_answer and explanation are intentionally absent.
     })
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
     console.error('[Questions API] Unexpected error:', err)
     return NextResponse.json(
-      { error: 'Internal server error', details: message, questions: [], total: 0 },
+      { success: false, error: 'Internal server error', questions: [], total: 0 },
       { status: 500 }
     )
   }
-}
+})

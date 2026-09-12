@@ -30,12 +30,21 @@ export const POST = requireAdmin(async (
       )
     }
 
-    const { mappings, validation } = await generateAndStoreMockQuestions(test.id, test.blueprint_id)
+    // The test's own medium decides which source tables are eligible, so an
+    // English test can never be filled with Telugu-medium content.
+    const { mappings, validation, warnings } = await generateAndStoreMockQuestions(
+      test.id,
+      test.blueprint_id,
+      test.medium,
+      test.module_number ?? 1
+    )
 
     return NextResponse.json({
       success: true,
       generated_count: mappings.length,
+      medium: test.medium,
       validation,
+      warnings,
       section_breakdown: Object.entries(validation.section_counts).map(([sectionId, counts]) => ({
         section_id: sectionId,
         expected: counts.expected,

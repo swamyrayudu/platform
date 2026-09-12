@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
   BookOpen,
@@ -14,94 +14,120 @@ import {
   CheckCircle2,
   GraduationCap,
   Award,
-  Zap,
   Layers,
-  Clock,
-  TrendingUp,
-  AlertCircle,
-  HelpCircle,
 } from 'lucide-react'
 import { usePremium } from '@/app/components/dsc-sgt/PremiumContext'
 import { useAuth } from '@/app/contexts/AuthContext'
 
-const SYLLABUS_SECTIONS = [
-  {
-    name: 'General Knowledge & Current Affairs',
-    marks: '10 Marks',
-    questions: '20 Qs',
-    topics: 'National & AP State Events, Schemes, Awards, History',
-    color: 'from-blue-500/20 to-blue-500/5',
+interface OverviewStats {
+  study_streak_days: number
+  questions_solved: number
+  avg_accuracy_pct: number
+  practice_sessions: number
+  modules_completed: number
+  modules_in_progress: number
+  modules_total: number
+  last_active_at: string | null
+}
+
+interface SyllabusSection {
+  id: string
+  name: string
+  questions: number
+  marks: number
+}
+
+interface Syllabus {
+  sections: SyllabusSection[]
+  total_questions: number
+  total_marks: number
+  duration_minutes: number
+}
+
+/**
+ * Presentation only. Question and mark counts come from the blueprint via the
+ * API — they used to be hard-coded here and had drifted badly out of date
+ * (advertising a 150-mark paper with 20-40 questions per section, while the
+ * modules are actually generated as 160 questions / 80 marks).
+ */
+const SECTION_STYLE: Record<string, { border: string; iconColor: string; topics: string }> = {
+  gk: {
     border: 'border-blue-500/30',
     iconColor: 'text-blue-500',
+    topics: 'National & AP State Events, Schemes, Awards, History',
   },
-  {
-    name: 'Perspectives in Education',
-    marks: '10 Marks',
-    questions: '20 Qs',
-    topics: 'History of Education, RTE 2009, NEP 2020, Teacher Emp.',
-    color: 'from-purple-500/20 to-purple-500/5',
+  perspectives: {
     border: 'border-purple-500/30',
     iconColor: 'text-purple-500',
+    topics: 'History of Education, RTE 2009, NEP 2020, Teacher Empowerment',
   },
-  {
-    name: 'Classroom Psychology & Pedagogy',
-    marks: '10 Marks',
-    questions: '20 Qs',
-    topics: 'Child Development, Learning Theories, Guidance & Counseling',
-    color: 'from-pink-500/20 to-pink-500/5',
+  psychology: {
     border: 'border-pink-500/30',
     iconColor: 'text-pink-500',
+    topics: 'Child Development, Learning Theories, Guidance & Counselling',
   },
-  {
-    name: 'Language I (Telugu)',
-    marks: '15 Marks',
-    questions: '30 Qs',
-    topics: 'Grammar (Vyakaranam), Literature, Padajalam, Methodology',
-    color: 'from-amber-500/20 to-amber-500/5',
+  telugu: {
     border: 'border-amber-500/30',
     iconColor: 'text-amber-500',
+    topics: 'Vyakaranam, Literature, Padajalam, Methodology',
   },
-  {
-    name: 'Language II (English)',
-    marks: '15 Marks',
-    questions: '30 Qs',
-    topics: 'Vocabulary, Tenses, Prepositions, Reading Comprehension, Methods',
-    color: 'from-emerald-500/20 to-emerald-500/5',
+  english: {
     border: 'border-emerald-500/30',
     iconColor: 'text-emerald-500',
+    topics: 'Vocabulary, Tenses, Prepositions, Comprehension, Methods',
   },
-  {
-    name: 'Mathematics & Methodology',
-    marks: '20 Marks',
-    questions: '40 Qs',
-    topics: 'Number System, Geometry, Algebra, Data Handling, Methods',
-    color: 'from-cyan-500/20 to-cyan-500/5',
+  mathematics: {
     border: 'border-cyan-500/30',
     iconColor: 'text-cyan-500',
+    topics: 'Number System, Geometry, Algebra, Data Handling, Methods',
   },
-  {
-    name: 'Science & Methodology',
-    marks: '20 Marks',
-    questions: '40 Qs',
-    topics: 'Living World, Physics, Chemistry, Health, EVS, Methodology',
-    color: 'from-green-500/20 to-green-500/5',
+  science: {
     border: 'border-green-500/30',
     iconColor: 'text-green-500',
+    topics: 'Living World, Physics, Chemistry, Health, EVS, Methodology',
   },
-  {
-    name: 'Social Studies & Methodology',
-    marks: '20 Marks',
-    questions: '40 Qs',
-    topics: 'Geography, History, Civics, AP Geography & Economy, Methods',
-    color: 'from-orange-500/20 to-orange-500/5',
+  social: {
     border: 'border-orange-500/30',
     iconColor: 'text-orange-500',
+    topics: 'Geography, History, Civics, AP Economy, Methods',
   },
-]
+}
+
+function sectionStyle(id: string) {
+  return (
+    SECTION_STYLE[id] ?? {
+      border: 'border-border',
+      iconColor: 'text-primary',
+      topics: 'Syllabus-aligned practice questions',
+    }
+  )
+}
 
 export default function DscSgtOverviewPage() {
   const { user } = useAuth()
   const { isPremium, openModal } = usePremium()
+
+  const [stats, setStats] = useState<OverviewStats | null>(null)
+  const [syllabus, setSyllabus] = useState<Syllabus | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const res = await fetch('/api/dsc-sgt/overview')
+        const json = await res.json()
+        if (cancelled || !json.success) return
+        setStats(json.summary)
+        setSyllabus(json.syllabus)
+      } catch {
+        // Non-fatal: the page still renders, just without personalised stats.
+      }
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const userName = user?.name || user?.email?.split('@')[0] || 'Candidate'
 
@@ -130,25 +156,57 @@ export default function DscSgtOverviewPage() {
               Namaste, <span className="text-primary">{userName}</span>! Ready to crack DSC / SGT?
             </h1>
             <p className="mt-2 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Master all 8 syllabus sections with chapter-wise practice, timed sectional tests, and full-length 150-mark AP DSC Grand Mock Exams.
+              Master all {syllabus?.sections.length ?? 8} syllabus sections with chapter-wise
+              practice, timed sectional tests, and full-length{' '}
+              {syllabus ? `${syllabus.total_questions}-question / ${syllabus.total_marks}-mark` : ''}{' '}
+              AP DSC Grand Mock Exams.
             </p>
 
             {/* Quick Metrics */}
             <div className="mt-6 flex flex-wrap items-center gap-4 sm:gap-6 text-xs font-medium text-muted-foreground">
               <div className="flex items-center gap-1.5">
-                <Flame className="h-4 w-4 text-orange-500 fill-orange-500" />
-                <span><strong className="text-foreground">5 Days</strong> Study Streak</span>
+                <Flame className="h-4 w-4 fill-orange-500 text-orange-500" />
+                <span>
+                  <strong className="text-foreground">
+                    {stats ? `${stats.study_streak_days} Day${stats.study_streak_days === 1 ? '' : 's'}` : '—'}
+                  </strong>{' '}
+                  Study Streak
+                </span>
               </div>
               <div className="h-3 w-px bg-border" />
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                <span><strong className="text-foreground">340+</strong> Questions Solved</span>
+                <span>
+                  <strong className="text-foreground">
+                    {stats ? stats.questions_solved.toLocaleString() : '—'}
+                  </strong>{' '}
+                  Questions Solved
+                </span>
               </div>
               <div className="h-3 w-px bg-border" />
               <div className="flex items-center gap-1.5">
                 <Award className="h-4 w-4 text-primary" />
-                <span><strong className="text-foreground">78.4%</strong> Avg Accuracy</span>
+                <span>
+                  <strong className="text-foreground">
+                    {stats && stats.questions_solved > 0 ? `${stats.avg_accuracy_pct}%` : '—'}
+                  </strong>{' '}
+                  Avg Accuracy
+                </span>
               </div>
+              {stats && stats.modules_total > 0 && (
+                <>
+                  <div className="h-3 w-px bg-border" />
+                  <div className="flex items-center gap-1.5">
+                    <Layers className="h-4 w-4 text-purple-500" />
+                    <span>
+                      <strong className="text-foreground">
+                        {stats.modules_completed}/{stats.modules_total}
+                      </strong>{' '}
+                      Modules Done
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -159,7 +217,7 @@ export default function DscSgtOverviewPage() {
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3.5 text-xs sm:text-sm font-bold text-primary-foreground shadow-md transition hover:bg-primary/90 hover:scale-[1.02] active:scale-95"
             >
               <Timer className="h-4 w-4" />
-              <span>Start Live Mock Exam (150 M)</span>
+              <span>Start Live Mock Exam{syllabus ? ` (${syllabus.total_marks} M)` : ''}</span>
             </Link>
             <Link
               href="/dsc-sgt/practice"
@@ -343,31 +401,36 @@ export default function DscSgtOverviewPage() {
         </div>
 
         <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
-          {SYLLABUS_SECTIONS.map((sec, idx) => (
+          {(syllabus?.sections ?? []).map((sec) => {
+            const style = sectionStyle(sec.id)
+            return (
             <div
-              key={idx}
-              className={`flex flex-col justify-between rounded-2xl border ${sec.border} bg-card p-4.5 transition hover:shadow-xs`}
+              key={sec.id}
+              className={`flex flex-col justify-between rounded-2xl border ${style.border} bg-card p-4.5 transition hover:shadow-xs`}
             >
               <div>
                 <div className="flex items-center justify-between">
-                  <span className={`text-xs font-bold ${sec.iconColor}`}>{sec.marks}</span>
+                  <span className={`text-xs font-bold ${style.iconColor}`}>{sec.marks} Marks</span>
                   <span className="rounded-md border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                    {sec.questions}
+                    {sec.questions} Qs
                   </span>
                 </div>
-                <h3 className="mt-2 text-sm font-bold text-foreground leading-snug">{sec.name}</h3>
-                <p className="mt-1.5 text-[11px] text-muted-foreground leading-relaxed">{sec.topics}</p>
+                <h3 className="mt-2 text-sm font-bold leading-snug text-foreground">{sec.name}</h3>
+                <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                  {style.topics}
+                </p>
               </div>
 
               <Link
                 href={`/dsc-sgt/practice?subject=${encodeURIComponent(sec.name)}`}
-                className="mt-4 inline-flex items-center justify-between rounded-xl border border-border/80 bg-muted/30 px-3 py-1.5 text-[11px] font-semibold text-foreground hover:bg-accent transition"
+                className="mt-4 inline-flex items-center justify-between rounded-xl border border-border/80 bg-muted/30 px-3 py-1.5 text-[11px] font-semibold text-foreground transition hover:bg-accent"
               >
                 <span>Practice Section</span>
                 <ArrowRight className="h-3 w-3 text-muted-foreground" />
               </Link>
             </div>
-          ))}
+            )
+          })}
         </div>
       </section>
 

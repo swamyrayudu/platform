@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Database dumps written by scripts/replace-telugu-questions.mjs
+backups/

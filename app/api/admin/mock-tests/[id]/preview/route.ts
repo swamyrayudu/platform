@@ -12,6 +12,7 @@ import { getMockTestById } from '@/lib/mock-tests/db'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getBlueprintById } from '@/lib/mock-tests/blueprints'
 import { validateBlueprint } from '@/lib/mock-tests/validator'
+import { resolveGenerationMedium } from '@/lib/mock-tests/generator'
 
 export const GET = requireAdmin(async (
   _request: Request,
@@ -29,7 +30,7 @@ export const GET = requireAdmin(async (
     // Fetch mappings with question metadata for full validation
     const { data: mappings, error } = await supabaseAdmin
       .from('mock_test_questions')
-      .select('id, mock_test_id, question_id, question_table, question_number, section_id, section_name, marks, created_at')
+      .select('id, mock_test_id, question_uid, question_id, question_table, question_number, section_id, section_name, marks, created_at')
       .eq('mock_test_id', id)
       .order('question_number', { ascending: true })
 
@@ -42,16 +43,30 @@ export const GET = requireAdmin(async (
       return NextResponse.json({ success: false, error: 'Blueprint not found' }, { status: 500 })
     }
 
-    const validation = validateBlueprint(blueprint, mappings || [])
+    const validation = validateBlueprint(blueprint, mappings || [], {
+      medium: resolveGenerationMedium(test.medium),
+      distributionAsWarning: true,
+    })
 
     // Group by section for preview
-    const sectionGroups: Record<string, { section_id: string; section_name: string; count: number; question_ids: string[] }> = {}
-    for (const m of (mappings || [])) {
+    const sectionGroups: Record<
+      string,
+      { section_id: string; section_name: string; count: number; tables: string[]; question_uids: string[] }
+    > = {}
+    for (const m of mappings || []) {
       if (!sectionGroups[m.section_id]) {
-        sectionGroups[m.section_id] = { section_id: m.section_id, section_name: m.section_name, count: 0, question_ids: [] }
+        sectionGroups[m.section_id] = {
+          section_id: m.section_id,
+          section_name: m.section_name,
+          count: 0,
+          tables: [],
+          question_uids: [],
+        }
       }
-      sectionGroups[m.section_id].count++
-      sectionGroups[m.section_id].question_ids.push(m.question_id)
+      const group = sectionGroups[m.section_id]
+      group.count++
+      group.question_uids.push(m.question_uid ?? `${m.question_table}:${m.question_id}`)
+      if (!group.tables.includes(m.question_table)) group.tables.push(m.question_table)
     }
 
     return NextResponse.json({
@@ -59,6 +74,9 @@ export const GET = requireAdmin(async (
       test_id: id,
       test_title: test.title,
       status: test.status,
+      medium: test.medium,
+      module_number: test.module_number ?? null,
+      series: test.series,
       total_mapped: mappings?.length || 0,
       blueprint_expects: blueprint.total_questions,
       validation,

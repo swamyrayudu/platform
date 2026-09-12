@@ -13,7 +13,18 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 // Routes that require authentication for web browsers
-const PROTECTED_WEB_ROUTES = ['/home', '/dashboard', '/profile', '/settings', '/dsc-sgt', '/onboarding']
+const PROTECTED_WEB_ROUTES = [
+  '/home',
+  '/dashboard',
+  '/profile',
+  '/settings',
+  '/dsc-sgt',
+  '/onboarding',
+  // /admin was missing. The admin APIs are separately guarded by requireAdmin,
+  // so this is defence in depth, not the boundary — it just stops the admin
+  // shell rendering for signed-out visitors.
+  '/admin',
+]
 
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = [

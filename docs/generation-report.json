@@ -1,0 +1,387 @@
+{
+  "generated_at": "2026-09-12T07:10:28.103Z",
+  "dry_run": false,
+  "blueprint_id": "ap_dsc_sgt_official",
+  "series": "grand_mock_v1",
+  "module_from": 1,
+  "module_to": 100,
+  "runs": [
+    {
+      "medium": "english",
+      "plan_seconds": 3.4,
+      "report": {
+        "series": "grand_mock_v1",
+        "medium": "english",
+        "blueprint_id": "ap_dsc_sgt_official",
+        "modules_generated": 100,
+        "module_from": 1,
+        "module_to": 100,
+        "total_slots": 16000,
+        "unique_questions_used": 14098,
+        "repeated_assignments": 1902,
+        "eligible_pool_size": 24996,
+        "coverage_pct": 56.4,
+        "per_section": [
+          {
+            "section_id": "gk",
+            "section_name": "General Knowledge & Current Affairs",
+            "questions_per_module": 16,
+            "slots": 1600,
+            "eligible_pool": 457,
+            "unique_used": 457,
+            "repeated_assignments": 1143,
+            "coverage_pct": 100,
+            "min_usage": 3,
+            "max_usage": 4,
+            "difficulty_counts": {
+              "easy": 1600,
+              "medium": 0,
+              "hard": 0
+            },
+            "warnings": [
+              "\"General Knowledge & Current Affairs\": 1600 slots across 100 modules but only 457 eligible questions — controlled reuse of about 3.50x per question is unavoidable.",
+              "\"General Knowledge & Current Affairs\": no 'medium' questions exist in english medium — that share is redistributed across the other difficulty levels.",
+              "\"General Knowledge & Current Affairs\": no 'hard' questions exist in english medium — that share is redistributed across the other difficulty levels."
+            ]
+          },
+          {
+            "section_id": "perspectives",
+            "section_name": "Perspectives in Education",
+            "questions_per_module": 8,
+            "slots": 800,
+            "eligible_pool": 357,
+            "unique_used": 357,
+            "repeated_assignments": 443,
+            "coverage_pct": 100,
+            "min_usage": 2,
+            "max_usage": 3,
+            "difficulty_counts": {
+              "easy": 200,
+              "medium": 400,
+              "hard": 200
+            },
+            "warnings": [
+              "\"Perspectives in Education\": 800 slots across 100 modules but only 357 eligible questions — controlled reuse of about 2.24x per question is unavoidable.",
+              "\"Perspectives in Education\": only 94 'easy' questions exist, so the blueprint's 2/module share was trimmed to 1/module to avoid reusing them across all 100 modules. The remainder is drawn from the other difficulty levels.",
+              "\"Perspectives in Education\": only 184 'medium' questions exist, so the blueprint's 4/module share was trimmed to 3/module to avoid reusing them across all 100 modules. The remainder is drawn from the other difficulty levels.",
+              "\"Perspectives in Education\": only 79 'hard' questions exist, so the blueprint's 2/module share was trimmed to 1/module to avoid reusing them across all 100 modules. The remainder is drawn from the other difficulty levels."
+            ]
+          },
+          {
+            "section_id": "psychology",
+            "section_name": "Classroom Psychology",
+            "questions_per_module": 16,
+            "slots": 1600,
+            "eligible_pool": 3018,
+            "unique_used": 1600,
+            "repeated_assignments": 0,
+            "coverage_pct": 53.02,
+            "min_usage": 1,
+            "max_usage": 1,
+            "difficulty_counts": {
+              "easy": 500,
+              "medium": 800,
+              "hard": 300
+            },
+            "warnings": []
+          },
+          {
+            "section_id": "telugu",
+            "section_name": "Telugu (Language I)",
+            "questions_per_module": 24,
+            "slots": 2400,
+            "eligible_pool": 3386,
+            "unique_used": 2397,
+            "repeated_assignments": 3,
+            "coverage_pct": 70.79,
+            "min_usage": 1,
+            "max_usage": 2,
+            "difficulty_counts": {
+              "easy": 600,
+              "medium": 1200,
+              "hard": 600
+            },
+            "warnings": []
+          },
+          {
+            "section_id": "english",
+            "section_name": "English (Language II)",
+            "questions_per_module": 24,
+            "slots": 2400,
+            "eligible_pool": 4293,
+            "unique_used": 2087,
+            "repeated_assignments": 313,
+            "coverage_pct": 48.61,
+            "min_usage": 1,
+            "max_usage": 11,
+            "difficulty_counts": {
+              "easy": 800,
+              "medium": 1500,
+              "hard": 100
+            },
+            "warnings": [
+              "\"English (Language II)\": only 13 'hard' questions exist, so the blueprint's 6/module share was trimmed to 1/module to avoid reusing them across all 100 modules. The remainder is drawn from the other difficulty levels."
+            ]
+          },
+          {
+            "section_id": "mathematics",
+            "section_name": "Mathematics",
+            "questions_per_module": 24,
+            "slots": 2400,
+            "eligible_pool": 2870,
+            "unique_used": 2400,
+            "repeated_assignments": 0,
+            "coverage_pct": 83.62,
+            "min_usage": 1,
+            "max_usage": 1,
+            "difficulty_counts": {
+              "easy": 0,
+              "medium": 1500,
+              "hard": 900
+            },
+            "warnings": [
+              "\"Mathematics\": no 'easy' questions exist in english medium — that share is redistributed across the other difficulty levels."
+            ]
+          },
+          {
+            "section_id": "science",
+            "section_name": "Science",
+            "questions_per_module": 24,
+            "slots": 2400,
+            "eligible_pool": 4000,
+            "unique_used": 2400,
+            "repeated_assignments": 0,
+            "coverage_pct": 60,
+            "min_usage": 1,
+            "max_usage": 1,
+            "difficulty_counts": {
+              "easy": 0,
+              "medium": 1500,
+              "hard": 900
+            },
+            "warnings": [
+              "\"Science\": no 'easy' questions exist in english medium — that share is redistributed across the other difficulty levels."
+            ]
+          },
+          {
+            "section_id": "social",
+            "section_name": "Social Studies",
+            "questions_per_module": 24,
+            "slots": 2400,
+            "eligible_pool": 6615,
+            "unique_used": 2400,
+            "repeated_assignments": 0,
+            "coverage_pct": 36.28,
+            "min_usage": 1,
+            "max_usage": 1,
+            "difficulty_counts": {
+              "easy": 600,
+              "medium": 1200,
+              "hard": 600
+            },
+            "warnings": []
+          }
+        ],
+        "warnings": [
+          "\"General Knowledge & Current Affairs\": 1600 slots across 100 modules but only 457 eligible questions — controlled reuse of about 3.50x per question is unavoidable.",
+          "\"General Knowledge & Current Affairs\": no 'medium' questions exist in english medium — that share is redistributed across the other difficulty levels.",
+          "\"General Knowledge & Current Affairs\": no 'hard' questions exist in english medium — that share is redistributed across the other difficulty levels.",
+          "\"Perspectives in Education\": 800 slots across 100 modules but only 357 eligible questions — controlled reuse of about 2.24x per question is unavoidable.",
+          "\"Perspectives in Education\": only 94 'easy' questions exist, so the blueprint's 2/module share was trimmed to 1/module to avoid reusing them across all 100 modules. The remainder is drawn from the other difficulty levels.",
+          "\"Perspectives in Education\": only 184 'medium' questions exist, so the blueprint's 4/module share was trimmed to 3/module to avoid reusing them across all 100 modules. The remainder is drawn from the other difficulty levels.",
+          "\"Perspectives in Education\": only 79 'hard' questions exist, so the blueprint's 2/module share was trimmed to 1/module to avoid reusing them across all 100 modules. The remainder is drawn from the other difficulty levels.",
+          "\"English (Language II)\": only 13 'hard' questions exist, so the blueprint's 6/module share was trimmed to 1/module to avoid reusing them across all 100 modules. The remainder is drawn from the other difficulty levels.",
+          "\"Mathematics\": no 'easy' questions exist in english medium — that share is redistributed across the other difficulty levels.",
+          "\"Science\": no 'easy' questions exist in english medium — that share is redistributed across the other difficulty levels."
+        ]
+      },
+      "integrity": {
+        "modules_with_wrong_count": 0,
+        "modules_with_duplicate_question": 0,
+        "modules_with_position_gap": 0
+      },
+      "written": 100,
+      "failed": 0,
+      "report_id": "0f5945ce-af3b-4a58-b547-839550e71faa"
+    },
+    {
+      "medium": "telugu",
+      "plan_seconds": 3.2,
+      "report": {
+        "series": "grand_mock_v1",
+        "medium": "telugu",
+        "blueprint_id": "ap_dsc_sgt_official",
+        "modules_generated": 100,
+        "module_from": 1,
+        "module_to": 100,
+        "total_slots": 16000,
+        "unique_questions_used": 15428,
+        "repeated_assignments": 316,
+        "eligible_pool_size": 30770,
+        "coverage_pct": 50.14,
+        "per_section": [
+          {
+            "section_id": "gk",
+            "section_name": "General Knowledge & Current Affairs",
+            "questions_per_module": 16,
+            "slots": 1600,
+            "eligible_pool": 4000,
+            "unique_used": 1600,
+            "repeated_assignments": 0,
+            "coverage_pct": 40,
+            "min_usage": 1,
+            "max_usage": 1,
+            "difficulty_counts": {
+              "easy": 400,
+              "medium": 800,
+              "hard": 400
+            },
+            "warnings": []
+          },
+          {
+            "section_id": "perspectives",
+            "section_name": "Perspectives in Education",
+            "questions_per_module": 8,
+            "slots": 800,
+            "eligible_pool": 5000,
+            "unique_used": 800,
+            "repeated_assignments": 0,
+            "coverage_pct": 16,
+            "min_usage": 1,
+            "max_usage": 1,
+            "difficulty_counts": {
+              "easy": 200,
+              "medium": 400,
+              "hard": 200
+            },
+            "warnings": []
+          },
+          {
+            "section_id": "psychology",
+            "section_name": "Classroom Psychology",
+            "questions_per_module": 16,
+            "slots": 1600,
+            "eligible_pool": 5000,
+            "unique_used": 1600,
+            "repeated_assignments": 0,
+            "coverage_pct": 32,
+            "min_usage": 1,
+            "max_usage": 1,
+            "difficulty_counts": {
+              "easy": 500,
+              "medium": 800,
+              "hard": 300
+            },
+            "warnings": []
+          },
+          {
+            "section_id": "telugu",
+            "section_name": "Telugu (Language I)",
+            "questions_per_module": 24,
+            "slots": 2400,
+            "eligible_pool": 3386,
+            "unique_used": 2397,
+            "repeated_assignments": 3,
+            "coverage_pct": 70.79,
+            "min_usage": 1,
+            "max_usage": 2,
+            "difficulty_counts": {
+              "easy": 600,
+              "medium": 1200,
+              "hard": 600
+            },
+            "warnings": []
+          },
+          {
+            "section_id": "english",
+            "section_name": "English (Language II)",
+            "questions_per_module": 24,
+            "slots": 2400,
+            "eligible_pool": 4293,
+            "unique_used": 2087,
+            "repeated_assignments": 313,
+            "coverage_pct": 48.61,
+            "min_usage": 1,
+            "max_usage": 11,
+            "difficulty_counts": {
+              "easy": 800,
+              "medium": 1500,
+              "hard": 100
+            },
+            "warnings": [
+              "\"English (Language II)\": only 13 'hard' questions exist, so the blueprint's 6/module share was trimmed to 1/module to avoid reusing them across all 100 modules. The remainder is drawn from the other difficulty levels."
+            ]
+          },
+          {
+            "section_id": "mathematics",
+            "section_name": "Mathematics",
+            "questions_per_module": 24,
+            "slots": 2400,
+            "eligible_pool": 5255,
+            "unique_used": 2400,
+            "repeated_assignments": 0,
+            "coverage_pct": 45.67,
+            "min_usage": 1,
+            "max_usage": 1,
+            "difficulty_counts": {
+              "easy": 600,
+              "medium": 1200,
+              "hard": 600
+            },
+            "warnings": []
+          },
+          {
+            "section_id": "science",
+            "section_name": "Science",
+            "questions_per_module": 24,
+            "slots": 2400,
+            "eligible_pool": 4000,
+            "unique_used": 2400,
+            "repeated_assignments": 0,
+            "coverage_pct": 60,
+            "min_usage": 1,
+            "max_usage": 1,
+            "difficulty_counts": {
+              "easy": 0,
+              "medium": 1500,
+              "hard": 900
+            },
+            "warnings": [
+              "\"Science\": no 'easy' questions exist in telugu medium — that share is redistributed across the other difficulty levels."
+            ]
+          },
+          {
+            "section_id": "social",
+            "section_name": "Social Studies",
+            "questions_per_module": 24,
+            "slots": 2400,
+            "eligible_pool": 4836,
+            "unique_used": 2400,
+            "repeated_assignments": 0,
+            "coverage_pct": 49.63,
+            "min_usage": 1,
+            "max_usage": 1,
+            "difficulty_counts": {
+              "easy": 600,
+              "medium": 1200,
+              "hard": 600
+            },
+            "warnings": []
+          }
+        ],
+        "warnings": [
+          "\"English (Language II)\": only 13 'hard' questions exist, so the blueprint's 6/module share was trimmed to 1/module to avoid reusing them across all 100 modules. The remainder is drawn from the other difficulty levels.",
+          "\"Science\": no 'easy' questions exist in telugu medium — that share is redistributed across the other difficulty levels."
+        ]
+      },
+      "integrity": {
+        "modules_with_wrong_count": 0,
+        "modules_with_duplicate_question": 0,
+        "modules_with_position_gap": 0
+      },
+      "written": 100,
+      "failed": 0,
+      "report_id": "56208c29-7c67-432f-a3c9-007604a5cb47"
+    }
+  ]
+}

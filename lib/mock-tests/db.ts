@@ -31,58 +31,31 @@ import type { GeneratedMapping } from './generator'
 import type { BlueprintValidationResult } from '@/types/mock-tests'
 import { getCachedAnswerKey, warmMockTestCache, invalidateMockTestCache, getQuestionsWithFallback } from './cache'
 import { getBlueprintById } from './blueprints'
-import { generateGrandMockQuestions } from './generator'
+import { generateGrandMockQuestions, resolveGenerationMedium } from './generator'
 import { validateBlueprint } from './validator'
+import { buildQuestionUid, type ExamMedium } from './question-bank'
+import {
+  listMockTestModules,
+  markModuleStarted,
+  markModuleCompleted,
+  MODULE_PAGE_SIZE_MAX,
+} from './modules'
 
 // ---- Test Queries -----------------------------------------------
 
-/** List all published mock tests, with the requesting user's attempt status. */
+/**
+ * Backward-compatible flat listing of published tests across both mediums.
+ *
+ * New code should call `listMockTestModules` (lib/mock-tests/modules.ts),
+ * which paginates server-side. This wrapper exists so older callers keep
+ * working; it caps each medium at one max-size page.
+ */
 export async function listPublishedMockTests(userId: string | null): Promise<MockTestListItem[]> {
-  const { data: tests, error } = await supabaseAdmin
-    .from('mock_tests')
-    .select('id, slug, title, description, category, medium, duration_minutes, total_questions, total_marks, is_free, status, published_at')
-    .eq('status', 'published')
-    .order('published_at', { ascending: false })
-
-  if (error || !tests) return []
-
-  if (!userId) {
-    return tests.map((t: any) => ({ ...t, user_attempt: null }))
-  }
-
-  // Fetch user's most recent attempt per test (one query, not N)
-  const testIds = tests.map((t: any) => t.id)
-  const { data: attempts } = await supabaseAdmin
-    .from('mock_test_attempts')
-    .select('id, mock_test_id, status, score, percentage, submitted_at')
-    .eq('user_id', userId)
-    .in('mock_test_id', testIds)
-    .order('started_at', { ascending: false })
-
-  const attemptByTestId = new Map<string, any>()
-  if (attempts) {
-    for (const a of attempts) {
-      if (!attemptByTestId.has(a.mock_test_id)) {
-        attemptByTestId.set(a.mock_test_id, a)
-      }
-    }
-  }
-
-  return tests.map((t: any) => {
-    const attempt = attemptByTestId.get(t.id)
-    return {
-      ...t,
-      user_attempt: attempt
-        ? {
-            attempt_id: attempt.id,
-            status: attempt.status,
-            score: attempt.score,
-            percentage: attempt.percentage,
-            submitted_at: attempt.submitted_at,
-          }
-        : null,
-    }
-  })
+  const [english, telugu] = await Promise.all([
+    listMockTestModules(userId, { medium: 'english', pageSize: MODULE_PAGE_SIZE_MAX }),
+    listMockTestModules(userId, { medium: 'telugu', pageSize: MODULE_PAGE_SIZE_MAX }),
+  ])
+  return [...english.tests, ...telugu.tests]
 }
 
 /** Get a single mock test by ID or slug. */
@@ -109,7 +82,7 @@ export async function fetchMockTestQuestionsFromDB(mockTestId: string): Promise<
   // 1. Fetch all mappings ordered by question_number
   const { data: mappings, error } = await supabaseAdmin
     .from('mock_test_questions')
-    .select('question_id, question_table, question_number, section_id, section_name, marks')
+    .select('question_uid, question_id, question_table, question_number, section_id, section_name, marks')
     .eq('mock_test_id', mockTestId)
     .order('question_number', { ascending: true })
 
@@ -119,7 +92,7 @@ export async function fetchMockTestQuestionsFromDB(mockTestId: string): Promise<
   }
 
   // 2. Group by source table — critical for batch efficiency
-  const tableGroups = new Map<string, { question_id: string; question_number: number; section_id: string; section_name: string; marks: number }[]>()
+  const tableGroups = new Map<string, typeof mappings>()
   for (const m of mappings) {
     const group = tableGroups.get(m.question_table) ?? []
     group.push(m)
@@ -137,7 +110,7 @@ export async function fetchMockTestQuestionsFromDB(mockTestId: string): Promise<
       Promise.resolve(
         supabaseAdmin
           .from(tableName)
-          .select('question_id, question, option_a, option_b, option_c, option_d, correct_answer, explanation, difficulty, subject, chapter, topic, subtopic')
+          .select('question_id, question, option_a, option_b, option_c, option_d, correct_answer, explanation, difficulty, subject, chapter, topic, subtopic, question_type')
           .in('question_id', ids)
         .then(({ data, error: qErr }) => {
           if (qErr || !data) {
@@ -156,6 +129,7 @@ export async function fetchMockTestQuestionsFromDB(mockTestId: string): Promise<
             }
 
             allResults.push({
+              question_uid: item.question_uid ?? buildQuestionUid(tableName, item.question_id),
               question_id: item.question_id,
               question_table: tableName,
               question_number: item.question_number,
@@ -174,6 +148,7 @@ export async function fetchMockTestQuestionsFromDB(mockTestId: string): Promise<
               chapter: row.chapter || null,
               topic: row.topic || null,
               subtopic: row.subtopic || null,
+              question_type: row.question_type || 'MCQ',
             })
           }
         })
@@ -256,6 +231,10 @@ export async function startOrResumeAttempt(
     throw new Error(`Failed to create attempt: ${error?.message}`)
   }
 
+  // Per-user completion state lives in user_mock_test_progress; the shared
+  // module definition is never touched by a user action.
+  await markModuleStarted(userId, mockTest.id, newAttempt.id)
+
   return {
     attempt_id: newAttempt.id,
     mock_test_id: mockTest.id,
@@ -265,6 +244,36 @@ export async function startOrResumeAttempt(
     started_at: newAttempt.started_at,
     existing_answers: {},
   }
+}
+
+/**
+ * Does this user hold an attempt for this module?
+ *
+ * The questions endpoint uses this so a module's paper can only be read by
+ * someone who actually started it via /start — which is where the premium
+ * check and quota live. Without it, a logged-in FREE user could enumerate
+ * every Pro module's questions by calling /questions directly.
+ *
+ * Any attempt status counts: a submitted attempt still needs to render its
+ * questions on the review screen.
+ */
+export async function userHasAttemptForTest(
+  userId: string,
+  mockTestId: string
+): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
+    .from('mock_test_attempts')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('mock_test_id', mockTestId)
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    console.warn('[MockDB] userHasAttemptForTest failed:', error.message)
+    return false
+  }
+  return Boolean(data)
 }
 
 /** Get attempt by ID. Validates ownership. */
@@ -304,7 +313,7 @@ export async function saveAttemptAnswer(
   // Validate the attempt belongs to this user and is still in progress
   const { data: attempt } = await supabaseAdmin
     .from('mock_test_attempts')
-    .select('user_id, status')
+    .select('user_id, status, mock_test_id')
     .eq('id', attemptId)
     .single()
 
@@ -315,12 +324,26 @@ export async function saveAttemptAnswer(
     throw new Error('Cannot modify a submitted or expired attempt')
   }
 
+  // Never trust a client-supplied question id: it must actually belong to the
+  // module this attempt is for, otherwise a user could inject arbitrary rows.
+  const { data: owned } = await supabaseAdmin
+    .from('mock_test_questions')
+    .select('question_number')
+    .eq('mock_test_id', attempt.mock_test_id)
+    .eq('question_uid', questionId)
+    .maybeSingle()
+
+  if (!owned) {
+    throw new Error('Question does not belong to this mock test')
+  }
+
   await supabaseAdmin
     .from('mock_test_answers')
     .upsert({
       attempt_id: attemptId,
       question_id: questionId,
-      question_number: questionNumber,
+      // Server-side position wins over whatever the client sent.
+      question_number: owned.question_number ?? questionNumber,
       selected_option: selectedOption,
       marked_for_review: markedForReview,
       time_taken_seconds: timeTakenSeconds,
@@ -409,23 +432,26 @@ export async function submitAttempt(
   // Get section mappings
   const { data: qMappings } = await supabaseAdmin
     .from('mock_test_questions')
-    .select('question_id, question_number, section_id, section_name, marks')
+    .select('question_uid, question_id, question_table, question_number, section_id, section_name, marks')
     .eq('mock_test_id', mockTestId)
 
   const sectionByQ = new Map<string, { section_id: string; section_name: string; marks: number }>()
   if (qMappings) {
     for (const m of qMappings) {
-      sectionByQ.set(m.question_id, { section_id: m.section_id, section_name: m.section_name, marks: m.marks })
+      const uid = m.question_uid ?? buildQuestionUid(m.question_table, m.question_id)
+      sectionByQ.set(uid, { section_id: m.section_id, section_name: m.section_name, marks: m.marks })
     }
   }
 
+  // question_id on mock_test_answers stores the globally unique question_uid,
+  // which is also how answerKeyMap and sectionByQ are keyed.
   const updatedAnswers: Array<{
     attempt_id: string; question_id: string; is_correct: boolean
   }> = []
 
-  for (const [qId, keyEntry] of answerKeyMap.entries()) {
-    const userAnswer = answersMap.get(qId)
-    const section = sectionByQ.get(qId)
+  for (const [qUid, keyEntry] of answerKeyMap.entries()) {
+    const userAnswer = answersMap.get(qUid)
+    const section = sectionByQ.get(qUid)
 
     if (!sectionData.has(section?.section_id || 'unknown')) {
       sectionData.set(section?.section_id || 'unknown', {
@@ -450,7 +476,7 @@ export async function submitAttempt(
         incorrectCount++
         sd.incorrect++
       }
-      updatedAnswers.push({ attempt_id: attemptId, question_id: qId, is_correct: isCorrect })
+      updatedAnswers.push({ attempt_id: attemptId, question_id: qUid, is_correct: isCorrect })
     }
   }
 
@@ -493,18 +519,33 @@ export async function submitAttempt(
     })
     .eq('id', attemptId)
 
-  // 6. Update is_correct on all answers (batch update, non-blocking)
+  // 6. Write is_correct back in TWO statements, not one per question.
+  // Previously this fired up to 160 un-awaited UPDATEs per submission.
   if (updatedAnswers.length > 0) {
-    for (const ua of updatedAnswers) {
-      void supabaseAdmin
-        .from('mock_test_answers')
-        .update({ is_correct: ua.is_correct })
-        .eq('attempt_id', ua.attempt_id)
-        .eq('question_id', ua.question_id)
-    }
+    const correctUids = updatedAnswers.filter((a) => a.is_correct).map((a) => a.question_id)
+    const wrongUids = updatedAnswers.filter((a) => !a.is_correct).map((a) => a.question_id)
+
+    await Promise.all([
+      correctUids.length
+        ? supabaseAdmin
+            .from('mock_test_answers')
+            .update({ is_correct: true })
+            .eq('attempt_id', attemptId)
+            .in('question_id', correctUids)
+        : Promise.resolve(),
+      wrongUids.length
+        ? supabaseAdmin
+            .from('mock_test_answers')
+            .update({ is_correct: false })
+            .eq('attempt_id', attemptId)
+            .in('question_id', wrongUids)
+        : Promise.resolve(),
+    ])
   }
 
-  // 7. Calculate rank (non-blocking)
+  // 7. Mark the module completed for this user, then rank (non-blocking).
+  await markModuleCompleted(userId, mockTestId, attemptId, totalScore, percentage)
+
   calculateAndUpdateRank(attemptId, mockTestId, totalScore, totalTimeSpentSeconds).catch(() => {})
 
   // 8. Build questions review (reveal correct answers + explanations now)
@@ -544,34 +585,36 @@ async function getCachedQuestionsForReview(
 
   const { data: mappings } = await supabaseAdmin
     .from('mock_test_questions')
-    .select('question_id, question_table, question_number, section_id, section_name, marks')
+    .select('question_uid, question_id, question_table, question_number, section_id, section_name, marks')
     .eq('mock_test_id', mockTestId)
     .order('question_number', { ascending: true })
 
   if (!mappings) return questionMap
 
-  // Group by table for batch fetch
+  // Group by table for batch fetch. Keyed by question_uid, because the same
+  // bare question_id can exist in two different source tables.
   const tableGroups = new Map<string, string[]>()
-  const metaByQid = new Map<string, any>()
+  const metaByUid = new Map<string, any>()
 
   for (const m of mappings) {
     const group = tableGroups.get(m.question_table) ?? []
     group.push(m.question_id)
     tableGroups.set(m.question_table, group)
-    metaByQid.set(m.question_id, m)
+    metaByUid.set(m.question_uid ?? buildQuestionUid(m.question_table, m.question_id), m)
   }
 
   const fetches = Array.from(tableGroups.entries()).map(([tableName, ids]) =>
     supabaseAdmin
       .from(tableName)
-      .select('question_id, question, option_a, option_b, option_c, option_d, subject, chapter, topic, subtopic, difficulty')
+      .select('question_id, question, option_a, option_b, option_c, option_d, subject, chapter, topic, subtopic, difficulty, question_type')
       .in('question_id', ids)
       .then(({ data }) => {
         if (!data) return
         for (const row of data) {
-          const meta = metaByQid.get(row.question_id)
+          const uid = buildQuestionUid(tableName, row.question_id)
+          const meta = metaByUid.get(uid)
           if (meta) {
-            questionMap.set(row.question_id, {
+            questionMap.set(uid, {
               question: row.question,
               option_a: row.option_a,
               option_b: row.option_b,
@@ -582,6 +625,7 @@ async function getCachedQuestionsForReview(
               topic: row.topic || '',
               subtopic: row.subtopic || null,
               difficulty: row.difficulty || 'Medium',
+              question_type: row.question_type || 'MCQ',
               section_id: meta.section_id,
               section_name: meta.section_name,
               question_number: meta.question_number,
@@ -605,11 +649,13 @@ function buildQuestionsReview(
   return qMappings
     .sort((a: any, b: any) => a.question_number - b.question_number)
     .map((m: any) => {
-      const content = questionContent.get(m.question_id)
-      const userAnswer = answersMap.get(m.question_id)
-      const keyEntry = answerKeyMap.get(m.question_id)
+      const uid = m.question_uid ?? buildQuestionUid(m.question_table, m.question_id)
+      const content = questionContent.get(uid)
+      const userAnswer = answersMap.get(uid)
+      const keyEntry = answerKeyMap.get(uid)
 
       return {
+        question_uid: uid,
         question_id: m.question_id,
         question_number: m.question_number,
         section_id: m.section_id,
@@ -619,7 +665,7 @@ function buildQuestionsReview(
         topic: content?.topic || '',
         subtopic: content?.subtopic || null,
         difficulty: content?.difficulty || 'Medium',
-        question_type: 'MCQ',
+        question_type: content?.question_type || 'MCQ',
         question: content?.question || '',
         option_a: content?.option_a || '',
         option_b: content?.option_b || '',
@@ -709,7 +755,7 @@ export async function getAttemptResult(
 
   const { data: qMappings } = await supabaseAdmin
     .from('mock_test_questions')
-    .select('question_id, question_number, section_id, section_name, marks')
+    .select('question_uid, question_id, question_table, question_number, section_id, section_name, marks')
     .eq('mock_test_id', attempt.mock_test_id)
     .order('question_number', { ascending: true })
 
@@ -806,6 +852,9 @@ export async function createMockTest(
     medium: string
     blueprint_id: string
     is_free: boolean
+    /** Position within (series, medium). Null for one-off tests. */
+    module_number?: number | null
+    series?: string
   }
 ): Promise<MockTest> {
   const blueprint = getBlueprintById(data.blueprint_id)
@@ -819,6 +868,8 @@ export async function createMockTest(
       description: data.description || null,
       category: data.category,
       medium: data.medium,
+      module_number: data.module_number ?? null,
+      ...(data.series ? { series: data.series } : {}),
       blueprint_id: data.blueprint_id,
       duration_minutes: blueprint.duration_minutes,
       total_questions: blueprint.total_questions,
@@ -836,15 +887,28 @@ export async function createMockTest(
   return test as MockTest
 }
 
-/** Generate and store fixed 160-question mapping for a draft mock test. */
+/**
+ * Generate and store the fixed question mapping for a single mock test.
+ *
+ * The test's own `medium` decides which source tables are eligible, so an
+ * English test can never be filled with Telugu-medium content.
+ */
 export async function generateAndStoreMockQuestions(
   mockTestId: string,
-  blueprintId: string
-): Promise<{ mappings: GeneratedMapping[]; validation: BlueprintValidationResult }> {
+  blueprintId: string,
+  medium?: ExamMedium | string,
+  moduleNumber?: number
+): Promise<{ mappings: GeneratedMapping[]; validation: BlueprintValidationResult; warnings: string[] }> {
   const blueprint = getBlueprintById(blueprintId)
   if (!blueprint) throw new Error(`Blueprint not found: ${blueprintId}`)
 
-  const { mappings, validation } = await generateGrandMockQuestions(blueprint)
+  const resolvedMedium = resolveGenerationMedium(String(medium ?? 'telugu'))
+
+  const { mappings, validation, warnings } = await generateGrandMockQuestions(
+    blueprint,
+    resolvedMedium,
+    { moduleNumber: moduleNumber ?? 1 }
+  )
 
   if (!validation.valid) {
     throw new Error(`Question generation failed validation:\n${validation.errors.join('\n')}`)
@@ -853,9 +917,10 @@ export async function generateAndStoreMockQuestions(
   // Delete any existing question mappings for this test (idempotent re-generation)
   await supabaseAdmin.from('mock_test_questions').delete().eq('mock_test_id', mockTestId)
 
-  // Insert all 160 mappings in one batch
+  // Insert all mappings in one batch — never one insert per question.
   const rows = mappings.map((m) => ({
     mock_test_id: mockTestId,
+    question_uid: m.question_uid,
     question_id: m.question_id,
     question_table: m.question_table,
     question_number: m.question_number,
@@ -867,7 +932,7 @@ export async function generateAndStoreMockQuestions(
   const { error } = await supabaseAdmin.from('mock_test_questions').insert(rows)
   if (error) throw new Error(`Failed to store question mappings: ${error.message}`)
 
-  return { mappings, validation }
+  return { mappings, validation, warnings }
 }
 
 /**
@@ -897,7 +962,10 @@ export async function publishMockTest(
   const blueprint = getBlueprintById(test.blueprint_id)
   if (!blueprint) throw new Error(`Blueprint not found: ${test.blueprint_id}`)
 
-  const validation = validateBlueprint(blueprint, mappings)
+  const validation = validateBlueprint(blueprint, mappings, {
+    medium: resolveGenerationMedium(test.medium),
+    distributionAsWarning: true,
+  })
   if (!validation.valid) {
     return { validation, cacheWarmed: false }
   }
@@ -924,13 +992,57 @@ export async function publishMockTest(
   return { validation, cacheWarmed }
 }
 
-/** List all mock tests for admin (all statuses). */
-export async function adminListMockTests(): Promise<MockTest[]> {
-  const { data, error } = await supabaseAdmin
-    .from('mock_tests')
-    .select('*')
-    .order('created_at', { ascending: false })
+export interface AdminListOptions {
+  medium?: string
+  series?: string
+  status?: string
+  page?: number
+  pageSize?: number
+}
 
-  if (error || !data) return []
-  return data as MockTest[]
+/**
+ * List mock tests for admin (all statuses), paginated.
+ *
+ * Paginated because an unbounded `select('*')` over 200+ modules with their
+ * blueprint snapshots is a large payload, and PostgREST caps it at 1000 rows
+ * anyway.
+ */
+export async function adminListMockTests(
+  options: AdminListOptions = {}
+): Promise<{ tests: MockTest[]; total: number; page: number; page_size: number }> {
+  const { medium, series, status, page = 1, pageSize = 50 } = options
+  const safePageSize = Math.min(200, Math.max(1, pageSize))
+  const safePage = Math.max(1, page)
+  const from = (safePage - 1) * safePageSize
+
+  let query = supabaseAdmin
+    .from('mock_tests')
+    .select(
+      'id, slug, title, description, category, medium, series, module_number, version, status, ' +
+        'duration_minutes, total_questions, total_marks, marks_per_question, negative_marks, ' +
+        'blueprint_id, is_free, created_by, published_at, generated_at, created_at, updated_at',
+      { count: 'exact' }
+    )
+
+  if (medium) query = query.eq('medium', medium)
+  if (series) query = query.eq('series', series)
+  if (status) query = query.eq('status', status)
+
+  const { data, count, error } = await query
+    .order('medium', { ascending: true })
+    .order('module_number', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: false })
+    .range(from, from + safePageSize - 1)
+
+  if (error || !data) {
+    if (error) console.warn('[MockDB] adminListMockTests failed:', error.message)
+    return { tests: [], total: 0, page: safePage, page_size: safePageSize }
+  }
+
+  return {
+    tests: data as unknown as MockTest[],
+    total: count ?? data.length,
+    page: safePage,
+    page_size: safePageSize,
+  }
 }

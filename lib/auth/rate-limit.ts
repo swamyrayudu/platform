@@ -66,41 +66,61 @@ setInterval(() => {
 
 // ---- Redis implementation (Upstash) ---------------------------
 
+// One limiter per endpoint, built once. This previously constructed a new
+// Redis client AND a new Ratelimit instance on every single request.
+const redisLimiterCache = new Map<Endpoint, unknown>()
+
+async function getRedisLimiter(endpoint: Endpoint): Promise<unknown> {
+  const cached = redisLimiterCache.get(endpoint)
+  if (cached) return cached
+
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore — optional production dependency
+  const { Ratelimit } = await import('@upstash/ratelimit')
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore — optional production dependency
+  const { Redis } = await import('@upstash/redis')
+
+  const redis = new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL!,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+  })
+
+  const limit = LIMITS[endpoint]
+  const windowSeconds = Math.floor(limit.windowMs / 1000)
+
+  const limiter = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(limit.max, `${windowSeconds} s`),
+  })
+
+  redisLimiterCache.set(endpoint, limiter)
+  return limiter
+}
+
 async function checkRedisLimit(
   key: string,
   endpoint: Endpoint
 ): Promise<{ allowed: boolean; retryAfter?: number }> {
-  // Dynamically import to avoid errors when not installed
   try {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore — optional production dependency
-    const { Ratelimit } = await import('@upstash/ratelimit')
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore — optional production dependency
-    const { Redis } = await import('@upstash/redis')
+    const limiter = (await getRedisLimiter(endpoint)) as {
+      limit: (k: string) => Promise<{ success: boolean; reset: number }>
+    }
 
-    const redis = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-    })
-
-    const limit = LIMITS[endpoint]
-    const windowSeconds = Math.floor(limit.windowMs / 1000)
-
-    const ratelimit = new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(limit.max, `${windowSeconds} s`),
-    })
-
-    const result = await ratelimit.limit(key)
+    const result = await limiter.limit(key)
     if (result.success) return { allowed: true }
 
     const retryAfter = Math.ceil((result.reset - Date.now()) / 1000)
     return { allowed: false, retryAfter }
   } catch (err) {
-    console.error('[RateLimit] Redis error, falling back to allow:', err)
-    // Fail open on Redis errors to avoid blocking all users
-    return { allowed: true }
+    // Do NOT fail open. This previously returned { allowed: true }, so any
+    // Redis hiccup removed rate limiting from the auth endpoints entirely —
+    // and an attacker able to induce errors could keep it that way.
+    // Degrade to the in-process limiter instead: weaker than Redis across
+    // instances, but never unlimited.
+    console.error('[RateLimit] Redis error, degrading to in-memory limiter:', err)
+    redisLimiterCache.delete(endpoint) // force a rebuild on the next call
+    return checkMemoryLimit(key, endpoint)
   }
 }
 
@@ -113,6 +133,8 @@ async function checkRedisLimit(
  * @param endpoint - Which auth endpoint is being protected
  * @returns { allowed: boolean; retryAfter?: number (seconds) }
  */
+let warnedAboutMemoryProvider = false
+
 export async function checkRateLimit(
   key: string,
   endpoint: Endpoint
@@ -121,6 +143,16 @@ export async function checkRateLimit(
 
   if (provider === 'redis') {
     return checkRedisLimit(key, endpoint)
+  }
+
+  // On serverless each instance has its own Map, so the effective limit is
+  // (configured limit x warm instances) and resets on every cold start.
+  if (process.env.NODE_ENV === 'production' && !warnedAboutMemoryProvider) {
+    warnedAboutMemoryProvider = true
+    console.error(
+      '[RateLimit] RATE_LIMIT_PROVIDER is not "redis" in production: limits are ' +
+        'per-instance and reset on cold starts. Set RATE_LIMIT_PROVIDER=redis.'
+    )
   }
 
   return checkMemoryLimit(key, endpoint)

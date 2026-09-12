@@ -24,8 +24,11 @@ import type { ClientSafeMockQuestion, SelectedOption } from '@/types/mock-tests'
 // Autosave answer every N seconds after change
 const AUTOSAVE_DEBOUNCE_MS = 1500
 
-// Load questions in chunks (all at once for ≤160 questions)
-const QUESTIONS_CHUNK_LIMIT = 160
+// Questions are delivered in chunks: the first chunk renders immediately and
+// the rest stream in behind it, so the candidate can start on Q1 without
+// waiting for all 160. Each chunk is ONE request served from a single Redis
+// read — never one request per question.
+const QUESTIONS_CHUNK_SIZE = 50
 
 // ── Timer Component ──────────────────────────────────────────────
 
@@ -223,7 +226,7 @@ function QuestionGrid({
             <div className="flex flex-wrap gap-1.5">
               {sectionQs.map((q) => {
                 const isCurrent = q.question_number === currentQNumber
-                const hasAnswer = !!answers[q.question_id]
+                const hasAnswer = !!answers[q.question_uid]
                 const isMarked = marked.has(q.question_number)
                 const isVisited = visited.has(q.question_number)
 
@@ -280,6 +283,14 @@ function MockExamContent() {
   const [showConfirm, setShowConfirm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
+  // Total questions in the module, from the API — used to show chunk progress
+  // while the later chunks are still streaming in.
+  const [totalQuestions, setTotalQuestions] = useState(0)
+
+  // Saved answers from a resumed attempt, keyed by question_uid. Kept in a ref
+  // so background chunks can apply the ones that belong to them.
+  const savedAnswersRef = useRef<Record<string, { selected_option: SelectedOption; marked_for_review: boolean }>>({})
+
   // Track per-question time (for analytics, not for scoring)
   const questionStartRef = useRef<number>(Date.now())
   const questionTimes = useRef<Record<string, number>>({})
@@ -300,13 +311,15 @@ function MockExamContent() {
       return
     }
 
+    let cancelled = false
+
     const load = async () => {
       setLoadingQ(true)
       setLoadError(null)
       try {
-        // Load questions + attempt state + test info in parallel
+        // First chunk + attempt state + test info in parallel.
         const [qRes, attemptRes, testRes] = await Promise.all([
-          fetch(`/api/dsc-sgt/mock-tests/${testId}/questions?start=1&limit=${QUESTIONS_CHUNK_LIMIT}`),
+          fetch(`/api/dsc-sgt/mock-tests/${testId}/questions?start=1&limit=${QUESTIONS_CHUNK_SIZE}`),
           fetch(`/api/dsc-sgt/mock-tests/attempts/${attemptId}`),
           fetch(`/api/dsc-sgt/mock-tests/${testId}`),
         ])
@@ -328,6 +341,7 @@ function MockExamContent() {
         }
 
         setQuestions(qData.questions)
+        setTotalQuestions(qData.total ?? qData.questions.length)
 
         const attempt = attemptData.attempt
         const testInfo = testData?.test
@@ -343,14 +357,18 @@ function MockExamContent() {
         const savedMarked = new Set<number>()
         const savedVisited = new Set<number>([1])
 
-        const existingAnswers = attempt.existing_answers as Record<string, { selected_option: SelectedOption; marked_for_review: boolean }>
-        const allQs: ClientSafeMockQuestion[] = qData.questions
+        const existingAnswers = attempt.existing_answers as Record<
+          string,
+          { selected_option: SelectedOption; marked_for_review: boolean }
+        >
+        savedAnswersRef.current = existingAnswers ?? {}
 
+        const allQs: ClientSafeMockQuestion[] = qData.questions
         if (existingAnswers) {
           for (const q of allQs) {
-            const saved = existingAnswers[q.question_id]
+            const saved = existingAnswers[q.question_uid]
             if (saved) {
-              if (saved.selected_option) savedAnswers[q.question_id] = saved.selected_option
+              if (saved.selected_option) savedAnswers[q.question_uid] = saved.selected_option
               if (saved.marked_for_review) savedMarked.add(q.question_number)
               savedVisited.add(q.question_number)
             }
@@ -360,14 +378,77 @@ function MockExamContent() {
         setAnswers(savedAnswers)
         setMarked(savedMarked)
         setVisited(savedVisited)
-      } catch (err) {
+
+        // The exam is usable now. Stream the remaining chunks in the
+        // background and merge them as they arrive.
+        setLoadingQ(false)
+        void loadRemainingChunks(qData.next_start as number | null, qData.has_more as boolean)
+      } catch {
         setLoadError('Failed to load exam. Please check your connection and try again.')
-      } finally {
         setLoadingQ(false)
       }
     }
 
+    /**
+     * Fetch chunks 2..N sequentially (Q51-100, Q101-160, ...).
+     * Sequential rather than parallel so a slow connection is not hit with
+     * several simultaneous requests while the candidate is already answering.
+     */
+    const loadRemainingChunks = async (nextStart: number | null, hasMore: boolean) => {
+      let start = nextStart
+      let more = hasMore
+
+      while (more && start != null && !cancelled) {
+        try {
+          const res = await fetch(
+            `/api/dsc-sgt/mock-tests/${testId}/questions?start=${start}&limit=${QUESTIONS_CHUNK_SIZE}`
+          )
+          const data = await res.json()
+          if (!data.success || !data.questions?.length) break
+          if (cancelled) return
+
+          const incoming = data.questions as ClientSafeMockQuestion[]
+
+          setQuestions((prev) => {
+            const byUid = new Map(prev.map((q) => [q.question_uid, q]))
+            for (const q of incoming) byUid.set(q.question_uid, q)
+            return [...byUid.values()].sort((a, b) => a.question_number - b.question_number)
+          })
+
+          // Apply any saved answers belonging to this chunk.
+          const saved = savedAnswersRef.current
+          if (saved) {
+            const newAnswers: Record<string, SelectedOption> = {}
+            const newMarked: number[] = []
+            for (const q of incoming) {
+              const entry = saved[q.question_uid]
+              if (!entry) continue
+              if (entry.selected_option) newAnswers[q.question_uid] = entry.selected_option
+              if (entry.marked_for_review) newMarked.push(q.question_number)
+            }
+            if (Object.keys(newAnswers).length > 0) {
+              setAnswers((prev) => ({ ...prev, ...newAnswers }))
+            }
+            if (newMarked.length > 0) {
+              setMarked((prev) => new Set([...prev, ...newMarked]))
+            }
+          }
+
+          start = data.next_start as number | null
+          more = Boolean(data.has_more)
+        } catch {
+          // A failed background chunk is not fatal: the candidate keeps the
+          // questions already loaded, and navigating re-renders what exists.
+          break
+        }
+      }
+    }
+
     load()
+
+    return () => {
+      cancelled = true
+    }
   }, [testId, attemptId])
 
   // ── Answer Persistence (Debounced) ───────────────────────────
@@ -419,8 +500,8 @@ function MockExamContent() {
     if (!currentQ) return
     // Record time spent on current question
     const elapsed = Date.now() - questionStartRef.current
-    questionTimes.current[currentQ.question_id] =
-      (questionTimes.current[currentQ.question_id] || 0) + elapsed
+    questionTimes.current[currentQ.question_uid] =
+      (questionTimes.current[currentQ.question_uid] || 0) + elapsed
     questionStartRef.current = Date.now()
     setCurrentQNumber(nextQNumber)
     markVisited(nextQNumber)
@@ -429,8 +510,8 @@ function MockExamContent() {
   const handleSelectOption = useCallback((key: SelectedOption) => {
     if (!currentQ) return
     setAnswers((prev) => {
-      const next = { ...prev, [currentQ.question_id]: key }
-      persistAnswer(currentQ.question_id, currentQ.question_number, key, marked.has(currentQ.question_number))
+      const next = { ...prev, [currentQ.question_uid]: key }
+      persistAnswer(currentQ.question_uid, currentQ.question_number, key, marked.has(currentQ.question_number))
       return next
     })
   }, [currentQ, marked, persistAnswer])
@@ -439,8 +520,8 @@ function MockExamContent() {
     if (!currentQ) return
     setAnswers((prev) => {
       const next = { ...prev }
-      delete next[currentQ.question_id]
-      persistAnswer(currentQ.question_id, currentQ.question_number, null, marked.has(currentQ.question_number))
+      delete next[currentQ.question_uid]
+      persistAnswer(currentQ.question_uid, currentQ.question_number, null, marked.has(currentQ.question_number))
       return next
     })
   }, [currentQ, marked, persistAnswer])
@@ -453,7 +534,7 @@ function MockExamContent() {
       isNowMarked ? next.add(currentQ.question_number) : next.delete(currentQ.question_number)
       return next
     })
-    persistAnswer(currentQ.question_id, currentQ.question_number, answers[currentQ.question_id] || null, isNowMarked)
+    persistAnswer(currentQ.question_uid, currentQ.question_number, answers[currentQ.question_uid] || null, isNowMarked)
 
     // Navigate to next question
     if (currentIdx < sorted.length - 1) {
@@ -568,7 +649,7 @@ function MockExamContent() {
     )
   }
 
-  const currentAnswer = answers[currentQ.question_id]
+  const currentAnswer = answers[currentQ.question_uid]
   const isMarked = marked.has(currentQ.question_number)
 
   // ── Render ────────────────────────────────────────────────────
@@ -647,7 +728,18 @@ function MockExamContent() {
                 {currentSectionName}
               </span>
               <span className="text-xs font-black text-foreground">Q {currentQ.question_number}</span>
-              <span className="text-[10px] text-muted-foreground">/ {questions.length}</span>
+              <span className="text-[10px] text-muted-foreground">
+                / {totalQuestions || questions.length}
+              </span>
+              {totalQuestions > 0 && questions.length < totalQuestions && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground"
+                  title="Later questions are still loading in the background"
+                >
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  {questions.length}/{totalQuestions} loaded
+                </span>
+              )}
               {currentQ.difficulty && (
                 <span className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
                   currentQ.difficulty.toLowerCase() === 'easy' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' :

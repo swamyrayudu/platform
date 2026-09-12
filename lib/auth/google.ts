@@ -29,9 +29,16 @@ function getOAuth2Client(): OAuth2Client {
  * The token is cryptographically verified against Google's public keys.
  * Returns the verified profile or throws AuthError('AUTH_INVALID_TOKEN').
  *
- * @param idToken - The credential/id_token from Google Sign-In
+ * @param idToken       - The credential/id_token from Google Sign-In
+ * @param expectedNonce  - The nonce this server issued for this sign-in attempt.
+ *                         REQUIRED. Binding the token to a server-issued nonce
+ *                         is what stops a captured ID token being replayed from
+ *                         somewhere else during its ~1h validity.
  */
-export async function verifyGoogleIdToken(idToken: string): Promise<GoogleProfile> {
+export async function verifyGoogleIdToken(
+  idToken: string,
+  expectedNonce: string
+): Promise<GoogleProfile> {
   const clientId = process.env.GOOGLE_CLIENT_ID
   if (!clientId) {
     throw new Error('GOOGLE_CLIENT_ID environment variable is not set')
@@ -59,6 +66,16 @@ export async function verifyGoogleIdToken(idToken: string): Promise<GoogleProfil
 
     if (!payload.email_verified) {
       throw new AuthError('AUTH_INVALID_TOKEN', 401, 'Google email is not verified')
+    }
+
+    // Bind the token to the sign-in attempt this server started.
+    // Compared after signature/aud/iss/exp so an attacker learns nothing about
+    // the nonce from a token that was invalid anyway.
+    if (!expectedNonce) {
+      throw new AuthError('AUTH_INVALID_TOKEN', 401, 'Missing sign-in nonce')
+    }
+    if (payload.nonce !== expectedNonce) {
+      throw new AuthError('AUTH_INVALID_TOKEN', 401, 'Google token nonce mismatch')
     }
 
     return {

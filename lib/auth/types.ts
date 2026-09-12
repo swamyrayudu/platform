@@ -69,6 +69,10 @@ export interface DbSession {
   expires_at: string
   revoked_at: string | null
   revocation_reason: string | null
+  /** Hash of the token replaced by the last rotation — used only for reuse detection. */
+  previous_refresh_token_hash: string | null
+  /** When the refresh token was last rotated. Drives the reuse leeway window. */
+  rotated_at: string | null
 }
 
 export interface DbDevice {

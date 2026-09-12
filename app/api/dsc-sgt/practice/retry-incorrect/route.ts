@@ -39,7 +39,8 @@ export async function POST(request: Request) {
     let targetMedium = medium || 'english'
 
     if (fromSessionId) {
-      const prevSession = await getPracticeSessionById(fromSessionId, false)
+      // Scoped to the caller: a session id must not let one user read another's.
+      const prevSession = await getPracticeSessionById(fromSessionId, auth.user.id, false)
       if (prevSession) {
         targetSubject = prevSession.subject
         targetMedium = prevSession.medium

@@ -83,11 +83,19 @@ export const PLANS: Record<PlanId, Plan> = {
 export const PLAN_LIST: Plan[] = [PLANS.pro_sprint, PLANS.pro_full, PLANS.lifetime]
 
 export function isPlanId(value: unknown): value is PlanId {
-  return typeof value === 'string' && value in PLANS
+  // hasOwnProperty, NOT `in`: `in` walks the prototype chain, so `in PLANS`
+  // returned true for 'constructor', '__proto__', 'toString', 'valueOf' and
+  // 'hasOwnProperty'. getPlan() then returned a non-Plan object whose
+  // amountPaise was undefined, which propagated NaN into the order amount.
+  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(PLANS, value)
 }
 
 export function getPlan(planId: PlanId): Plan {
-  return PLANS[planId]
+  const plan = PLANS[planId]
+  // Fail loudly rather than returning undefined: verify/route.ts feeds
+  // plan.durationDays straight into the activation RPC.
+  if (!plan) throw new Error(`Unknown plan: ${String(planId)}`)
+  return plan
 }
 
 /** Percentage discount label, e.g. "50% OFF" */

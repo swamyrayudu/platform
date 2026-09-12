@@ -18,7 +18,7 @@ import { verifyGoogleIdToken } from '@/lib/auth/google'
 import { findOrCreateUser, upsertDevice, revokeActiveSession, createSession, logSecurityEvent } from '@/lib/auth/db'
 import { getHashedIp } from '@/lib/auth/ip'
 import { signAccessToken, generateOpaqueToken, hashRefreshToken } from '@/lib/auth/crypto'
-import { setAuthCookies, setOnboardingCookie } from '@/lib/auth/cookies'
+import { setAuthCookies, setOnboardingCookie, getAuthNonceFromCookies, clearAuthNonceCookie } from '@/lib/auth/cookies'
 import { checkRateLimit } from '@/lib/auth/rate-limit'
 import { handleAuthError, AuthError } from '@/lib/auth/errors'
 import { toPublicUser } from '@/lib/auth/types'
@@ -58,6 +58,17 @@ export async function POST(request: Request): Promise<Response> {
     if (typeof idToken !== 'string' || !idToken) {
       return Response.json({ error: 'idToken is required' }, { status: 400 })
     }
+
+    // Single-use nonce issued by GET /api/auth/nonce. Enforced for EVERY
+    // platform on purpose: gating it on `platform === 'WEB'` would let an
+    // attacker skip the check simply by claiming to be a mobile client.
+    const expectedNonce = getAuthNonceFromCookies(request)
+    if (!expectedNonce) {
+      return Response.json(
+        { error: 'AUTH_NONCE_REQUIRED', message: 'Start sign-in again' },
+        { status: 400 }
+      )
+    }
     if (typeof deviceId !== 'string' || !deviceId) {
       return Response.json({ error: 'deviceId is required' }, { status: 400 })
     }
@@ -80,7 +91,7 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     // ---- Verify Google ID token (server-side) --------------------
-    const googleProfile = await verifyGoogleIdToken(idToken)
+    const googleProfile = await verifyGoogleIdToken(idToken, expectedNonce)
 
     // ---- Use Supabase Auth to get/create the Supabase user -------
     // signInWithIdToken handles Google OIDC token verification at the Supabase level
@@ -159,6 +170,8 @@ export async function POST(request: Request): Promise<Response> {
       // Web: set HttpOnly cookies, don't return tokens in body
       const response = NextResponse.json({ user: publicUser, sessionId: session.id })
       setAuthCookies(response, { accessToken, refreshToken })
+      // Burn the nonce: one sign-in per issued value.
+      clearAuthNonceCookie(response)
       // Set onboarding cookie if already completed (returning user)
       if (user.onboarding_completed) {
         setOnboardingCookie(response)
@@ -166,12 +179,14 @@ export async function POST(request: Request): Promise<Response> {
       return response
     } else {
       // Mobile: return tokens in JSON body; client stores in secure storage
-      return Response.json({
+      const response = NextResponse.json({
         accessToken,
         refreshToken,
         user: publicUser,
         sessionId: session.id,
       })
+      clearAuthNonceCookie(response)
+      return response
     }
   } catch (err) {
     return handleAuthError(err)

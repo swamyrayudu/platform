@@ -33,6 +33,61 @@ import {
 const activeSessionsCache: Map<string, PracticeSession> = new Map()
 
 /**
+ * Strip the answer key from a session that is still in progress.
+ *
+ * The previous rule only masked when `feedback_mode === 'end'`, and the default
+ * mode is 'instant' — so in the normal flow the client received
+ * `correct_answer` and `explanation` for every question BEFORE answering any of
+ * them. Anyone could read the whole answer key out of DevTools, and a Free user
+ * could farm answers 25 at a time.
+ *
+ * Instant feedback does not need this: the client already receives per-question
+ * feedback from POST /sessions/[id]/answer, which reveals the answer only for a
+ * question the user has just submitted. Masking here removes the bulk leak
+ * without changing what the exam UI can display.
+ *
+ * A completed session is returned unmasked — that is the review screen.
+ */
+export function maskSessionAnswers(session: PracticeSession): PracticeSession {
+  if (session.status !== 'in_progress') return session
+
+  return {
+    ...session,
+    questions: session.questions.map((q) => {
+      const { correct_answer, explanation, ...rest } = q
+      void correct_answer
+      void explanation
+      return rest as PracticeQuestion
+    }),
+  }
+}
+
+/**
+ * Ownership guard for a practice session.
+ *
+ * A session belongs to exactly one user. Every accessor must prove ownership,
+ * because a session id alone is not an authorisation token — it appears in the
+ * URL, in browser history, in referrers and in logs.
+ *
+ * This guard exists specifically because `activeSessionsCache` is keyed by
+ * session id only: a DB query can be scoped with `.eq('user_id', ...)`, but a
+ * cache hit bypasses the database entirely and would re-introduce the IDOR.
+ * Both paths therefore run through here.
+ *
+ * Returns null rather than throwing so callers surface a 404 and never confirm
+ * that someone else's session exists.
+ */
+function ownedOrNull(
+  session: PracticeSession | null | undefined,
+  userId: string
+): PracticeSession | null {
+  if (!session) return null
+  if (!userId) return null
+  if (session.user_id !== userId) return null
+  return session
+}
+
+/**
  * Fetch all available practice questions from database across subject providers.
  * Subject providers handle dedicated tables (e.g. english_subject_questions, telugu_subject_questions)
  * and unified dsc_practice_questions seamlessly.
@@ -225,7 +280,9 @@ export async function createPracticeSession(
     }
   }
 
-  return session
+  // The in-memory cache keeps the FULL session because server-side grading
+  // needs the answer key; only the value returned to the caller is masked.
+  return maskSessionAnswers(session)
 }
 
 /**
@@ -233,26 +290,30 @@ export async function createPracticeSession(
  * For free users: marks the session as completed so the free trial is finished.
  * For pro users: discards without saving.
  */
-export async function abandonPracticeSession(sessionId: string): Promise<void> {
-  const session = activeSessionsCache.get(sessionId)
-  activeSessionsCache.delete(sessionId)
+export async function abandonPracticeSession(
+  sessionId: string,
+  userId: string
+): Promise<boolean> {
+  // Ownership first: this function COMPLETES a free user's one lifetime session
+  // and HARD-DELETES a Pro user's. Previously it took only a session id, so
+  // anyone holding an id could burn or destroy another user's session.
+  const session = ownedOrNull(activeSessionsCache.get(sessionId), userId)
 
-  let userId = session?.user_id || null
+  if (!session) {
+    const { data: dbSession } = await supabaseAdmin
+      .from('practice_sessions')
+      .select('id')
+      .eq('id', sessionId)
+      .eq('user_id', userId)
+      .maybeSingle()
 
-  if (!userId) {
-    try {
-      const { data: dbSession } = await supabaseAdmin
-        .from('practice_sessions')
-        .select('user_id')
-        .eq('id', sessionId)
-        .single()
-      if (dbSession?.user_id) {
-        userId = dbSession.user_id
-      }
-    } catch {}
+    // Not ours (or gone) — do nothing at all.
+    if (!dbSession) return false
   }
 
-  if (userId) {
+  activeSessionsCache.delete(sessionId)
+
+  {
     try {
       const { data: userRow } = await supabaseAdmin
         .from('users')
@@ -297,20 +358,28 @@ export async function abandonPracticeSession(sessionId: string): Promise<void> {
               completed_at: new Date().toISOString(),
             })
             .eq('id', sessionId)
+            .eq('user_id', userId)
         }
-        return
+        return true
       }
     } catch (err) {
       console.warn('[Practice DB] Error finalizing free session in abandon:', err)
     }
   }
 
-  // Pro users or guest: purge
+  // Pro users: purge — scoped to the owner so one user can never delete
+  // another user's row.
   try {
-    await supabaseAdmin.from('practice_sessions').delete().eq('id', sessionId)
+    await supabaseAdmin
+      .from('practice_sessions')
+      .delete()
+      .eq('id', sessionId)
+      .eq('user_id', userId)
   } catch (err) {
     // Ignore cleanup errors
   }
+
+  return true
 }
 
 /**
@@ -318,9 +387,11 @@ export async function abandonPracticeSession(sessionId: string): Promise<void> {
  */
 export async function getPracticeSessionById(
   sessionId: string,
+  userId: string,
   maskAnswers = true
 ): Promise<PracticeSession | null> {
-  let session = activeSessionsCache.get(sessionId)
+  // Cache hits must be ownership-checked too — see ownedOrNull.
+  let session = ownedOrNull(activeSessionsCache.get(sessionId), userId) ?? undefined
 
   if (!session) {
     try {
@@ -328,7 +399,8 @@ export async function getPracticeSessionById(
         .from('practice_sessions')
         .select('*')
         .eq('id', sessionId)
-        .single()
+        .eq('user_id', userId)
+        .maybeSingle()
 
       if (!error && data) {
         // Re-attach questions
@@ -351,19 +423,9 @@ export async function getPracticeSessionById(
 
   if (!session) return null
 
-  // Redact correct answers & explanations if session is in progress and maskAnswers is true
-  if (maskAnswers && session.status === 'in_progress' && session.feedback_mode === 'end') {
-    const maskedQuestions = session.questions.map((q) => {
-      const { correct_answer, explanation, ...rest } = q
-      return rest as PracticeQuestion
-    })
-    return {
-      ...session,
-      questions: maskedQuestions,
-    }
-  }
-
-  return session
+  // An in-progress session NEVER carries its answer key, whatever the feedback
+  // mode. See maskSessionAnswers.
+  return maskAnswers ? maskSessionAnswers(session) : session
 }
 
 /**
@@ -375,14 +437,16 @@ export async function recordQuestionAnswer(
   selectedAnswer: 'A' | 'B' | 'C' | 'D' | null,
   timeTakenSeconds = 0,
   markedForReview = false,
-  _userId: string | null
+  userId: string
 ): Promise<{
   is_correct: boolean
   correct_answer: string
   explanation: string | null
   session: PracticeSession
 }> {
-  const session = activeSessionsCache.get(sessionId) || (await getPracticeSessionById(sessionId, false))
+  const session =
+    ownedOrNull(activeSessionsCache.get(sessionId), userId) ||
+    (await getPracticeSessionById(sessionId, userId, false))
   if (!session) {
     throw new Error('Practice session not found')
   }
@@ -450,9 +514,12 @@ export async function recordQuestionAnswer(
  */
 export async function submitPracticeSession(
   sessionId: string,
-  totalTimeSpentSeconds: number
+  totalTimeSpentSeconds: number,
+  userId: string
 ): Promise<PracticeResultSummary> {
-  const session = activeSessionsCache.get(sessionId) || (await getPracticeSessionById(sessionId, false))
+  const session =
+    ownedOrNull(activeSessionsCache.get(sessionId), userId) ||
+    (await getPracticeSessionById(sessionId, userId, false))
   if (!session) {
     throw new Error('Session not found')
   }

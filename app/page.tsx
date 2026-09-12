@@ -95,6 +95,13 @@ export default function Home() {
         return
       }
 
+      if (data.error === 'AUTH_NONCE_REQUIRED') {
+        const errorMsg = 'Your sign-in session expired. Please try again.'
+        setError(errorMsg)
+        toast.error('Sign-in expired', { description: errorMsg })
+        return
+      }
+
       if (data.error === 'AUTH_INVALID_TOKEN') {
         const errorMsg = 'Authentication failed. Please try signing in again.'
         setError(errorMsg)
@@ -127,13 +134,28 @@ export default function Home() {
     script.src = 'https://accounts.google.com/gsi/client'
     script.async = true
     script.defer = true
-    script.onload = () => {
+    script.onload = async () => {
       gsiLoaded.current = true
+
+      // Fetch a single-use nonce and hand it to Google. It is embedded in the
+      // returned ID token, and /api/auth/google requires it to match the
+      // HttpOnly cookie the server set — which binds the token to this browser
+      // so a captured token cannot be replayed from elsewhere.
+      let nonce: string | undefined
+      try {
+        const res = await fetch('/api/auth/nonce', { credentials: 'include' })
+        if (res.ok) nonce = (await res.json()).nonce
+      } catch {
+        // Fall through: without a nonce the server rejects the sign-in, and
+        // the user sees the normal "try again" error rather than a silent fail.
+      }
+
       window.google.accounts.id.initialize({
         client_id: googleClientId,
         callback: handleCredentialResponse,
         auto_select: false,
         cancel_on_tap_outside: true,
+        ...(nonce ? { nonce } : {}),
       })
 
       if (gsiButtonRef.current) {

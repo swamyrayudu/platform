@@ -9,6 +9,7 @@
 // ============================================================
 
 import React, { useCallback, useEffect, useState } from 'react'
+import MockModuleGenerator from '@/app/components/admin/MockModuleGenerator'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/app/contexts/AuthContext'
 import TopNav from '@/app/components/home/TopNav'
@@ -1272,6 +1273,11 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
+        </section>
+
+        {/* ── Mock Module Series Generator ── */}
+        <section className="mt-8">
+          <MockModuleGenerator />
         </section>
 
       </main>

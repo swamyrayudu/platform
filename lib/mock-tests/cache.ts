@@ -5,7 +5,11 @@
 // in-memory fallback when Redis credentials are not configured.
 //
 // SECURITY: The cached payload NEVER includes correct_answer
-// or explanation. Those live only in the internal answer key.
+// or explanation. Those live only in the internal answer key,
+// which is stored under a separate key and never served.
+//
+// IDENTITY: questions are keyed by question_uid (`table:question_id`),
+// because a bare question_id is not unique across the question bank.
 //
 // KEY NAMING CONVENTION:
 //   mock:test:{id}:v{version}:meta           — test definition
@@ -210,6 +214,7 @@ export function buildCachePayloads(mappings: GeneratedMapping[]): {
   answerKey: AnswerKeyEntry[]
 } {
   const clientQuestions: ClientSafeMockQuestion[] = mappings.map((m) => ({
+    question_uid: m.question_uid,
     question_id: m.question_id,
     question_number: m.question_number,
     section_id: m.section_id,
@@ -219,7 +224,7 @@ export function buildCachePayloads(mappings: GeneratedMapping[]): {
     topic: m.topic || '',
     subtopic: m.subtopic || null,
     difficulty: m.difficulty || 'Medium',
-    question_type: 'MCQ',
+    question_type: m.question_type || 'MCQ',
     question: m.question,
     option_a: m.option_a,
     option_b: m.option_b,
@@ -230,6 +235,7 @@ export function buildCachePayloads(mappings: GeneratedMapping[]): {
   }))
 
   const answerKey: AnswerKeyEntry[] = mappings.map((m) => ({
+    question_uid: m.question_uid,
     question_id: m.question_id,
     question_number: m.question_number,
     correct_answer: (m.correct_answer || 'A').trim().toUpperCase(),
@@ -330,7 +336,9 @@ export async function getCachedAnswerKey(
   try {
     const entries = JSON.parse(raw) as AnswerKeyEntry[]
     const map = new Map<string, AnswerKeyEntry>()
-    entries.forEach((e) => map.set(e.question_id, e))
+    // Keyed by question_uid: a bare question_id is ambiguous across tables and
+    // would let one section's key grade another section's answer.
+    entries.forEach((e) => map.set(e.question_uid, e))
     return map
   } catch {
     return null

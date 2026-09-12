@@ -18,6 +18,7 @@ import {
   RotateCcw,
   Share2,
   Target,
+  ArrowRight,
 } from 'lucide-react'
 import type { MockTestResultSummary, SectionScore, QuestionReviewItem } from '@/types/mock-tests'
 
@@ -143,6 +144,14 @@ function MockResultContent() {
   const attemptId = searchParams.get('attemptId')
 
   const [result, setResult] = useState<MockTestResultSummary | null>(null)
+  const [nextModule, setNextModule] = useState<{
+    id: string
+    slug: string
+    title: string
+    module_number: number
+    progress_status?: string
+  } | null>(null)
+  const [startingNext, setStartingNext] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [reviewFilter, setReviewFilter] = useState<'all' | 'correct' | 'incorrect' | 'skipped'>('all')
@@ -155,6 +164,7 @@ function MockResultContent() {
       return
     }
 
+
     const load = async () => {
       try {
         const res = await fetch(`/api/dsc-sgt/mock-tests/attempts/${attemptId}/result`)
@@ -164,6 +174,18 @@ function MockResultContent() {
           return
         }
         setResult(data.result)
+
+        // Resolve the next module in this series so the completion screen can
+        // offer [ Next Module ] directly.
+        if (data.result?.mock_test_id) {
+          try {
+            const nextRes = await fetch(`/api/dsc-sgt/mock-tests/${data.result.mock_test_id}/next`)
+            const nextData = await nextRes.json()
+            if (nextData.success) setNextModule(nextData.next_module ?? null)
+          } catch {
+            // Non-fatal: the result still renders without the next-module CTA.
+          }
+        }
       } catch {
         setError('Network error — please refresh and try again.')
       } finally {
@@ -173,6 +195,33 @@ function MockResultContent() {
 
     load()
   }, [attemptId])
+
+  /**
+   * Start the next module in the series.
+   *
+   * Premium gating is enforced server-side by the start endpoint, so a locked
+   * module simply sends the user back to the module list where the upgrade
+   * prompt lives.
+   */
+  const startNextModule = async () => {
+    if (!nextModule || startingNext) return
+    setStartingNext(true)
+    try {
+      const res = await fetch(`/api/dsc-sgt/mock-tests/${nextModule.id}/start`, { method: 'POST' })
+      const data = await res.json()
+
+      if (!res.ok || !data.success) {
+        router.push('/dsc-sgt/mock-tests')
+        return
+      }
+
+      router.push(`/dsc-sgt/mock-exam?testId=${nextModule.id}&attemptId=${data.attempt_id}`)
+    } catch {
+      router.push('/dsc-sgt/mock-tests')
+    } finally {
+      setStartingNext(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -223,6 +272,14 @@ function MockResultContent() {
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+
+      {/* ── Module completion state ── */}
+      <div className="flex items-center justify-center gap-2 rounded-3xl border border-emerald-500/40 bg-emerald-500/10 px-5 py-3 text-center">
+        <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
+        <span className="text-sm font-black uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+          Module Completed
+        </span>
+      </div>
 
       {/* ── Result Header ── */}
       <div className="rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-sm text-center">
@@ -277,11 +334,27 @@ function MockResultContent() {
 
         {/* CTA buttons */}
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          {nextModule ? (
+            <button
+              onClick={() => void startNextModule()}
+              disabled={startingNext}
+              className="inline-flex items-center gap-2 rounded-2xl bg-purple-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-purple-700 disabled:opacity-60"
+            >
+              {startingNext ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <>
+                  Next Module — Module {String(nextModule.module_number).padStart(2, '0')}
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </>
+              )}
+            </button>
+          ) : null}
           <button
             onClick={() => router.push('/dsc-sgt/mock-tests')}
             className="inline-flex items-center gap-2 rounded-2xl border border-border px-5 py-2.5 text-xs font-bold text-foreground hover:bg-accent"
           >
-            <RotateCcw className="h-3.5 w-3.5" /> Take Another Test
+            <RotateCcw className="h-3.5 w-3.5" /> All Modules
           </button>
           <button
             onClick={() => router.push(`/dsc-sgt/mock-tests/${result.mock_test_id}/leaderboard`)}

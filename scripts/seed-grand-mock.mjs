@@ -1,4 +1,23 @@
 // ============================================================
+// DEPRECATED — DO NOT RUN
+// ============================================================
+// Superseded by scripts/generate-mock-series.ts, which generates the
+// 100-module series per medium with coverage-aware question selection.
+//
+// This script also seeds `previous_paper` and `subject_mock` tests, which were
+// deliberately REMOVED from the product and the database. Running it would
+// recreate them and undo that change.
+//
+// Kept for reference only. Delete the guard below if you genuinely need it.
+// ============================================================
+if (process.env.ALLOW_LEGACY_SEED !== 'true') {
+  console.error('This seed script is deprecated and would recreate removed mock categories.')
+  console.error('Use:  npx tsx scripts/generate-mock-series.ts')
+  console.error('To override anyway:  ALLOW_LEGACY_SEED=true node ' + process.argv[1])
+  process.exit(1)
+}
+
+// ============================================================
 // scripts/seed-grand-mock.mjs
 // ============================================================
 // Seeds the database with:

@@ -75,6 +75,23 @@
  *     method: 'POST',
  *     headers: { 'Content-Type': 'application/json' },
  *     body: JSON.stringify({ idToken, deviceId, platform, userAgent }),
+ *
+ * IMPORTANT (added with nonce binding):
+ *   Sign-in now requires a server-issued nonce. Before calling GoogleSignin,
+ *   fetch one and pass it through:
+ *
+ *     const { nonce } = await fetch(`${API}/api/auth/nonce`, {
+ *       credentials: 'include',            // the server also sets an HttpOnly cookie
+ *     }).then(r => r.json())
+ *
+ *     await GoogleSignin.configure({ webClientId, nonce })
+ *
+ *   Then POST to /api/auth/google WITH cookies enabled so the nonce cookie is
+ *   sent back. Without it the server returns 400 AUTH_NONCE_REQUIRED.
+ *
+ *   This is enforced for every platform on purpose — gating it on
+ *   platform === 'WEB' would let an attacker skip the check by claiming to be
+ *   a mobile client.
  *   })
  *
  *   if (!res.ok) {
