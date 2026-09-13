@@ -20,6 +20,7 @@ import {
 import { ModeToggle } from '@/components/mode-toggle'
 import { useAuth } from '@/app/contexts/AuthContext'
 import { usePremium, type DevTierOverride } from './PremiumContext'
+import { Avatar } from '@/components/ui/avatar'
 import { toast } from 'sonner'
 
 export const DSC_NAV_ITEMS = [
@@ -74,11 +75,6 @@ export default function DscHeader() {
     }
   }, [mobileMenuOpen])
 
-  const initials = user?.name
-    ? user.name[0].toUpperCase()
-    : user?.email
-      ? user.email[0].toUpperCase()
-      : 'U'
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-card/80 backdrop-blur-md transition-colors duration-200">
@@ -86,7 +82,7 @@ export default function DscHeader() {
 
         {/* ── Left: exam identity ── */}
         <Link href="/dsc-sgt" className="flex min-w-0 shrink items-center gap-2.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary text-[10px] font-semibold tracking-tight text-primary-foreground">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary text-[11px] font-semibold tracking-tight text-primary-foreground">
             DSC
           </div>
           <div className="flex min-w-0 flex-col">
@@ -94,11 +90,11 @@ export default function DscHeader() {
               <span className="truncate text-sm font-semibold tracking-tight text-foreground">
                 DSC / SGT
               </span>
-              <span className="shrink-0 rounded-full bg-secondary px-1.5 py-0.5 text-[9px] font-medium text-secondary-foreground">
+              <span className="shrink-0 rounded-full bg-secondary px-1.5 py-0.5 text-[11px] font-medium text-secondary-foreground">
                 AP
               </span>
             </div>
-            <span className="hidden truncate text-[10px] text-muted-foreground md:block">
+            <span className="hidden truncate text-[11px] text-muted-foreground md:block">
               School Grade Teacher Hub
             </span>
           </div>
@@ -161,18 +157,7 @@ export default function DscHeader() {
               aria-expanded={profileOpen}
               className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full ring-1 ring-border transition hover:ring-ring focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              {user?.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={user.avatarUrl}
-                  alt={user.name ?? 'avatar'}
-                  className="h-9 w-9 object-cover"
-                />
-              ) : (
-                <div className="flex h-9 w-9 items-center justify-center bg-primary text-xs font-semibold text-primary-foreground">
-                  {initials}
-                </div>
-              )}
+              <Avatar src={user?.avatarUrl} name={user?.name} email={user?.email} size={36} />
             </button>
 
             {profileOpen && (
@@ -283,11 +268,11 @@ function ProfileMenu({
         <p className="truncate text-sm font-medium text-foreground">{user?.name ?? 'Candidate'}</p>
         <p className="truncate text-[11px] text-muted-foreground">{user?.email}</p>
         <div className="mt-2.5 flex items-center gap-2">
-          <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-secondary-foreground">
+          <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-secondary-foreground">
             AP DSC Candidate
           </span>
           {isPremium && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-400">
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400">
               <Crown className="h-2.5 w-2.5 fill-current" /> Pro
             </span>
           )}
@@ -329,7 +314,7 @@ function ProfileMenu({
         {/* Admin-only: test Free vs Pro without touching the database */}
         {user?.role === 'admin' && (
           <div className="mx-1 my-1.5 rounded-xl border border-border bg-muted/40 p-2">
-            <div className="mb-1.5 flex items-center justify-between text-[10px] font-medium text-muted-foreground">
+            <div className="mb-1.5 flex items-center justify-between text-[11px] font-medium text-muted-foreground">
               <span>Subscription testing</span>
               <span className="uppercase text-foreground">{devTierOverride}</span>
             </div>
@@ -339,7 +324,7 @@ function ProfileMenu({
                   key={tier}
                   type="button"
                   onClick={() => setDevTierOverride(tier)}
-                  className={`rounded-lg px-1.5 py-1 text-[10px] font-medium capitalize transition ${
+                  className={`rounded-lg px-1.5 py-1 text-[11px] font-medium capitalize transition ${
                     devTierOverride === tier
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-card text-foreground hover:bg-accent'

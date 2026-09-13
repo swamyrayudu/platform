@@ -152,11 +152,11 @@ export default function SubjectSelector({
                   <Icon className="h-4 w-4" />
                 </div>
                 {hasQuestions ? (
-                  <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
+                  <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
                     Live Bank
                   </span>
                 ) : (
-                  <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground">
+                  <span className="rounded-full bg-muted px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
                     No Data Yet
                   </span>
                 )}
@@ -168,7 +168,7 @@ export default function SubjectSelector({
               >
                 {sub.name}
               </span>
-              <span className="text-[10px] text-muted-foreground truncate w-full mt-1">
+              <span className="text-[11px] text-muted-foreground truncate w-full mt-1">
                 {sub.teluguName}
               </span>
             </button>

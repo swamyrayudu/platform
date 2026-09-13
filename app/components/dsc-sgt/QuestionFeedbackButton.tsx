@@ -139,7 +139,7 @@ export default function QuestionFeedbackButton({
                 >
                   <span className="min-w-0">
                     <span className="block text-[11px] font-medium">{r.label}</span>
-                    <span className="block text-[10px] opacity-75">{r.hint}</span>
+                    <span className="block text-[11px] opacity-75">{r.hint}</span>
                   </span>
                   {reason === r.id && <Check className="ml-auto mt-0.5 h-3 w-3 shrink-0" />}
                 </button>

@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { ModeToggle } from '@/components/mode-toggle'
+import { Avatar } from '@/components/ui/avatar'
 import { BloomMark } from '@/app/components/landing/LandingHeader'
 
 export interface UserProfile {
@@ -42,8 +43,6 @@ export default function TopNav({ user, logout, logoutAll }: TopNavProps) {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const initials = (user.name ?? user.email)[0].toUpperCase()
-
   return (
     <header className="sticky top-0 z-30 bg-card/75 backdrop-blur-md transition-colors duration-200">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -66,20 +65,12 @@ export default function TopNav({ user, logout, logoutAll }: TopNavProps) {
             aria-label="Open profile menu"
             className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full ring-1 ring-border transition-all hover:ring-ring focus:outline-none"
           >
-            {user.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={user.avatarUrl} alt={user.name ?? 'avatar'} className="h-9 w-9 object-cover" />
-            ) : (
-              <div className="flex h-9 w-9 items-center justify-center bg-primary text-sm font-semibold text-primary-foreground">
-                {initials}
-              </div>
-            )}
+            <Avatar src={user.avatarUrl} name={user.name} email={user.email} size={36} />
           </button>
 
           {open && (
             <ProfileDropdown
               user={user}
-              initials={initials}
               onClose={() => setOpen(false)}
               logout={logout}
               logoutAll={logoutAll}
@@ -96,14 +87,12 @@ export default function TopNav({ user, logout, logoutAll }: TopNavProps) {
 
 function ProfileDropdown({
   user,
-  initials,
   onClose,
   logout,
   logoutAll,
   isAdmin,
 }: {
   user: UserProfile
-  initials: string
   onClose: () => void
   logout: () => void
   logoutAll: () => void
@@ -115,15 +104,8 @@ function ProfileDropdown({
       {/* User info */}
       <div className="bloom-tint border-b border-border px-4 py-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 overflow-hidden rounded-full ring-1 ring-border">
-            {user.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={user.avatarUrl} alt="" className="h-11 w-11 object-cover" />
-            ) : (
-              <div className="flex h-11 w-11 items-center justify-center bg-primary text-base font-semibold text-primary-foreground">
-                {initials}
-              </div>
-            )}
+          <div className="shrink-0 overflow-hidden rounded-full ring-1 ring-border">
+            <Avatar src={user.avatarUrl} name={user.name} email={user.email} size={44} />
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-bloom-ink">{user.name ?? '—'}</p>

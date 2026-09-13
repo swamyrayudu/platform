@@ -225,7 +225,7 @@ function PlanEditor({ plan, onSave, onReset, isSaving }: PlanEditorProps) {
     }`}>
       {/* Override badge */}
       {plan.hasOverride && (
-        <div className="absolute right-3 top-3 rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-500">
+        <div className="absolute right-3 top-3 rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-[11px] font-bold text-amber-500">
           OVERRIDDEN
         </div>
       )}
@@ -248,7 +248,7 @@ function PlanEditor({ plan, onSave, onReset, isSaving }: PlanEditorProps) {
             )}
             <p className="mt-0.5 text-[11px] text-muted-foreground font-mono">{plan.id}</p>
             {plan.hasOverride && plan.updatedAt && (
-              <p className="mt-0.5 text-[10px] text-amber-500/80">
+              <p className="mt-0.5 text-[11px] text-amber-500/80">
                 Updated {formatDateTime(plan.updatedAt)}
               </p>
             )}
@@ -258,7 +258,7 @@ function PlanEditor({ plan, onSave, onReset, isSaving }: PlanEditorProps) {
         {/* Price inputs */}
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div>
-            <label className="mb-1 block text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+            <label className="mb-1 block text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
               Selling Price (₹)
             </label>
             {isEditing ? (
@@ -275,7 +275,7 @@ function PlanEditor({ plan, onSave, onReset, isSaving }: PlanEditorProps) {
             )}
           </div>
           <div>
-            <label className="mb-1 block text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+            <label className="mb-1 block text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
               Original Price (₹)
             </label>
             {isEditing ? (
@@ -315,7 +315,7 @@ function PlanEditor({ plan, onSave, onReset, isSaving }: PlanEditorProps) {
         {/* Badge */}
         {isEditing && (
           <div className="mb-3">
-            <label className="mb-1 block text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+            <label className="mb-1 block text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
               Badge Text
             </label>
             <input
@@ -689,7 +689,7 @@ export default function AdminDashboard() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-black tracking-tight text-foreground">Admin Dashboard</h1>
-                <span className="rounded-md border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[10px] font-black text-red-500 uppercase tracking-wide">
+                <span className="rounded-md border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] font-black text-red-500 uppercase tracking-wide">
                   Restricted
                 </span>
               </div>
@@ -809,7 +809,7 @@ export default function AdminDashboard() {
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-base font-bold text-foreground">Practice Question Bank & Data Export</h2>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
                     <Sparkles className="h-2.5 w-2.5" /> Live Database Sync · 12 Tables
                   </span>
                 </div>
@@ -834,7 +834,7 @@ export default function AdminDashboard() {
                 )}
                 <span>Download Total CSV</span>
                 {practiceStats && (
-                  <span className="rounded-md bg-white/20 px-1.5 py-0.5 text-[10px] font-extrabold tracking-tight">
+                  <span className="rounded-md bg-white/20 px-1.5 py-0.5 text-[11px] font-extrabold tracking-tight">
                     {practiceStats.totalQuestions.toLocaleString()} Qs
                   </span>
                 )}
@@ -1136,7 +1136,7 @@ export default function AdminDashboard() {
 
             <div className="grid gap-3 sm:grid-cols-3 mb-4">
               <div>
-                <label className="mb-1 block text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                <label className="mb-1 block text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
                   Select Medium
                 </label>
                 <select
@@ -1151,7 +1151,7 @@ export default function AdminDashboard() {
               </div>
 
               <div>
-                <label className="mb-1 block text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                <label className="mb-1 block text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
                   Select Subject
                 </label>
                 <select
@@ -1171,7 +1171,7 @@ export default function AdminDashboard() {
               </div>
 
               <div>
-                <label className="mb-1 block text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                <label className="mb-1 block text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
                   File Format
                 </label>
                 <select
@@ -1255,20 +1255,20 @@ export default function AdminDashboard() {
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="rounded-md border border-primary/20 bg-primary/5 px-1.5 py-0.5 text-[10px] font-bold text-primary">
+                          <span className="rounded-md border border-primary/20 bg-primary/5 px-1.5 py-0.5 text-[11px] font-bold text-primary">
                             {payment.planId}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right font-bold text-foreground">
                           {formatPaise(payment.amount)}
                           {payment.discountPercent > 0 && (
-                            <div className="text-[10px] text-emerald-500 font-semibold">
+                            <div className="text-[11px] text-emerald-500 font-semibold">
                               -{payment.discountPercent}% off
                             </div>
                           )}
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${STATUS_STYLES[payment.status] ?? 'bg-muted text-muted-foreground border-border'}`}>
+                          <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${STATUS_STYLES[payment.status] ?? 'bg-muted text-muted-foreground border-border'}`}>
                             {payment.status}
                           </span>
                         </td>

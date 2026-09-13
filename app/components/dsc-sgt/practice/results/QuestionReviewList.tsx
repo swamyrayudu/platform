@@ -101,7 +101,7 @@ export default function QuestionReviewList({ questionsReview }: QuestionReviewLi
                   {q.is_correct ? (
                     <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
                   ) : q.is_skipped ? (
-                    <div className="h-5 w-5 rounded-full border border-muted-foreground/50 flex items-center justify-center text-[10px] font-bold text-muted-foreground shrink-0 mt-0.5">
+                    <div className="h-5 w-5 rounded-full border border-muted-foreground/50 flex items-center justify-center text-[11px] font-bold text-muted-foreground shrink-0 mt-0.5">
                       —
                     </div>
                   ) : (
@@ -113,7 +113,7 @@ export default function QuestionReviewList({ questionsReview }: QuestionReviewLi
                       <span className="text-[11px] font-semibold text-foreground">Q {idx + 1}</span>
                       <span className="text-[11px] text-muted-foreground">• {q.topic}</span>
                       {q.is_marked && (
-                        <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold text-amber-600 dark:text-amber-400">
+                        <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400">
                           Marked
                         </span>
                       )}

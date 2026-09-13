@@ -130,12 +130,12 @@ export default function ProfileDevicesCard({ onSignOutAll }: ProfileDevicesCardP
                       <p className="flex flex-wrap items-center gap-2 text-[13px] font-medium text-foreground">
                         <span>{d.platform === 'WEB' ? 'Web browser' : d.platform}</span>
                         {isThis && (
-                          <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-secondary-foreground">
+                          <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-secondary-foreground">
                             This device
                           </span>
                         )}
                         {!isActive && (
-                          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                          <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                             Signed out
                           </span>
                         )}

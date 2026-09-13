@@ -31,6 +31,8 @@ import {
   ListChecks,
 } from 'lucide-react'
 import { usePremium } from '@/app/components/dsc-sgt/PremiumContext'
+import { useAuth } from '@/app/contexts/AuthContext'
+import { resolvePreferredMedium, storeMedium } from '@/lib/medium-preference'
 import { toast } from 'sonner'
 import type {
   MockTestListItem,
@@ -57,14 +59,25 @@ interface ListMeta {
   highestCompleted: number
 }
 
+/**
+ * The title carries a trailing medium in brackets — "… (తెలుగు మాధ్యమం)" or
+ * "… (English Medium)" — which the badge beside it already shows. On a phone
+ * that repeat pushes the title onto an extra line, so it is dropped for
+ * display. The stored title is untouched.
+ */
+const displayTitle = (title: string) =>
+  title.replace(/\s*[（(]\s*(?:[^)）]*?(?:మాధ్యమం|Medium)[^)）]*?)\s*[)）]\s*$/u, '').trim() || title
+
 /** "Module 07" — the module a locked one is waiting on. */
 const moduleName = (n: number) => `Module ${String(n).padStart(2, '0')}`
 
 export default function MockTestsPage() {
   const router = useRouter()
   const { isPremium, openModal } = usePremium()
+  const { user, loading: authLoading } = useAuth()
 
   const [medium, setMedium] = useState<ExamMediumKey>('telugu')
+  const [mediumResolved, setMediumResolved] = useState(false)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
 
@@ -188,9 +201,25 @@ export default function MockTestsPage() {
     // until the reader scrolls again.
   }, [hasMore, loading, loadingMore, tests.length, loadNextBatch])
 
+  // Open the tab for the medium the candidate registered with. Adjusted during
+  // render so the right tab is what first paints, and applied only once so a
+  // tab they pick themselves is never snapped back.
+  //
+  // Gated on `!authLoading`: while the profile is still arriving,
+  // user?.educationMedium is undefined, and resolving then would let a stored
+  // fallback win over the medium they actually registered with.
+  if (!mediumResolved && !authLoading) {
+    setMediumResolved(true)
+    const preferred = resolvePreferredMedium(user?.educationMedium)
+    if (preferred && preferred !== medium) setMedium(preferred)
+  }
+
   const switchMedium = (next: ExamMediumKey) => {
     if (next === medium) return
+    setMediumResolved(true)
     setMedium(next)
+    // Remember the switch so the next visit opens the same way.
+    storeMedium(next)
   }
 
   const handleStartTest = async (test: MockTestListItem) => {
@@ -254,7 +283,7 @@ export default function MockTestsPage() {
   const statusBadge = (status: ModuleProgressStatus, test: MockTestListItem) => {
     if (status === 'completed') {
       return (
-        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
           <CheckCircle2 className="h-3 w-3" />
           Completed
           {test.user_attempt?.percentage != null && (
@@ -265,14 +294,14 @@ export default function MockTestsPage() {
     }
     if (status === 'in_progress') {
       return (
-        <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-secondary px-2.5 py-0.5 text-[10px] font-bold text-primary">
+        <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-secondary px-2.5 py-0.5 text-[11px] font-bold text-primary">
           <RotateCcw className="h-3 w-3" />
           In Progress
         </span>
       )
     }
     return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/60 px-2.5 py-0.5 text-[10px] font-bold text-muted-foreground">
+      <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/60 px-2.5 py-0.5 text-[11px] font-bold text-muted-foreground">
         Not Started
       </span>
     )
@@ -280,12 +309,12 @@ export default function MockTestsPage() {
 
   const mediumBadge = (m: string) =>
     m === 'telugu' ? (
-      <span className="inline-flex items-center gap-1 rounded-md border border-teal-500/30 bg-teal-500/10 px-2 py-0.5 text-[10px] font-bold text-teal-700 dark:text-teal-300">
+      <span className="inline-flex items-center gap-1 rounded-md border border-teal-500/30 bg-teal-500/10 px-2 py-0.5 text-[11px] font-bold text-teal-700 dark:text-teal-300">
         <Languages className="h-3 w-3 text-teal-600 dark:text-teal-400" />
         తెలుగు మాధ్యమం
       </span>
     ) : (
-      <span className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-secondary px-2 py-0.5 text-[10px] font-bold text-primary">
+      <span className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-secondary px-2 py-0.5 text-[11px] font-bold text-primary">
         <Globe className="h-3 w-3 text-primary" />
         English Medium
       </span>
@@ -326,21 +355,25 @@ export default function MockTestsPage() {
       </div>
 
       {/* ── Medium Tabs ── */}
-      <div className="mb-6 rounded-3xl border border-border/80 bg-card/60 p-2 shadow-sm">
+      {/* On a phone the tabs share 375px, so each label drops to one word —
+          the Telugu tab shows only "తెలుగు" and the English one "English".
+          The long bilingual labels return from sm up. */}
+      <div className="mb-6 rounded-3xl border border-border/80 bg-card/60 p-2">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-          <div className="flex items-center gap-2 rounded-2xl border border-border/50 bg-muted/40 p-1">
+          <div className="grid grid-cols-2 gap-1 rounded-2xl border border-border/50 bg-muted/40 p-1 sm:flex sm:items-center sm:gap-2">
             <button
               onClick={() => switchMedium('telugu')}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+              className={`flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all sm:gap-2 sm:px-4 ${
                 medium === 'telugu'
-                  ? 'bg-teal-600 text-white shadow-md'
+                  ? 'bg-teal-600 text-white'
                   : 'text-muted-foreground hover:bg-muted hover:text-teal-600 dark:hover:text-teal-400'
               }`}
             >
-              <Languages className="h-4 w-4" />
-              <span>తెలుగు మాధ్యమం (Telugu Medium)</span>
+              <Languages className="h-4 w-4 shrink-0" />
+              <span className="sm:hidden">తెలుగు</span>
+              <span className="hidden sm:inline">తెలుగు మాధ్యమం</span>
               <span
-                className={`ml-1 rounded-full px-1.5 text-[10px] ${
+                className={`rounded-full px-1.5 text-[11px] ${
                   medium === 'telugu' ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'
                 }`}
               >
@@ -350,16 +383,17 @@ export default function MockTestsPage() {
 
             <button
               onClick={() => switchMedium('english')}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+              className={`flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all sm:gap-2 sm:px-4 ${
                 medium === 'english'
-                  ? 'bg-primary text-primary-foreground shadow-md'
+                  ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:bg-muted hover:text-primary dark:hover:text-primary'
               }`}
             >
-              <Globe className="h-4 w-4" />
-              <span>English Medium</span>
+              <Globe className="h-4 w-4 shrink-0" />
+              <span className="sm:hidden">English</span>
+              <span className="hidden sm:inline">English Medium</span>
               <span
-                className={`ml-1 rounded-full px-1.5 text-[10px] ${
+                className={`rounded-full px-1.5 text-[11px] ${
                   medium === 'english' ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'
                 }`}
               >
@@ -368,14 +402,16 @@ export default function MockTestsPage() {
             </button>
           </div>
 
-          <div className="px-3 text-xs text-muted-foreground">
+          {/* The subject list inside this line wraps to three cramped rows on a
+              phone and says nothing the tabs above do not. Shown from sm up. */}
+          <div className="hidden px-3 text-xs text-muted-foreground sm:block">
             {medium === 'telugu' ? (
-              <span className="font-semibold text-teal-600 dark:text-teal-400">
-                ✨ 100% తెలుగు మాధ్యమం పేపర్లు (గణితం, సైన్స్, సోషల్, జీకే తెలుగులో)
+              <span className="font-medium text-teal-600 dark:text-teal-400">
+                ✨ 100% తెలుగు మాధ్యమం పేపర్లు
               </span>
             ) : (
-              <span className="font-semibold text-primary">
-                ✨ 100% English Medium Papers (Math, Science, Social, GK in English)
+              <span className="font-medium text-primary">
+                ✨ 100% English Medium Papers
               </span>
             )}
           </div>
@@ -384,7 +420,8 @@ export default function MockTestsPage() {
 
       {/* ── Category Filters & Search ── */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
+        {/* Hidden on phones: both medium tabs already carry their count. */}
+        <div className="hidden items-center gap-2 sm:flex">
           <span className="rounded-full border border-primary/30 bg-secondary px-4 py-1.5 text-xs font-semibold text-primary">
             All Modules ({totalModules})
           </span>
@@ -496,7 +533,7 @@ export default function MockTestsPage() {
                 <div>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="rounded-md border border-primary/30 bg-secondary px-2 py-0.5 text-[10px] font-black text-primary">
+                      <span className="rounded-md border border-primary/30 bg-secondary px-2 py-0.5 text-[11px] font-black text-primary">
                         {moduleLabel(test)}
                       </span>
                       {mediumBadge(test.medium)}
@@ -504,15 +541,15 @@ export default function MockTestsPage() {
 
                     <div className="flex items-center gap-1.5">
                       {test.is_free ? (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
                           <CheckCircle2 className="h-3 w-3 text-emerald-500" /> Free
                         </span>
                       ) : isPremium ? (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold text-amber-500">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-bold text-amber-500">
                           <Crown className="h-3 w-3 fill-amber-500" /> Pro
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold text-amber-500">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-bold text-amber-500">
                           <Lock className="h-3 w-3" /> Pro
                         </span>
                       )}
@@ -520,22 +557,22 @@ export default function MockTestsPage() {
                   </div>
 
                   <h3 className="mt-3.5 text-sm font-bold leading-snug text-foreground transition-colors group-hover:text-primary dark:group-hover:text-primary sm:text-base">
-                    {test.title}
+                    {displayTitle(test.title)}
                   </h3>
 
                   <div className="mt-2">{statusBadge(status, test)}</div>
 
                   <div className="mt-4 grid grid-cols-3 gap-2 rounded-2xl border border-border/60 bg-muted/30 p-2.5 text-center text-xs">
                     <div>
-                      <span className="text-[10px] text-muted-foreground">Questions</span>
+                      <span className="text-[11px] text-muted-foreground">Questions</span>
                       <p className="font-bold text-foreground">{test.total_questions}</p>
                     </div>
                     <div className="border-x border-border/60">
-                      <span className="text-[10px] text-muted-foreground">Marks</span>
+                      <span className="text-[11px] text-muted-foreground">Marks</span>
                       <p className="font-bold text-foreground">{test.total_marks} M</p>
                     </div>
                     <div>
-                      <span className="text-[10px] text-muted-foreground">Duration</span>
+                      <span className="text-[11px] text-muted-foreground">Duration</span>
                       <p className="font-bold text-foreground">{test.duration_minutes} Min</p>
                     </div>
                   </div>

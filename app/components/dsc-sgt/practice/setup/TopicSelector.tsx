@@ -71,7 +71,7 @@ export default function TopicSelector({
             ({topicMode === 'all' ? 'All' : selectedTopics.length} / {topicsList.length} Topics)
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400">
             <Crown className="h-3 w-3 fill-amber-500 text-amber-500" />
             Topic-Wise is Pro
           </span>
@@ -91,7 +91,7 @@ export default function TopicSelector({
           }`}
         >
           <span className="text-xs sm:text-sm font-semibold">🎯 All Topics</span>
-          <span className="text-[10px] opacity-75 mt-0.5">Full {subject} Syllabus</span>
+          <span className="text-[11px] opacity-75 mt-0.5">Full {subject} Syllabus</span>
         </button>
 
         {/* Select Topics — clean for premium, locked for free */}
@@ -108,7 +108,7 @@ export default function TopicSelector({
         >
           {/* Lock badge — only for non-premium */}
           {!isPremium && (
-            <span className="absolute -top-2.5 -right-1.5 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-2 py-0.5 text-[9px] font-semibold text-white shadow-sm">
+            <span className="absolute -top-2.5 -right-1.5 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-2 py-0.5 text-[11px] font-semibold text-white shadow-sm">
               <Crown className="h-2.5 w-2.5 fill-white" />
               PRO
             </span>
@@ -118,7 +118,7 @@ export default function TopicSelector({
             📑 Select Topics
             {!isPremium && <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
           </span>
-          <span className="text-[10px] mt-0.5 text-muted-foreground">
+          <span className="text-[11px] mt-0.5 text-muted-foreground">
             {isPremium ? 'Pick specific chapters' : 'Pro only • Pick chapters'}
           </span>
         </button>
@@ -141,7 +141,7 @@ export default function TopicSelector({
           <button
             type="button"
             onClick={onOpenUpgradeModal}
-            className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-primary px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:brightness-105 transition cursor-pointer active:scale-98"
+            className="inline-flex min-h-11 w-full shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-primary px-3.5 text-xs font-semibold text-white transition hover:brightness-105 active:scale-98 sm:min-h-0 sm:w-auto sm:py-2"
           >
             <Crown className="h-3.5 w-3.5 fill-white" />
             <span>Unlock with Pro</span>

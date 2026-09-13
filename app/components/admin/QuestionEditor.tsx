@@ -138,7 +138,7 @@ export default function QuestionEditor({ questionUid, onSaved }: QuestionEditorP
   return (
     <div className="space-y-4">
       {/* Where this question is in use */}
-      <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
         <code className="rounded bg-muted px-1.5 py-0.5">{question.question_uid}</code>
         {question.subject && <span>· {question.subject}</span>}
         <span>

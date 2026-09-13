@@ -42,7 +42,7 @@ function ScoreGauge({ percentage }: { percentage: number }) {
       </svg>
       <div className="absolute flex flex-col items-center">
         <span className={`text-2xl font-black ${clr}`}>{percentage.toFixed(1)}%</span>
-        <span className="text-[10px] text-muted-foreground font-medium">Score</span>
+        <span className="text-[11px] text-muted-foreground font-medium">Score</span>
       </div>
     </div>
   )
@@ -82,7 +82,7 @@ function QuestionReviewCard({
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {!item.is_skipped && (
-            <span className={`text-[10px] font-bold ${item.is_correct ? 'text-emerald-500' : 'text-red-500'}`}>
+            <span className={`text-[11px] font-bold ${item.is_correct ? 'text-emerald-500' : 'text-red-500'}`}>
               {item.is_correct ? `+${item.marks}` : '0'}
             </span>
           )}
@@ -110,7 +110,7 @@ function QuestionReviewCard({
                       : 'border border-transparent'
                   }`}
                 >
-                  <span className={`mt-0.5 h-5 w-5 shrink-0 flex items-center justify-center rounded-md text-[10px] font-black ${
+                  <span className={`mt-0.5 h-5 w-5 shrink-0 flex items-center justify-center rounded-md text-[11px] font-black ${
                     isCorrect ? 'bg-emerald-500 text-white' :
                     isUser && !isCorrect ? 'bg-red-500 text-white' :
                     'bg-muted text-muted-foreground'
@@ -127,12 +127,12 @@ function QuestionReviewCard({
 
           {item.explanation && (
             <div className="rounded-xl border border-primary/20 bg-secondary p-3">
-              <p className="font-bold text-primary mb-1 text-[10px] uppercase tracking-wide">Explanation</p>
+              <p className="font-bold text-primary mb-1 text-[11px] uppercase tracking-wide">Explanation</p>
               <p className="text-foreground leading-relaxed">{item.explanation}</p>
             </div>
           )}
 
-          <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
             <span>{item.section_name}</span>
             {item.topic && <><span>·</span><span>{item.topic}</span></>}
             {item.difficulty && <><span>·</span><span>{item.difficulty}</span></>}
@@ -314,24 +314,24 @@ function MockResultContent() {
         {/* Core Metrics */}
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div className="rounded-2xl border border-border bg-muted/30 p-4 text-center">
-            <p className="text-[10px] text-muted-foreground mb-1">Score</p>
+            <p className="text-[11px] text-muted-foreground mb-1">Score</p>
             <p className="text-2xl font-black text-foreground">{result.score}</p>
-            <p className="text-[10px] text-muted-foreground">/ {result.total_marks} Marks</p>
+            <p className="text-[11px] text-muted-foreground">/ {result.total_marks} Marks</p>
           </div>
           <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4 text-center">
-            <p className="text-[10px] text-muted-foreground mb-1">Correct</p>
+            <p className="text-[11px] text-muted-foreground mb-1">Correct</p>
             <p className="text-2xl font-black text-emerald-500">{result.correct_count}</p>
-            <p className="text-[10px] text-muted-foreground">of {result.total_questions}</p>
+            <p className="text-[11px] text-muted-foreground">of {result.total_questions}</p>
           </div>
           <div className="rounded-2xl border border-red-500/30 bg-red-500/5 p-4 text-center">
-            <p className="text-[10px] text-muted-foreground mb-1">Incorrect</p>
+            <p className="text-[11px] text-muted-foreground mb-1">Incorrect</p>
             <p className="text-2xl font-black text-red-500">{result.incorrect_count}</p>
-            <p className="text-[10px] text-muted-foreground">Attempted wrong</p>
+            <p className="text-[11px] text-muted-foreground">Attempted wrong</p>
           </div>
           <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-center">
-            <p className="text-[10px] text-muted-foreground mb-1">Unattempted</p>
+            <p className="text-[11px] text-muted-foreground mb-1">Unattempted</p>
             <p className="text-2xl font-black text-amber-500">{result.unanswered_count}</p>
-            <p className="text-[10px] text-muted-foreground">Skipped</p>
+            <p className="text-[11px] text-muted-foreground">Skipped</p>
           </div>
         </div>
 
@@ -412,7 +412,7 @@ function MockResultContent() {
                       style={{ width: `${sectionPct}%` }}
                     />
                   </div>
-                  <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
+                  <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
                     <span className="text-emerald-500">✓ {s.correct}</span>
                     <span className="text-red-500">✗ {s.incorrect}</span>
                     <span>{s.total - s.correct - s.incorrect} skipped</span>
@@ -444,7 +444,7 @@ function MockResultContent() {
                 <button
                   key={f.value}
                   onClick={() => setReviewFilter(f.value)}
-                  className={`shrink-0 rounded-full border px-3 py-1 text-[10px] font-bold transition ${
+                  className={`shrink-0 rounded-full border px-3 py-1 text-[11px] font-bold transition ${
                     reviewFilter === f.value
                       ? 'border-primary bg-primary text-primary-foreground'
                       : 'border-border text-muted-foreground hover:text-foreground'

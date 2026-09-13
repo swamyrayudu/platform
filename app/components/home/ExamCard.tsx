@@ -19,12 +19,12 @@ export default function ExamCard({ exam, onClick, viewMode = 'grid' }: ExamCardP
 
   /* ── Status pill, shared by both views ── */
   const statusPill = isLive ? (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-[10px] font-medium text-secondary-foreground">
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-secondary-foreground">
       <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-bloom-violet" />
       Active
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[10px] font-medium text-muted-foreground">
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
       <Lock className="h-2.5 w-2.5" />
       Locked
     </span>

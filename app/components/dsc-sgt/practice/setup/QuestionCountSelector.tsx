@@ -75,7 +75,7 @@ export default function QuestionCountSelector({
         </div>
         <div className="flex items-center gap-2">
           {!isPremium && (
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
               Free: Max 25 Qs
             </span>
           )}
@@ -102,7 +102,7 @@ export default function QuestionCountSelector({
               }`}
             >
               {isLocked && (
-                <span className="absolute -top-2 -right-1 inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-0.5 text-[9px] font-semibold text-white shadow-xs">
+                <span className="absolute -top-2 -right-1 inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-0.5 text-[11px] font-semibold text-white shadow-xs">
                   <Crown className="h-2.5 w-2.5" /> PRO
                 </span>
               )}
@@ -110,7 +110,7 @@ export default function QuestionCountSelector({
                 {item.label}
                 {isLocked && <Lock className="h-3 w-3 text-muted-foreground" />}
               </span>
-              <span className="text-[10px] opacity-75 mt-0.5">{item.desc}</span>
+              <span className="text-[11px] opacity-75 mt-0.5">{item.desc}</span>
             </button>
           )
         })}
@@ -126,7 +126,7 @@ export default function QuestionCountSelector({
           }`}
         >
           <span className="text-xs sm:text-sm font-semibold">Custom</span>
-          <span className="text-[10px] opacity-75 mt-0.5">
+          <span className="text-[11px] opacity-75 mt-0.5">
             {isPremium ? 'Up to 150' : 'Max 25'}
           </span>
         </button>

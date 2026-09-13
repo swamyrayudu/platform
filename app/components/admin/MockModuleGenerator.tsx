@@ -199,7 +199,7 @@ export default function MockModuleGenerator() {
       {/* ── Controls ── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div>
-          <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+          <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
             Medium
           </label>
           <div className="flex gap-1 rounded-xl border border-border bg-muted/30 p-1">
@@ -220,7 +220,7 @@ export default function MockModuleGenerator() {
         </div>
 
         <div>
-          <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+          <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
             Blueprint
           </label>
           <select
@@ -238,7 +238,7 @@ export default function MockModuleGenerator() {
         </div>
 
         <div>
-          <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+          <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
             Series
           </label>
           <input
@@ -249,7 +249,7 @@ export default function MockModuleGenerator() {
         </div>
 
         <div>
-          <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+          <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
             Module from
           </label>
           <input
@@ -262,7 +262,7 @@ export default function MockModuleGenerator() {
         </div>
 
         <div>
-          <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+          <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
             Module to
           </label>
           <input
@@ -343,7 +343,7 @@ export default function MockModuleGenerator() {
               { label: 'Slots filled uniquely', value: uniqueRate ? `${uniqueRate}%` : '—' },
             ].map((m) => (
               <div key={m.label} className="rounded-xl border border-border bg-card p-3 text-center">
-                <p className="text-[10px] text-muted-foreground">{m.label}</p>
+                <p className="text-[11px] text-muted-foreground">{m.label}</p>
                 <p className="text-sm font-black text-foreground">{m.value}</p>
               </div>
             ))}
@@ -425,7 +425,7 @@ export default function MockModuleGenerator() {
                   .map(([uses, count]) => (
                     <span
                       key={uses}
-                      className="rounded-md border border-border bg-muted/40 px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                      className="rounded-md border border-border bg-muted/40 px-1.5 py-0.5 text-[11px] text-muted-foreground"
                     >
                       {uses} use{uses === '1' ? '' : 's'}:{' '}
                       <strong className="text-foreground">{count}</strong>

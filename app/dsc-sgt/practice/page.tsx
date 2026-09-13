@@ -13,6 +13,7 @@
 import React, { useState } from 'react'
 import { toast } from 'sonner'
 import { useAuth } from '@/app/contexts/AuthContext'
+import { resolvePreferredMedium } from '@/lib/medium-preference'
 import { usePremium } from '@/app/components/dsc-sgt/PremiumContext'
 import PracticeSetup from '@/app/components/dsc-sgt/practice/PracticeSetup'
 import PracticeExam from '@/app/components/dsc-sgt/practice/PracticeExam'
@@ -152,15 +153,10 @@ export default function PracticePage() {
       resolvedMedium = sessionResults.medium
     } else if (currentSession?.medium) {
       resolvedMedium = currentSession.medium
-    } else if (user?.educationMedium === 'telugu' || user?.educationMedium === 'english') {
-      resolvedMedium = user.educationMedium
     } else {
-      try {
-        const stored = localStorage.getItem('preferred_practice_medium')
-        if (stored === 'telugu' || stored === 'english') {
-          resolvedMedium = stored as PracticeMedium
-        }
-      } catch {}
+      // Profile first, then the last manual switch. See lib/medium-preference.ts.
+      const preferred = resolvePreferredMedium(user?.educationMedium)
+      if (preferred) resolvedMedium = preferred
     }
 
     const defaultSubject = resolvedMedium === 'telugu' ? 'Telugu' : 'English'

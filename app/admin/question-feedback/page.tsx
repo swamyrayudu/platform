@@ -277,7 +277,7 @@ export default function QuestionFeedbackPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       {/* How many people, and what they each said */}
                       <span
-                        className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
+                        className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
                           item.report_count >= 5
                             ? 'bg-destructive/15 text-destructive'
                             : item.report_count > 1
@@ -291,7 +291,7 @@ export default function QuestionFeedbackPage() {
                       {reasonBreakdown(item).map(([reasonId, n]) => (
                         <span
                           key={reasonId}
-                          className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+                          className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
                         >
                           {FEEDBACK_REASON_LABEL[reasonId] ?? reasonId}
                           {n > 1 ? ` ×${n}` : ''}
@@ -299,13 +299,13 @@ export default function QuestionFeedbackPage() {
                       ))}
 
                       {item.subject_label && (
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-[11px] text-muted-foreground">
                           {item.subject_label}
                           {item.medium ? ` · ${item.medium}` : ''}
                         </span>
                       )}
                       {item.status !== 'open' && (
-                        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                           {item.status}
                         </span>
                       )}
@@ -327,7 +327,7 @@ export default function QuestionFeedbackPage() {
                         )
                     )}
 
-                    <p className="mt-2 text-[10px] text-muted-foreground">
+                    <p className="mt-2 text-[11px] text-muted-foreground">
                       Last reported {item.last_reported_at ? formatWhen(item.last_reported_at) : '—'}{' '}
                       · <code>{item.question_uid}</code>
                     </p>
@@ -358,14 +358,14 @@ export default function QuestionFeedbackPage() {
                       <button
                         onClick={() => void setItemStatus(item, 'open')}
                         disabled={updating === item.id}
-                        className="rounded-full border border-border px-3 py-1.5 text-[10px] font-medium text-muted-foreground transition hover:text-foreground disabled:opacity-50"
+                        className="rounded-full border border-border px-3 py-1.5 text-[11px] font-medium text-muted-foreground transition hover:text-foreground disabled:opacity-50"
                       >
                         Reopen
                       </button>
                     )}
                     <button
                       onClick={() => setExpanded(isOpen ? null : item.id)}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[10px] font-medium text-muted-foreground transition hover:text-foreground"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[11px] font-medium text-muted-foreground transition hover:text-foreground"
                     >
                       {isOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                       {isOpen ? 'Close' : 'Edit question'}

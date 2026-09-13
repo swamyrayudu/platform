@@ -36,7 +36,7 @@ export default function AdvancedFilters({
       <button
         type="button"
         onClick={onToggleShowAdvanced}
-        className="flex w-full items-center justify-between text-xs font-bold text-muted-foreground hover:text-foreground cursor-pointer"
+        className="flex min-h-11 w-full cursor-pointer items-center justify-between text-xs font-semibold text-muted-foreground hover:text-foreground sm:min-h-0"
       >
         <span className="flex items-center gap-2">
           <SlidersHorizontal className="h-4 w-4" />

@@ -201,7 +201,7 @@ function QuestionGrid({
   return (
     <div className="flex flex-col gap-4">
       {/* Legend */}
-      <div className="flex flex-wrap gap-3 text-[10px] text-muted-foreground">
+      <div className="flex flex-wrap gap-3 text-[11px] text-muted-foreground">
         {[
           { cls: 'bg-primary/80', label: 'Current' },
           { cls: 'bg-emerald-600/80', label: 'Answered' },
@@ -221,7 +221,7 @@ function QuestionGrid({
         const sectionQs = sorted.filter((q) => q.section_id === section.id)
         return (
           <div key={section.id}>
-            <p className="mb-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wide truncate">
+            <p className="mb-1.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wide truncate">
               {section.name} ({section.count}Q)
             </p>
             <div className="flex flex-wrap gap-1.5">
@@ -242,7 +242,7 @@ function QuestionGrid({
                   <button
                     key={q.question_number}
                     onClick={() => onJump(q.question_number)}
-                    className={`h-7 w-7 rounded-md text-[10px] font-bold transition-all ${cls}`}
+                    className={`h-7 w-7 rounded-md text-[11px] font-bold transition-all ${cls}`}
                     title={`Q${q.question_number}`}
                   >
                     {q.question_number}
@@ -666,18 +666,18 @@ function MockExamContent() {
             {testMeta?.title || 'AP DSC SGT Mock Test'}
           </span>
           {testMeta?.medium === 'telugu' ? (
-            <span className="hidden sm:inline-flex items-center rounded-md border border-teal-500/30 bg-teal-500/10 px-2 py-0.5 text-[9px] font-bold text-teal-700 dark:text-teal-300 shrink-0">
+            <span className="hidden sm:inline-flex items-center rounded-md border border-teal-500/30 bg-teal-500/10 px-2 py-0.5 text-[11px] font-bold text-teal-700 dark:text-teal-300 shrink-0">
               తెలుగు మాధ్యమం
             </span>
           ) : (
-            <span className="hidden sm:inline-flex items-center rounded-md border border-primary/30 bg-secondary px-2 py-0.5 text-[9px] font-bold text-primary shrink-0">
+            <span className="hidden sm:inline-flex items-center rounded-md border border-primary/30 bg-secondary px-2 py-0.5 text-[11px] font-bold text-primary shrink-0">
               English Medium
             </span>
           )}
         </div>
 
         {/* Status chips — desktop only */}
-        <div className="hidden sm:flex items-center gap-2 text-[10px]">
+        <div className="hidden sm:flex items-center gap-2 text-[11px]">
           <span className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 font-bold text-emerald-600 dark:text-emerald-400">
             ✓ {answeredCount}
           </span>
@@ -711,7 +711,7 @@ function MockExamContent() {
             onClick={() => setShowSidebar(true)}
             className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-border bg-muted/60 sm:hidden"
           >
-            <span className="text-[9px] font-black">{currentQNumber}</span>
+            <span className="text-[11px] font-black">{currentQNumber}</span>
           </button>
         </div>
       </header>
@@ -725,16 +725,16 @@ function MockExamContent() {
           {/* Question header */}
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="rounded-lg border border-border bg-muted/50 px-2.5 py-1 text-[10px] font-bold text-muted-foreground">
+              <span className="rounded-lg border border-border bg-muted/50 px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
                 {currentSectionName}
               </span>
               <span className="text-xs font-black text-foreground">Q {currentQ.question_number}</span>
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-[11px] text-muted-foreground">
                 / {totalQuestions || questions.length}
               </span>
               {totalQuestions > 0 && questions.length < totalQuestions && (
                 <span
-                  className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground"
+                  className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-0.5 text-[11px] font-semibold text-muted-foreground"
                   title="Later questions are still loading in the background"
                 >
                   <Loader2 className="h-3 w-3 animate-spin" />
@@ -742,7 +742,7 @@ function MockExamContent() {
                 </span>
               )}
               {currentQ.difficulty && (
-                <span className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                <span className={`rounded-md px-2 py-0.5 text-[11px] font-bold ${
                   currentQ.difficulty.toLowerCase() === 'easy' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' :
                   currentQ.difficulty.toLowerCase() === 'hard' ? 'bg-red-500/10 text-red-500' :
                   'bg-secondary text-primary'
@@ -752,7 +752,7 @@ function MockExamContent() {
               )}
             </div>
             <div className="flex items-center gap-2.5">
-              <span className="text-[10px] text-muted-foreground font-medium">
+              <span className="text-[11px] text-muted-foreground font-medium">
                 {currentQ.marks} mark{currentQ.marks !== 1 ? 's' : ''}
               </span>
 

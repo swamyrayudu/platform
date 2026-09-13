@@ -313,7 +313,7 @@ export default function PerformancePage() {
                       <span className="text-foreground">{item.subject}</span>
                       <div className="flex items-center gap-2">
                         <span
-                          className={`rounded-md border px-1.5 py-0.2 text-[10px] font-bold ${style.badge}`}
+                          className={`rounded-md border px-1.5 py-0.2 text-[11px] font-bold ${style.badge}`}
                         >
                           {item.status}
                         </span>
@@ -328,7 +328,7 @@ export default function PerformancePage() {
                       />
                     </div>
 
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-[11px] text-muted-foreground">
                       {item.correct}/{item.attempted} correct
                     </p>
                   </div>
@@ -372,12 +372,12 @@ export default function PerformancePage() {
                         <p className="font-extrabold text-foreground">
                           {test.score} / {test.total_marks}
                         </p>
-                        <p className="text-[10px] font-bold text-emerald-500">
+                        <p className="text-[11px] font-bold text-emerald-500">
                           {test.accuracy_pct}% Acc.
                         </p>
                       </div>
                       {test.rank !== null && (
-                        <div className="rounded-xl border border-border bg-card px-2.5 py-1 text-center text-[10px]">
+                        <div className="rounded-xl border border-border bg-card px-2.5 py-1 text-center text-[11px]">
                           <span className="text-muted-foreground">Rank</span>
                           <p className="font-bold text-primary">#{test.rank}</p>
                         </div>

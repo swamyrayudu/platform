@@ -67,7 +67,7 @@ export default function PracticeModeSelector({
               }`}
             >
               <div className="text-xs sm:text-sm font-bold text-foreground">{m.title}</div>
-              <div className="text-[10px] text-muted-foreground mt-1 leading-relaxed">{m.desc}</div>
+              <div className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{m.desc}</div>
             </button>
           )
         })}
@@ -77,7 +77,7 @@ export default function PracticeModeSelector({
       <div className="flex items-center justify-between p-3.5 rounded-2xl border border-border/80 bg-muted/20">
         <div>
           <div className="text-xs font-bold text-foreground">Instant Answer & Explanation</div>
-          <div className="text-[10px] text-muted-foreground mt-0.5">
+          <div className="text-[11px] text-muted-foreground mt-0.5">
             Shows correct answer and detailed explanation right after each question
           </div>
         </div>

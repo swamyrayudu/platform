@@ -130,7 +130,7 @@ export default function HeroContent() {
                 <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <div>
                   <p className="text-sm font-semibold text-foreground">{stat.value}</p>
-                  <p className="text-[10px] leading-tight text-muted-foreground">{stat.label}</p>
+                  <p className="text-[11px] leading-tight text-muted-foreground">{stat.label}</p>
                 </div>
               </div>
             )

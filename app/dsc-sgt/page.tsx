@@ -173,7 +173,7 @@ export default function DscSgtOverviewPage() {
                   Study Streak
                 </span>
               </div>
-              <div className="h-3 w-px bg-border" />
+              <div className="hidden h-3 w-px bg-border sm:block" />
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                 <span>
@@ -183,7 +183,7 @@ export default function DscSgtOverviewPage() {
                   Questions Solved
                 </span>
               </div>
-              <div className="h-3 w-px bg-border" />
+              <div className="hidden h-3 w-px bg-border sm:block" />
               <div className="flex items-center gap-1.5">
                 <Award className="h-4 w-4 text-primary" />
                 <span>
@@ -195,7 +195,7 @@ export default function DscSgtOverviewPage() {
               </div>
               {stats && stats.modules_total > 0 && (
                 <>
-                  <div className="h-3 w-px bg-border" />
+                  <div className="hidden h-3 w-px bg-border sm:block" />
                   <div className="flex items-center gap-1.5">
                     <Layers className="h-4 w-4 text-primary" />
                     <span>
@@ -232,9 +232,11 @@ export default function DscSgtOverviewPage() {
 
       {/* ── 4 Main Module Hub Cards ── */}
       <section className="mt-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-foreground sm:text-xl">Core Learning Modules</h2>
-          <span className="text-xs text-muted-foreground">Select a module to proceed</span>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-foreground sm:text-xl">Core Learning Modules</h2>
+          <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
+            Select a module to proceed
+          </span>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -289,7 +291,7 @@ export default function DscSgtOverviewPage() {
             className="group relative flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-5 transition-all hover:border-primary/50 hover:shadow-md hover:-translate-y-1"
           >
             <div className="absolute top-4 right-4">
-              <span className="inline-flex items-center gap-1 rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[10px] font-bold text-red-500 animate-pulse">
+              <span className="inline-flex items-center gap-1 rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] font-bold text-red-500 animate-pulse">
                 <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
                 Official UI
               </span>
@@ -411,7 +413,7 @@ export default function DscSgtOverviewPage() {
               <div>
                 <div className="flex items-center justify-between">
                   <span className={`text-xs font-bold ${style.iconColor}`}>{sec.marks} Marks</span>
-                  <span className="rounded-md border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  <span className="rounded-md border border-border bg-muted/60 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                     {sec.questions} Qs
                   </span>
                 </div>

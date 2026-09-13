@@ -24,12 +24,12 @@ export default function TopicPerformanceList({ topicBreakdown }: TopicPerformanc
               <div className="flex items-center gap-2">
                 <span className="text-xs sm:text-sm font-bold text-foreground">{topic.topic}</span>
                 {topic.is_weak && (
-                  <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                  <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400">
                     <AlertTriangle className="h-3 w-3" /> Needs Practice
                   </span>
                 )}
                 {topic.is_mastered && (
-                  <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                  <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
                     <Check className="h-3 w-3" /> Mastered
                   </span>
                 )}

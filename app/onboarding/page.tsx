@@ -10,6 +10,7 @@
 // ============================================================
 
 import React, { useState, useEffect } from 'react'
+import { storeMedium } from '@/lib/medium-preference'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
@@ -167,7 +168,7 @@ export default function OnboardingPage() {
 
       if (success) {
         try {
-          localStorage.setItem('preferred_practice_medium', selectedMedium)
+          storeMedium(selectedMedium)
         } catch {}
         toast.success('Welcome to RSD Education!', {
           description: 'Preferences saved. Redirecting to your dashboard...',

@@ -41,10 +41,10 @@ export default function HistorySessionCard({
       <div className="space-y-1">
         <div className="flex items-center gap-2">
           <span className="text-sm font-bold text-foreground">{item.subject}</span>
-          <span className="rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary capitalize">
+          <span className="rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary capitalize">
             {item.mode.replace('_', ' ')}
           </span>
-          <span className="rounded-md border border-border bg-muted/60 px-2 py-0.5 text-[10px] text-muted-foreground uppercase">
+          <span className="rounded-md border border-border bg-muted/60 px-2 py-0.5 text-[11px] text-muted-foreground uppercase">
             {item.medium}
           </span>
         </div>
@@ -67,7 +67,7 @@ export default function HistorySessionCard({
             {item.topics.map((t, i) => (
               <span
                 key={i}
-                className="rounded-md bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+                className="rounded-md bg-muted/60 px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground"
               >
                 {t}
               </span>

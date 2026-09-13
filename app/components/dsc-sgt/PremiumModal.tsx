@@ -251,7 +251,7 @@ export default function PremiumModal() {
                   <Crown className="h-4.5 w-4.5 fill-white text-white" />
                 </div>
                 <div>
-                  <div className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">
+                  <div className="text-[11px] font-bold text-amber-500 uppercase tracking-widest">
                     AP DSC / SGT Pro Pass
                   </div>
                   <h2 className="text-xl sm:text-2xl font-black tracking-tight text-foreground leading-tight">
@@ -326,7 +326,7 @@ export default function PremiumModal() {
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-bold text-foreground">Choose Your Plan</h3>
                   {!loadingPlans && (
-                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground/60">
+                    <span className="flex items-center gap-1 text-[11px] text-muted-foreground/60">
                       <RefreshCw className="h-2.5 w-2.5" />
                       Live pricing
                     </span>
@@ -357,7 +357,7 @@ export default function PremiumModal() {
                         >
                           {/* Popular pill */}
                           {plan.popular && (
-                            <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-0.5 text-[10px] font-black text-white whitespace-nowrap shadow-sm">
+                            <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-0.5 text-[11px] font-black text-white whitespace-nowrap shadow-sm">
                               ★ MOST POPULAR
                             </span>
                           )}
@@ -366,7 +366,7 @@ export default function PremiumModal() {
                             <div className="min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="text-sm font-bold text-foreground">{plan.name}</span>
-                                <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold ${
+                                <span className={`rounded-md px-1.5 py-0.5 text-[11px] font-bold ${
                                   pct >= 60
                                     ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
                                     : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
@@ -407,7 +407,7 @@ export default function PremiumModal() {
 
               {/* Promo code */}
               <form onSubmit={handleApplyCoupon} className="space-y-2">
-                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
+                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide">
                   Promo Code
                 </label>
                 <div className="flex gap-2">
@@ -467,7 +467,7 @@ export default function PremiumModal() {
                   {isPremium ? 'Close' : 'Continue with Free Tier'}
                 </button>
 
-                <p className="text-center text-[10px] text-muted-foreground/60 leading-relaxed">
+                <p className="text-center text-[11px] text-muted-foreground/60 leading-relaxed">
                   No auto-renewal · One-time payment · Razorpay secured
                 </p>
               </div>
