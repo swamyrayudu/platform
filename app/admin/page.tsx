@@ -705,6 +705,14 @@ export default function AdminDashboard() {
           </div>
           <div className="flex items-center gap-2">
             <Link
+              href="/admin/bulk-update"
+              className="flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5" />
+              Bulk update
+            </Link>
+
+            <Link
               href="/admin/question-feedback"
               className="flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
