@@ -59,7 +59,7 @@ export default function TopicSelector({
       {/* ── Header ── */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-black text-primary-foreground">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">
             2
           </span>
           <h2 className="text-sm sm:text-base font-bold text-foreground">Choose Topics</h2>
@@ -90,7 +90,7 @@ export default function TopicSelector({
               : 'border-border/80 bg-muted/30 text-muted-foreground hover:text-foreground'
           }`}
         >
-          <span className="text-xs sm:text-sm font-black">🎯 All Topics</span>
+          <span className="text-xs sm:text-sm font-semibold">🎯 All Topics</span>
           <span className="text-[10px] opacity-75 mt-0.5">Full {subject} Syllabus</span>
         </button>
 
@@ -108,13 +108,13 @@ export default function TopicSelector({
         >
           {/* Lock badge — only for non-premium */}
           {!isPremium && (
-            <span className="absolute -top-2.5 -right-1.5 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-2 py-0.5 text-[9px] font-black text-white shadow-sm">
+            <span className="absolute -top-2.5 -right-1.5 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-2 py-0.5 text-[9px] font-semibold text-white shadow-sm">
               <Crown className="h-2.5 w-2.5 fill-white" />
               PRO
             </span>
           )}
 
-          <span className="text-xs sm:text-sm font-black flex items-center justify-center gap-1.5">
+          <span className="text-xs sm:text-sm font-semibold flex items-center justify-center gap-1.5">
             📑 Select Topics
             {!isPremium && <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
           </span>
@@ -141,7 +141,7 @@ export default function TopicSelector({
           <button
             type="button"
             onClick={onOpenUpgradeModal}
-            className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-primary px-3.5 py-2 text-xs font-black text-white shadow-xs hover:brightness-105 transition cursor-pointer active:scale-98"
+            className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-primary px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:brightness-105 transition cursor-pointer active:scale-98"
           >
             <Crown className="h-3.5 w-3.5 fill-white" />
             <span>Unlock with Pro</span>

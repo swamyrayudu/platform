@@ -32,7 +32,7 @@ export default function WeakAreaBanner({
       <button
         type="button"
         onClick={() => onQuickRetry(topWeak.topic, topWeak.subject)}
-        className="rounded-lg bg-amber-500 hover:bg-amber-600 px-2.5 py-1 text-[11px] font-bold text-white shrink-0 cursor-pointer shadow-xs"
+        className="rounded-xl bg-amber-500 hover:bg-amber-600 px-2.5 py-1 text-[11px] font-bold text-white shrink-0 cursor-pointer shadow-xs"
       >
         Practice
       </button>

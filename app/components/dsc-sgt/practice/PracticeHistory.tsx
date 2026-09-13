@@ -51,10 +51,10 @@ export default function PracticeHistory({
           className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3.5 py-2 text-xs font-bold text-foreground hover:bg-accent transition cursor-pointer"
         >
           <ArrowLeft className="h-4 w-4" />
-          <span>Back to Practice Setup</span>
+          <span>Practice setup</span>
         </button>
 
-        <h1 className="text-base sm:text-lg font-black text-foreground flex items-center gap-2">
+        <h1 className="text-base sm:text-lg font-semibold text-foreground flex items-center gap-2">
           <History className="h-4 w-4 text-primary" /> Practice History
         </h1>
       </div>

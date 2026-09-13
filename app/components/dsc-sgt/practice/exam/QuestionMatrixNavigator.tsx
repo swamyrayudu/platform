@@ -56,7 +56,7 @@ export default function QuestionMatrixNavigator({
               if (isAns) boxClass = 'border-primary bg-primary/15 text-primary font-bold'
               if (isMarked)
                 boxClass = 'border-amber-500 bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold'
-              if (isCurrent) boxClass += ' ring-2 ring-primary ring-offset-1 font-black text-foreground'
+              if (isCurrent) boxClass += ' ring-2 ring-primary ring-offset-1 font-semibold text-foreground'
 
               return (
                 <button
@@ -99,14 +99,14 @@ export default function QuestionMatrixNavigator({
             if (isAns) boxClass = 'border-primary bg-primary/15 text-primary font-bold'
             if (isMarked)
               boxClass = 'border-amber-500 bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold'
-            if (isCurrent) boxClass += ' ring-2 ring-primary ring-offset-1 font-black text-foreground'
+            if (isCurrent) boxClass += ' ring-2 ring-primary ring-offset-1 font-semibold text-foreground'
 
             return (
               <button
                 key={qId}
                 type="button"
                 onClick={() => onSelectIndex(idx)}
-                className={`relative flex h-8 items-center justify-center rounded-lg border text-[11px] transition cursor-pointer ${boxClass}`}
+                className={`relative flex h-8 items-center justify-center rounded-xl border text-[11px] transition cursor-pointer ${boxClass}`}
               >
                 {idx + 1}
               </button>

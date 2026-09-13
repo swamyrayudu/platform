@@ -56,7 +56,7 @@ export default function AdvancedFilters({
                   key={cls}
                   type="button"
                   onClick={() => onSelectClass(cls)}
-                  className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition cursor-pointer ${
+                  className={`rounded-xl px-2.5 py-1 text-xs font-semibold transition cursor-pointer ${
                     selectedClasses.includes(cls)
                       ? 'bg-primary text-primary-foreground'
                       : 'border border-border bg-muted/40 text-muted-foreground hover:text-foreground'
@@ -77,7 +77,7 @@ export default function AdvancedFilters({
                   key={diff}
                   type="button"
                   onClick={() => onSelectDifficulty(diff)}
-                  className={`rounded-lg px-3 py-1 text-xs font-semibold transition cursor-pointer ${
+                  className={`rounded-xl px-3 py-1 text-xs font-semibold transition cursor-pointer ${
                     selectedDifficulties.includes(diff)
                       ? 'bg-primary text-primary-foreground'
                       : 'border border-border bg-muted/40 text-muted-foreground hover:text-foreground'

@@ -110,7 +110,7 @@ export default function QuestionReviewList({ questionsReview }: QuestionReviewLi
 
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="text-[11px] font-black text-foreground">Q {idx + 1}</span>
+                      <span className="text-[11px] font-semibold text-foreground">Q {idx + 1}</span>
                       <span className="text-[11px] text-muted-foreground">• {q.topic}</span>
                       {q.is_marked && (
                         <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold text-amber-600 dark:text-amber-400">
@@ -161,7 +161,7 @@ export default function QuestionReviewList({ questionsReview }: QuestionReviewLi
                           key={opt.key}
                           className={`flex items-start gap-2.5 p-3 rounded-xl border ${optStyle}`}
                         >
-                          <span className="font-black shrink-0">{opt.key}.</span>
+                          <span className="font-semibold shrink-0">{opt.key}.</span>
                           <span className="flex-1 text-xs">{opt.text}</span>
                         </div>
                       )

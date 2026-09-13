@@ -27,7 +27,7 @@ export default function QuestionCard({
       {/* Header badges */}
       <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-3">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="rounded-lg bg-primary/10 px-2.5 py-0.5 text-xs font-black text-primary">
+          <span className="rounded-xl bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
             Q {currentIndex + 1}
           </span>
 
@@ -52,7 +52,7 @@ export default function QuestionCard({
           <button
             type="button"
             onClick={onToggleMarkForReview}
-            className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition cursor-pointer ${
+            className={`inline-flex items-center gap-1 rounded-xl border px-2.5 py-1 text-xs font-semibold transition cursor-pointer ${
               isMarked
                 ? 'border-amber-500/50 bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold'
                 : 'border-border text-muted-foreground hover:text-foreground'

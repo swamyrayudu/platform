@@ -29,7 +29,7 @@ export function SubmitModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in-50">
       <div className="w-full max-w-sm rounded-3xl border border-border bg-card p-6 shadow-2xl text-center">
-        <h3 className="text-base sm:text-lg font-black text-foreground">
+        <h3 className="text-base sm:text-lg font-semibold text-foreground">
           Submit Practice Session?
         </h3>
         <p className="text-xs sm:text-sm text-muted-foreground mt-2">
@@ -80,7 +80,7 @@ export function ExitModal({ show, isPremium = false, onClose, onConfirm }: ExitM
         >
           <RotateCcw className="h-6 w-6" />
         </div>
-        <h3 className="text-base sm:text-lg font-black text-foreground">
+        <h3 className="text-base sm:text-lg font-semibold text-foreground">
           {!isPremium ? 'Finish & Exit Free Trial?' : 'Exit Practice Session?'}
         </h3>
         <p className="text-xs text-muted-foreground mt-2 leading-relaxed">

@@ -61,7 +61,7 @@ export default function OptionList({
             className={`flex w-full items-start gap-3 rounded-2xl border p-3.5 sm:p-4 text-left transition-all cursor-pointer disabled:cursor-default ${style}`}
           >
             <div
-              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-xs font-black mt-0.5 ${
+              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-xs font-semibold mt-0.5 ${
                 hasFeedback && isCorrectOpt
                   ? 'bg-emerald-500 text-white'
                   : hasFeedback && isWrongSelection

@@ -45,7 +45,7 @@ export default function ExamHeader({
         </button>
 
         <div className="min-w-0">
-          <h1 className="text-xs sm:text-sm font-black text-foreground truncate">
+          <h1 className="text-xs sm:text-sm font-semibold text-foreground truncate">
             {subject} Practice
           </h1>
           <p className="text-[11px] text-muted-foreground truncate">
@@ -64,7 +64,7 @@ export default function ExamHeader({
         <button
           type="button"
           onClick={onShowSubmitModal}
-          className="inline-flex items-center gap-1 rounded-xl bg-primary hover:bg-primary/90 px-3.5 py-1.5 text-xs font-black text-primary-foreground shadow-xs transition cursor-pointer"
+          className="inline-flex items-center gap-1 rounded-xl bg-primary hover:bg-primary/90 px-3.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-xs transition cursor-pointer"
         >
           <span>Finish</span>
         </button>

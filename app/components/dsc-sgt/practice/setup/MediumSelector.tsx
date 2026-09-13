@@ -18,7 +18,7 @@ export default function MediumSelector({ medium, onSelectMedium }: MediumSelecto
       <button
         type="button"
         onClick={() => onSelectMedium('english')}
-        className={`flex items-center justify-center gap-2 py-3 rounded-xl text-xs sm:text-sm font-black transition cursor-pointer ${
+        className={`flex items-center justify-center gap-2 py-3 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer ${
           medium === 'english'
             ? 'bg-card text-foreground shadow-sm border border-border'
             : 'text-muted-foreground hover:text-foreground'
@@ -31,7 +31,7 @@ export default function MediumSelector({ medium, onSelectMedium }: MediumSelecto
       <button
         type="button"
         onClick={() => onSelectMedium('telugu')}
-        className={`flex items-center justify-center gap-2 py-3 rounded-xl text-xs sm:text-sm font-black transition cursor-pointer ${
+        className={`flex items-center justify-center gap-2 py-3 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer ${
           medium === 'telugu'
             ? 'bg-card text-foreground shadow-sm border border-border'
             : 'text-muted-foreground hover:text-foreground'

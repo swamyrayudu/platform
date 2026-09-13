@@ -56,7 +56,7 @@ export default function WeakRecommendationsCard({
                   onPracticeTopic(rec.topic, subject)
                 }
               }}
-              className={`inline-flex items-center gap-1 rounded-xl px-3.5 py-2 text-xs font-black transition cursor-pointer shadow-xs ${
+              className={`inline-flex items-center gap-1 rounded-xl px-3.5 py-2 text-xs font-semibold transition cursor-pointer shadow-xs ${
                 !isPremium
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:brightness-105'
                   : 'bg-primary hover:bg-primary/90 text-primary-foreground'

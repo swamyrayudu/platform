@@ -26,7 +26,7 @@ export const DSC_NAV_ITEMS = [
   { label: 'Overview', href: '/dsc-sgt', icon: Home },
   { label: 'Practice', href: '/dsc-sgt/practice', icon: BookOpen },
   { label: 'Mock Tests', href: '/dsc-sgt/mock-tests', icon: FileCheck2 },
-  { label: 'Mock Exam', href: '/dsc-sgt/mock-exam', icon: Timer, badge: 'Live' },
+  { label: 'Mock Exam', href: '/dsc-sgt/mock-exam', icon: Timer },
   { label: 'Performance', href: '/dsc-sgt/performance', icon: BarChart3 },
 ]
 
@@ -122,7 +122,6 @@ export default function DscHeader() {
               >
                 <Icon className="h-3.5 w-3.5" strokeWidth={1.7} />
                 <span>{item.label}</span>
-                {item.badge && <LiveDot />}
               </Link>
             )
           })}
@@ -229,7 +228,6 @@ export default function DscHeader() {
                   >
                     <Icon className="h-4 w-4 shrink-0" strokeWidth={1.7} />
                     <span>{item.label}</span>
-                    {item.badge && <span className="ml-auto"><LiveDot /></span>}
                   </Link>
                 )
               })}
@@ -255,17 +253,6 @@ export default function DscHeader() {
         </>
       )}
     </header>
-  )
-}
-
-/* ── A quiet "happening now" marker, on palette ── */
-
-function LiveDot() {
-  return (
-    <span className="relative flex h-1.5 w-1.5 shrink-0" title="Live">
-      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-bloom-violet opacity-70" />
-      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-bloom-violet" />
-    </span>
   )
 }
 

@@ -18,6 +18,7 @@ import type {
   PracticeHistoryItem,
 } from '@/types/practice'
 import { SEED_QUESTIONS } from './seed-questions'
+import { loadCandidatePool, hydrateQuestions } from './question-loader'
 import {
   filterQuestionPool,
   selectSmartQuestions,
@@ -203,22 +204,31 @@ export async function createPracticeSession(
   filter: PracticeFilterState,
   userId: string | null
 ): Promise<PracticeSession> {
-  const allQuestions = await getAllPracticeQuestions(filter.medium)
-  const pool = filterQuestionPool(allQuestions, filter)
+  // Candidates come back light (six columns) and already narrowed in SQL.
+  // filterQuestionPool still decides what matches — SQL only reduces how much
+  // has to be fetched to ask it. See lib/practice/question-loader.ts.
+  const { pool: candidates, alreadyHydrated } = await loadCandidatePool(filter)
+  const pool = filterQuestionPool(candidates, filter)
 
   // Load user attempt history & weak areas
-  const history = await getUserAttemptHistory(userId)
-  const weakTopics = await getUserWeakTopics(userId)
+  const [history, weakTopics] = await Promise.all([
+    getUserAttemptHistory(userId),
+    getUserWeakTopics(userId),
+  ])
 
   // Smart Question Selection
   const requestedCount = Math.min(filter.question_count, pool.length || filter.question_count)
-  const selectedQuestions = selectSmartQuestions(
-    pool.length > 0 ? pool : allQuestions,
+  const chosen = selectSmartQuestions(
+    pool.length > 0 ? pool : candidates,
     requestedCount,
     filter.mode,
     history,
     weakTopics
   )
+
+  // Only now fetch stems, options and explanations, and only for these. The
+  // single-subject path already returned complete rows, so it skips this.
+  const selectedQuestions = alreadyHydrated ? chosen : await hydrateQuestions(chosen)
 
   const sessionId = crypto.randomUUID()
   const questionIds = selectedQuestions.map((q) => q.question_id || q.id)

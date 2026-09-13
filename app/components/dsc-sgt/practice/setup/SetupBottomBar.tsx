@@ -38,7 +38,7 @@ export default function SetupBottomBar({
     <div className="fixed bottom-0 left-0 right-0 z-30 p-3 bg-card/95 backdrop-blur-md border-t border-border shadow-2xl sm:static sm:p-0 sm:bg-transparent sm:border-0 sm:shadow-none">
       <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
         <div className="hidden sm:block text-xs">
-          <span className="font-black text-foreground">{subject} Practice</span>
+          <span className="font-semibold text-foreground">{subject} Practice</span>
           <p className="text-[11px] text-muted-foreground">
             {finalQuestionCount} Questions • {instantFeedback ? 'Instant Feedback' : 'Results at End'}
             {trialExhausted && (
@@ -51,7 +51,7 @@ export default function SetupBottomBar({
           type="button"
           onClick={trialExhausted ? onOpenUpgradeModal : onStart}
           disabled={isLoading || totalAvailable === 0}
-          className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl px-8 py-3.5 text-sm font-black shadow-lg active:scale-98 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+          className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl px-8 py-3.5 text-sm font-semibold shadow-lg active:scale-98 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
             trialExhausted
               ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-primary text-white hover:brightness-105 shadow-amber-500/20'
               : 'bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-primary/20'

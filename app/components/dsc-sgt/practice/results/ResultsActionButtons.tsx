@@ -61,7 +61,7 @@ export default function ResultsActionButtons({
         <button
           type="button"
           onClick={onOpenUpgradeModal}
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-primary hover:brightness-105 px-8 py-3.5 text-xs sm:text-sm font-black text-white transition cursor-pointer shadow-md shadow-amber-500/20"
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-primary hover:brightness-105 px-8 py-3.5 text-xs sm:text-sm font-semibold text-white transition cursor-pointer shadow-md shadow-amber-500/20"
         >
           <Crown className="h-4 w-4 fill-white" />
           <span>Unlock More Practice with Pro</span>
@@ -70,7 +70,7 @@ export default function ResultsActionButtons({
         <button
           type="button"
           onClick={onStartNewPractice}
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-primary hover:bg-primary/90 px-8 py-3.5 text-xs sm:text-sm font-black text-primary-foreground transition cursor-pointer shadow-xs"
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-primary hover:bg-primary/90 px-8 py-3.5 text-xs sm:text-sm font-semibold text-primary-foreground transition cursor-pointer shadow-xs"
         >
           <Sparkles className="h-4 w-4" />
           <span>New Practice Session</span>

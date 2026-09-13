@@ -68,7 +68,7 @@ export default function QuestionCountSelector({
     <div className="rounded-3xl border border-border/80 bg-card p-5 sm:p-7 shadow-xs">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-black text-primary-foreground">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">
             3
           </span>
           <h2 className="text-sm sm:text-base font-bold text-foreground">Number of Questions</h2>
@@ -102,11 +102,11 @@ export default function QuestionCountSelector({
               }`}
             >
               {isLocked && (
-                <span className="absolute -top-2 -right-1 inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-0.5 text-[9px] font-black text-white shadow-xs">
+                <span className="absolute -top-2 -right-1 inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-0.5 text-[9px] font-semibold text-white shadow-xs">
                   <Crown className="h-2.5 w-2.5" /> PRO
                 </span>
               )}
-              <span className="text-xs sm:text-sm font-black flex items-center gap-1">
+              <span className="text-xs sm:text-sm font-semibold flex items-center gap-1">
                 {item.label}
                 {isLocked && <Lock className="h-3 w-3 text-muted-foreground" />}
               </span>
@@ -125,7 +125,7 @@ export default function QuestionCountSelector({
               : 'border-border/80 bg-card text-muted-foreground hover:text-foreground'
           }`}
         >
-          <span className="text-xs sm:text-sm font-black">Custom</span>
+          <span className="text-xs sm:text-sm font-semibold">Custom</span>
           <span className="text-[10px] opacity-75 mt-0.5">
             {isPremium ? 'Up to 150' : 'Max 25'}
           </span>

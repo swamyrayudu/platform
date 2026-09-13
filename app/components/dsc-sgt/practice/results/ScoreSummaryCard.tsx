@@ -19,7 +19,7 @@ export default function ScoreSummaryCard({ results }: ScoreSummaryCardProps) {
         <Trophy className="h-8 w-8" />
       </div>
 
-      <h1 className="text-2xl sm:text-3xl font-black text-foreground">Practice Complete 🎉</h1>
+      <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">Practice Complete 🎉</h1>
       <p className="text-xs sm:text-sm text-muted-foreground mt-1">
         {results.subject} ({results.medium.toUpperCase()} Medium) • {results.mode.replace('_', ' ').toUpperCase()}
       </p>
@@ -27,7 +27,7 @@ export default function ScoreSummaryCard({ results }: ScoreSummaryCardProps) {
       {/* Score */}
       <div className="mt-6 flex flex-wrap items-center justify-center gap-6">
         <div className="flex flex-col items-center">
-          <span className="text-4xl sm:text-5xl font-black text-foreground">
+          <span className="text-4xl sm:text-5xl font-semibold text-foreground">
             {results.score} / {results.total_questions}
           </span>
           <span className="text-xs font-bold text-muted-foreground mt-1">
@@ -40,28 +40,28 @@ export default function ScoreSummaryCard({ results }: ScoreSummaryCardProps) {
       <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl mx-auto text-xs">
         <div className="rounded-2xl border border-border bg-emerald-500/5 p-3.5">
           <span className="text-muted-foreground block">Correct</span>
-          <span className="text-lg font-black text-emerald-600 dark:text-emerald-400 mt-0.5 block">
+          <span className="text-lg font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5 block">
             {results.correct_count}
           </span>
         </div>
 
         <div className="rounded-2xl border border-border bg-destructive/5 p-3.5">
           <span className="text-muted-foreground block">Incorrect</span>
-          <span className="text-lg font-black text-destructive mt-0.5 block">
+          <span className="text-lg font-semibold text-destructive mt-0.5 block">
             {results.incorrect_count}
           </span>
         </div>
 
         <div className="rounded-2xl border border-border bg-muted/40 p-3.5">
           <span className="text-muted-foreground block">Skipped</span>
-          <span className="text-lg font-black text-muted-foreground mt-0.5 block">
+          <span className="text-lg font-semibold text-muted-foreground mt-0.5 block">
             {results.skipped_count}
           </span>
         </div>
 
         <div className="rounded-2xl border border-border bg-primary/5 p-3.5">
           <span className="text-muted-foreground block">Avg Time / Q</span>
-          <span className="text-lg font-black text-primary mt-0.5 block">
+          <span className="text-lg font-semibold text-primary mt-0.5 block">
             {results.avg_time_per_question_seconds}s
           </span>
         </div>
