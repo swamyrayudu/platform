@@ -5,6 +5,7 @@
 // ============================================================================
 
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { buildQuestionUid } from '@/lib/questions/tables'
 import type {
   PracticeMedium,
   PracticeMode,
@@ -67,7 +68,12 @@ function normalizeClassLevel(rawClass?: string | null): string {
 // ----------------------------------------------------------------------------
 // Helper: Map raw database row to standardized PracticeQuestion
 // ----------------------------------------------------------------------------
-function mapRowToPracticeQuestion(row: any, medium: PracticeMedium = 'telugu'): PracticeQuestion {
+function mapRowToPracticeQuestion(
+  row: any,
+  medium: PracticeMedium = 'telugu',
+  /** Table this row came from — half of the question's global identity. */
+  sourceTable: string
+): PracticeQuestion {
   const rowLang = (row.language || '').toLowerCase()
   const derivedMedium: PracticeMedium =
     row.medium ||
@@ -76,6 +82,7 @@ function mapRowToPracticeQuestion(row: any, medium: PracticeMedium = 'telugu'): 
   return {
     id: row.id || row.question_id,
     question_id: row.question_id || row.id,
+    question_uid: buildQuestionUid(sourceTable, String(row.question_id || row.id)),
     medium: derivedMedium,
     subject: 'Educational Psychology + Perspectives in Education', // Standardized so UI card & filter counts sync perfectly
     class_level: normalizeClassLevel(row.class_level),
@@ -189,7 +196,7 @@ export async function fetchPedagogyQuestions(
     const { data, error } = await query
 
     if (!error && data && data.length > 0) {
-      return data.map((row) => mapRowToPracticeQuestion(row, medium))
+      return data.map((row) => mapRowToPracticeQuestion(row, medium, primaryTable))
     }
 
     // If English requested and pedagogy_english_medium had no rows, try legacy pedagogy_subject_questions
@@ -200,7 +207,7 @@ export async function fetchPedagogyQuestions(
         .limit(2000)
 
       if (!legacyErr && legacyData && legacyData.length > 0) {
-        return legacyData.map((row) => mapRowToPracticeQuestion(row, medium))
+        return legacyData.map((row) => mapRowToPracticeQuestion(row, medium, 'pedagogy_subject_questions'))
       }
     }
 
@@ -238,7 +245,7 @@ async function fallbackToUnifiedPedagogyQuestions(
     const { data, error } = await query
     if (error || !data) return []
 
-    return data.map((row) => mapRowToPracticeQuestion(row, medium))
+    return data.map((row) => mapRowToPracticeQuestion(row, medium, 'dsc_practice_questions'))
   } catch (err) {
     return []
   }

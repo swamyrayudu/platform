@@ -7,6 +7,7 @@
 // ============================================================================
 
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { buildQuestionUid } from '@/lib/questions/tables'
 import type {
   PracticeMedium,
   PracticeMode,
@@ -70,10 +71,16 @@ function normalizeClassLevel(rawClass?: string | null): string {
 // ----------------------------------------------------------------------------
 // Helper: Map raw database row to standardized PracticeQuestion
 // ----------------------------------------------------------------------------
-function mapRowToPracticeQuestion(row: any, medium: PracticeMedium): PracticeQuestion {
+function mapRowToPracticeQuestion(
+  row: any,
+  medium: PracticeMedium,
+  /** Table this row came from — half of the question's global identity. */
+  sourceTable: string
+): PracticeQuestion {
   return {
     id: row.id || row.question_id,
     question_id: row.question_id || row.id,
+    question_uid: buildQuestionUid(sourceTable, String(row.question_id || row.id)),
     medium,
     subject: 'GK & Current Affairs', // Standardized subject name for UI & practice engine
     class_level: normalizeClassLevel(row.class_level),
@@ -166,7 +173,7 @@ export async function fetchEnglishMediumGKQuestions(
       return fallbackToUnifiedGKQuestions('english', filter)
     }
 
-    return data.map((row) => mapRowToPracticeQuestion(row, 'english'))
+    return data.map((row) => mapRowToPracticeQuestion(row, 'english', 'gk_english_medium'))
   } catch (err) {
     console.error('[English GK Fetch Algorithm] Execution error:', err)
     return fallbackToUnifiedGKQuestions('english', filter)
@@ -243,7 +250,7 @@ export async function fetchTeluguMediumGKQuestions(
       return fallbackToUnifiedGKQuestions('telugu', filter)
     }
 
-    return data.map((row) => mapRowToPracticeQuestion(row, 'telugu'))
+    return data.map((row) => mapRowToPracticeQuestion(row, 'telugu', 'gk_telugu_medium'))
   } catch (err) {
     console.error('[Telugu GK Fetch Algorithm] Execution error:', err)
     return fallbackToUnifiedGKQuestions('telugu', filter)
@@ -294,7 +301,7 @@ async function fallbackToUnifiedGKQuestions(
       return []
     }
 
-    return data.map((row) => mapRowToPracticeQuestion(row, medium))
+    return data.map((row) => mapRowToPracticeQuestion(row, medium, 'dsc_practice_questions'))
   } catch (err) {
     return []
   }

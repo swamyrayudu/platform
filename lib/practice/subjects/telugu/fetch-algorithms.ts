@@ -5,6 +5,7 @@
 // ============================================================================
 
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { buildQuestionUid } from '@/lib/questions/tables'
 import type {
   PracticeMedium,
   PracticeMode,
@@ -47,10 +48,16 @@ export interface TeluguExamBlueprint {
 // ----------------------------------------------------------------------------
 // Helper: Map raw database row to standardized PracticeQuestion
 // ----------------------------------------------------------------------------
-function mapRowToPracticeQuestion(row: any, medium: PracticeMedium): PracticeQuestion {
+function mapRowToPracticeQuestion(
+  row: any,
+  medium: PracticeMedium,
+  /** Table this row came from — half of the question's global identity. */
+  sourceTable: string
+): PracticeQuestion {
   return {
     id: row.id || row.question_id,
     question_id: row.question_id || row.id,
+    question_uid: buildQuestionUid(sourceTable, String(row.question_id || row.id)),
     medium,
     subject: row.subject || 'Telugu',
     class_level: row.class_level || 'Class 8',
@@ -144,7 +151,7 @@ export async function fetchTeluguQuestions(
       return fallbackToUnifiedTeluguQuestions(medium, filter)
     }
 
-    return data.map((row) => mapRowToPracticeQuestion(row, medium))
+    return data.map((row) => mapRowToPracticeQuestion(row, medium, 'telugu_subject_questions'))
   } catch (err) {
     console.error('[Telugu Fetch Algorithm] Execution error:', err)
     return fallbackToUnifiedTeluguQuestions(medium, filter)
@@ -178,7 +185,7 @@ async function fallbackToUnifiedTeluguQuestions(
     const { data, error } = await query
     if (error || !data) return []
 
-    return data.map((row) => mapRowToPracticeQuestion(row, medium))
+    return data.map((row) => mapRowToPracticeQuestion(row, medium, 'dsc_practice_questions'))
   } catch (err) {
     return []
   }

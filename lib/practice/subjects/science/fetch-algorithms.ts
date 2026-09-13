@@ -5,6 +5,7 @@
 // ============================================================================
 
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { buildQuestionUid } from '@/lib/questions/tables'
 import type {
   PracticeMedium,
   PracticeMode,
@@ -46,10 +47,16 @@ export interface ScienceExamBlueprint {
 // ----------------------------------------------------------------------------
 // Helper: Map raw database row to standardized PracticeQuestion
 // ----------------------------------------------------------------------------
-function mapRowToPracticeQuestion(row: any, medium: PracticeMedium): PracticeQuestion {
+function mapRowToPracticeQuestion(
+  row: any,
+  medium: PracticeMedium,
+  /** Table this row came from — half of the question's global identity. */
+  sourceTable: string
+): PracticeQuestion {
   return {
     id: row.id || row.question_id,
     question_id: row.question_id || row.id,
+    question_uid: buildQuestionUid(sourceTable, String(row.question_id || row.id)),
     medium,
     subject: 'Science',
     class_level: row.class_level || 'Class 8',
@@ -143,7 +150,7 @@ export async function fetchTeluguMediumScienceQuestions(
       return fallbackToUnifiedScienceQuestions('telugu', filter)
     }
 
-    return data.map((row) => mapRowToPracticeQuestion(row, 'telugu'))
+    return data.map((row) => mapRowToPracticeQuestion(row, 'telugu', 'telugu_medium_science'))
   } catch (err) {
     console.error('[Telugu Science Fetch Algorithm] Execution error:', err)
     return fallbackToUnifiedScienceQuestions('telugu', filter)
@@ -191,7 +198,7 @@ export async function fetchEnglishMediumScienceQuestions(
       return fallbackToUnifiedScienceQuestions('english', filter)
     }
 
-    return data.map((row) => mapRowToPracticeQuestion(row, 'english'))
+    return data.map((row) => mapRowToPracticeQuestion(row, 'english', 'english_medium_science'))
   } catch (err) {
     return fallbackToUnifiedScienceQuestions('english', filter)
   }
@@ -240,7 +247,7 @@ async function fallbackToUnifiedScienceQuestions(
     const { data, error } = await query
     if (error || !data) return []
 
-    return data.map((row) => mapRowToPracticeQuestion(row, medium))
+    return data.map((row) => mapRowToPracticeQuestion(row, medium, 'dsc_practice_questions'))
   } catch (err) {
     return []
   }

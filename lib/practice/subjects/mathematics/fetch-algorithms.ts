@@ -5,6 +5,7 @@
 // ============================================================================
 
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { buildQuestionUid } from '@/lib/questions/tables'
 import type {
   PracticeMedium,
   PracticeMode,
@@ -48,10 +49,16 @@ export interface MathExamBlueprint {
 // ----------------------------------------------------------------------------
 // Helper: Map raw database row to standardized PracticeQuestion
 // ----------------------------------------------------------------------------
-function mapRowToPracticeQuestion(row: any, medium: PracticeMedium): PracticeQuestion {
+function mapRowToPracticeQuestion(
+  row: any,
+  medium: PracticeMedium,
+  /** Table this row came from — half of the question's global identity. */
+  sourceTable: string
+): PracticeQuestion {
   return {
     id: row.id || row.question_id,
     question_id: row.question_id || row.id,
+    question_uid: buildQuestionUid(sourceTable, String(row.question_id || row.id)),
     medium,
     subject: 'Mathematics',
     class_level: row.class_level || 'Class 8',
@@ -145,7 +152,7 @@ export async function fetchTeluguMediumMathQuestions(
       return fallbackToUnifiedMathQuestions('telugu', filter)
     }
 
-    return data.map((row) => mapRowToPracticeQuestion(row, 'telugu'))
+    return data.map((row) => mapRowToPracticeQuestion(row, 'telugu', 'telugu_medium_math'))
   } catch (err) {
     console.error('[Telugu Math Fetch Algorithm] Execution error:', err)
     return fallbackToUnifiedMathQuestions('telugu', filter)
@@ -191,7 +198,7 @@ export async function fetchEnglishMediumMathQuestions(
 
     const { data, error } = await query
     if (!error && data && data.length > 0) {
-      return data.map((row) => mapRowToPracticeQuestion(row, 'english'))
+      return data.map((row) => mapRowToPracticeQuestion(row, 'english', 'math_english_medium'))
     }
 
     // 2. Fallback to mathematics_subject_questions
@@ -201,7 +208,7 @@ export async function fetchEnglishMediumMathQuestions(
       .order('created_at', { ascending: false })
 
     if (!legacyErr && legacyData && legacyData.length > 0) {
-      return legacyData.map((row) => mapRowToPracticeQuestion(row, 'english'))
+      return legacyData.map((row) => mapRowToPracticeQuestion(row, 'english', 'mathematics_subject_questions'))
     }
 
     return fallbackToUnifiedMathQuestions('english', filter)
@@ -253,7 +260,7 @@ async function fallbackToUnifiedMathQuestions(
     const { data, error } = await query
     if (error || !data) return []
 
-    return data.map((row) => mapRowToPracticeQuestion(row, medium))
+    return data.map((row) => mapRowToPracticeQuestion(row, medium, 'dsc_practice_questions'))
   } catch (err) {
     return []
   }

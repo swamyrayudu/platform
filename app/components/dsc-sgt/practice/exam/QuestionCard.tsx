@@ -6,6 +6,7 @@
 
 import React from 'react'
 import { Flag } from 'lucide-react'
+import QuestionFeedbackButton from '@/app/components/dsc-sgt/QuestionFeedbackButton'
 import type { PracticeQuestion } from '@/types/practice'
 
 interface QuestionCardProps {
@@ -35,19 +36,32 @@ export default function QuestionCard({
           </span>
         </div>
 
-        {/* Mark for review button */}
-        <button
-          type="button"
-          onClick={onToggleMarkForReview}
-          className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition cursor-pointer ${
-            isMarked
-              ? 'border-amber-500/50 bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold'
-              : 'border-border text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <Flag className={`h-3 w-3 ${isMarked ? 'fill-amber-500' : ''}`} />
-          <span>{isMarked ? 'Marked' : 'Mark'}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Report a problem with this question. Only shown once the question
+              carries its global identity — sessions cached before that was
+              plumbed through have no uid to report against. */}
+          {currentQ.question_uid && (
+            <QuestionFeedbackButton
+              questionUid={currentQ.question_uid}
+              source="practice_exam"
+              questionText={currentQ.question}
+            />
+          )}
+
+          {/* Mark for review button */}
+          <button
+            type="button"
+            onClick={onToggleMarkForReview}
+            className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition cursor-pointer ${
+              isMarked
+                ? 'border-amber-500/50 bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold'
+                : 'border-border text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Flag className={`h-3 w-3 ${isMarked ? 'fill-amber-500' : ''}`} />
+            <span>{isMarked ? 'Marked' : 'Mark'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Question Text */}

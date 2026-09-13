@@ -5,6 +5,7 @@
 // ============================================================================
 
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { buildQuestionUid } from '@/lib/questions/tables'
 import type { PracticeMedium, PracticeMode, PracticeQuestion, PracticeFilterState } from '@/types/practice'
 import {
   calculateQuestionScore,
@@ -41,10 +42,16 @@ export interface MediumExamBlueprint {
 // ----------------------------------------------------------------------------
 // Helper: Map raw database row to standardized PracticeQuestion
 // ----------------------------------------------------------------------------
-function mapRowToPracticeQuestion(row: any, medium: PracticeMedium): PracticeQuestion {
+function mapRowToPracticeQuestion(
+  row: any,
+  medium: PracticeMedium,
+  /** Table this row came from — half of the question's global identity. */
+  sourceTable: string
+): PracticeQuestion {
   return {
     id: row.id || row.question_id,
     question_id: row.question_id || row.id,
+    question_uid: buildQuestionUid(sourceTable, String(row.question_id || row.id)),
     medium,
     subject: row.subject || 'Social Studies',
     class_level: row.class_level || 'Class 8',
@@ -129,7 +136,7 @@ export async function fetchTeluguMediumQuestions(
       return []
     }
 
-    return (data || []).map((row) => mapRowToPracticeQuestion(row, 'telugu'))
+    return (data || []).map((row) => mapRowToPracticeQuestion(row, 'telugu', 'socal_telugu_medimum'))
   } catch (err) {
     console.error('[Algorithm: Telugu Fetcher] Execution failure:', err)
     return []
@@ -196,7 +203,7 @@ export async function fetchEnglishMediumQuestions(
       return []
     }
 
-    return (data || []).map((row) => mapRowToPracticeQuestion(row, 'english'))
+    return (data || []).map((row) => mapRowToPracticeQuestion(row, 'english', 'socal_english_medium'))
   } catch (err) {
     console.error('[Algorithm: English Fetcher] Execution failure:', err)
     return []
@@ -225,7 +232,7 @@ export async function fetchQuestionsByMedium(
         .select('*')
         .ilike('language', 'telugu')
       if (data && data.length > 0) {
-        return data.map((r) => mapRowToPracticeQuestion(r, 'telugu'))
+        return data.map((r) => mapRowToPracticeQuestion(r, 'telugu', 'social_subject_questions'))
       }
     } catch (err) {}
     return []
@@ -242,7 +249,7 @@ export async function fetchQuestionsByMedium(
       .select('*')
       .or('language.eq.english,language.is.null')
     if (data && data.length > 0) {
-      return data.map((r) => mapRowToPracticeQuestion(r, 'english'))
+      return data.map((r) => mapRowToPracticeQuestion(r, 'english', 'social_subject_questions'))
     }
   } catch (err) {}
   return []

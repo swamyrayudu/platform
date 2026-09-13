@@ -3,6 +3,7 @@
 // ============================================================
 
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { buildQuestionUid } from '@/lib/questions/tables'
 import type { PracticeMedium, PracticeQuestion } from '@/types/practice'
 import type { SubjectMetadata, SubjectProvider } from '../types'
 
@@ -38,6 +39,10 @@ export class EnglishSubjectProvider implements SubjectProvider {
           const baseQ: PracticeQuestion = {
             id: row.id || row.question_id,
             question_id: row.question_id || row.id,
+            question_uid: buildQuestionUid(
+              this.metadata.tableName,
+              String(row.question_id || row.id)
+            ),
             medium: 'english',
             subject: 'English',
             class_level: row.class_level || 'Class 8',

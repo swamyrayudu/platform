@@ -41,7 +41,13 @@ export default function Home() {
     limited: false,
   })
   const gsiButtonRef = useRef<HTMLDivElement>(null)
+  const navGsiButtonRef = useRef<HTMLDivElement>(null)
+  const navGsiCompactRef = useRef<HTMLDivElement>(null)
   const gsiLoaded = useRef(false)
+
+  // Inlined at build time, so the header can decide up front whether to show
+  // a Google button or fall back to a plain link.
+  const googleEnabled = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID)
 
   // Redirect if already logged in
   useEffect(() => {
@@ -52,6 +58,8 @@ export default function Home() {
 
   // Handle Google Identity Services (GSI) credential
   const handleCredentialResponse = async (response: { credential: string }) => {
+    // Dismiss the One Tap card so it does not hang around over the redirect.
+    window.google?.accounts?.id?.cancel()
     setIsSigningIn(true)
     setError(null)
     setRateLimit({ limited: false })
@@ -130,12 +138,15 @@ export default function Home() {
       return
     }
 
-    const script = document.createElement('script')
-    script.src = 'https://accounts.google.com/gsi/client'
-    script.async = true
-    script.defer = true
-    script.onload = async () => {
-      gsiLoaded.current = true
+    // Claim the slot synchronously. StrictMode double-invokes effects and Fast
+    // Refresh re-runs them, and a second initialize() discards the first —
+    // which silently breaks the One Tap prompt.
+    gsiLoaded.current = true
+
+    let cancelled = false
+
+    const setup = async () => {
+      if (cancelled) return
 
       // Fetch a single-use nonce and hand it to Google. It is embedded in the
       // returned ID token, and /api/auth/google requires it to match the
@@ -155,28 +166,91 @@ export default function Home() {
         callback: handleCredentialResponse,
         auto_select: false,
         cancel_on_tap_outside: true,
+        // One Tap runs on FedCM in current Chrome; without this the prompt is
+        // simply never shown.
+        use_fedcm_for_prompt: true,
         ...(nonce ? { nonce } : {}),
       })
+
+      // Google's own button is the only compliant way to offer Google sign-in,
+      // so we render it in three places and let CSS pick the right one.
+      // `shape: 'pill'` is the closest official option to our button language.
+      const base = { theme: 'outline', size: 'large', logo_alignment: 'left' } as const
 
       if (gsiButtonRef.current) {
         const btnWidth = Math.max(280, Math.min(gsiButtonRef.current.offsetWidth || 340, 380))
         window.google.accounts.id.renderButton(gsiButtonRef.current, {
-          theme: 'outline',
-          size: 'large',
+          ...base,
           type: 'standard',
-          shape: 'rectangular',
+          shape: 'pill',
           text: 'continue_with',
-          logo_alignment: 'left',
           width: btnWidth,
         })
       }
+
+      // Header, wide: "Sign in with Google" reads shorter than "Continue with".
+      if (navGsiButtonRef.current) {
+        window.google.accounts.id.renderButton(navGsiButtonRef.current, {
+          ...base,
+          type: 'standard',
+          shape: 'pill',
+          text: 'signin_with',
+          width: 200,
+        })
+      }
+
+      // Header, narrow: a compact "Sign in" so the bar stays uncluttered.
+      // Not `type: 'icon'` — that variant ships its logo as an <svg> with no
+      // width/height, which collapses to 0x0 under Tailwind's preflight.
+      if (navGsiCompactRef.current) {
+        window.google.accounts.id.renderButton(navGsiCompactRef.current, {
+          ...base,
+          type: 'standard',
+          shape: 'pill',
+          text: 'signin',
+          width: 110,
+        })
+      }
+
+      // One Tap (the automatic "continue as <name>" card) is opt-in via
+      // NEXT_PUBLIC_GOOGLE_ONE_TAP, and off by default.
+      //
+      // It runs on FedCM, which needs three things lined up: a Google session
+      // in the browser, third-party sign-in allowed for the site, and this
+      // exact origin listed under the OAuth client's Authorized JavaScript
+      // origins. When any is missing, Google's library logs
+      // "FedCM get() rejects with NetworkError" — an error we cannot catch,
+      // because it is thrown inside their code, and which trips the Next dev
+      // overlay on every load.
+      //
+      // The rendered buttons below already show an account picker when
+      // clicked, so the sign-in flow loses nothing by leaving this off until
+      // the OAuth client is configured for the origin being served.
+      if (process.env.NEXT_PUBLIC_GOOGLE_ONE_TAP === 'true') {
+        window.google.accounts.id.prompt()
+      }
     }
+
+    // Already loaded (a remount, or Fast Refresh) — reuse it rather than
+    // fetching the library a second time.
+    if (window.google?.accounts?.id) {
+      void setup()
+      return () => {
+        cancelled = true
+      }
+    }
+
+    const script = document.createElement('script')
+    script.src = 'https://accounts.google.com/gsi/client'
+    script.async = true
+    script.defer = true
+    script.onload = () => void setup()
     document.head.appendChild(script)
 
+    // The tag is left in place deliberately: removing it does not unload the
+    // library, and tearing it down mid-flight breaks an in-progress sign-in.
     return () => {
-      if (document.head.contains(script)) {
-        document.head.removeChild(script)
-      }
+      cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, user])
@@ -187,35 +261,58 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-200">
-      
-      {/* 1. Sticky Navigation Header */}
-      <LandingHeader />
+    // Warm cream canvas; the page itself floats on it as a white shell,
+    // exactly the way the reference design is framed.
+    <div className="min-h-screen bg-background px-0 py-0 text-foreground transition-colors duration-200 sm:px-5 sm:py-5 lg:px-8 lg:py-7">
+      <div className="bloom-shell mx-auto max-w-[84rem] overflow-hidden">
 
-      {/* 2. Main Page Layout */}
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        
-        {/* Hero & Auth Card Section */}
-        <div className="grid items-start gap-12 lg:grid-cols-12">
-          {/* Left Column: Hero, Laptop Mockup, Features, Stats */}
+        {/* 1. Sticky Navigation Header — signs in with Google directly */}
+        <LandingHeader
+          googleEnabled={googleEnabled}
+          gsiButtonRef={navGsiButtonRef}
+          gsiCompactRef={navGsiCompactRef}
+        />
+
+        {/* 2. Main Page Layout */}
+        <main className="px-4 pb-8 sm:px-8 lg:px-12">
+
+          {/* Hero, intro, bento, use cases */}
           <HeroContent />
 
-          {/* Right Column: Google Sign-in Card */}
-          <AuthCard
-            error={error}
-            rateLimit={rateLimit}
-            isSigningIn={isSigningIn}
-            gsiButtonRef={gsiButtonRef}
-          />
-        </div>
+          {/* 3. Sign-in — copy on the left, the auth card on the right */}
+          <section
+            id="sign-in"
+            className="mt-14 grid scroll-mt-24 items-start gap-8 lg:mt-20 lg:grid-cols-2 lg:gap-16"
+          >
+            <div>
+              <p className="bloom-eyebrow">Join rsdeducation</p>
+              <h2 className="mt-2 text-3xl font-medium leading-tight text-foreground sm:text-[2.5rem]">
+                Start where you
+                <br />
+                left off
+              </h2>
+              <p className="mt-4 max-w-sm text-[13px] leading-relaxed text-muted-foreground">
+                Sign in with Google and your practice history, mock test scores
+                and topic map follow you to every device you study on.
+              </p>
+            </div>
 
-        {/* 3. Bottom 4-Column Feature Highlights */}
-        <FeatureHighlights />
+            <AuthCard
+              error={error}
+              rateLimit={rateLimit}
+              isSigningIn={isSigningIn}
+              gsiButtonRef={gsiButtonRef}
+            />
+          </section>
 
-        {/* 4. Footer */}
-        <LandingFooter />
+          {/* 4. Closing value-prop band */}
+          <FeatureHighlights />
 
-      </main>
+          {/* 5. Footer */}
+          <LandingFooter />
+
+        </main>
+      </div>
     </div>
   )
 }

@@ -34,8 +34,8 @@ export const SUBJECT_LIST: SubjectConfig[] = [
     name: 'English',
     teluguName: 'ఇంగ్లీష్ (భాష II)',
     icon: Languages,
-    color: 'text-blue-600 dark:text-blue-400',
-    bg: 'bg-blue-500/10 border-blue-500/30',
+    color: 'text-subject-5',
+    bg: 'bg-subject-5/10 border-subject-5/30',
     tag: 'Grammar & Pedagogy',
   },
   {
@@ -43,8 +43,8 @@ export const SUBJECT_LIST: SubjectConfig[] = [
     name: 'Telugu',
     teluguName: 'తెలుగు (భాష I)',
     icon: BookOpen,
-    color: 'text-amber-600 dark:text-amber-400',
-    bg: 'bg-amber-500/10 border-amber-500/30',
+    color: 'text-subject-4',
+    bg: 'bg-subject-4/10 border-subject-4/30',
     tag: 'వ్యాకరణం & సాహిత్యం',
   },
   {
@@ -52,8 +52,8 @@ export const SUBJECT_LIST: SubjectConfig[] = [
     name: 'Mathematics',
     teluguName: 'గణితం',
     icon: Calculator,
-    color: 'text-emerald-600 dark:text-emerald-400',
-    bg: 'bg-emerald-500/10 border-emerald-500/30',
+    color: 'text-subject-2',
+    bg: 'bg-subject-2/10 border-subject-2/30',
     tag: 'Arithmetic & Geometry',
   },
   {
@@ -61,8 +61,8 @@ export const SUBJECT_LIST: SubjectConfig[] = [
     name: 'Science',
     teluguName: 'సాధారణ సైన్స్',
     icon: FlaskConical,
-    color: 'text-cyan-600 dark:text-cyan-400',
-    bg: 'bg-cyan-500/10 border-cyan-500/30',
+    color: 'text-subject-7',
+    bg: 'bg-subject-7/10 border-subject-7/30',
     tag: 'Biology & Physics',
   },
   {
@@ -70,8 +70,8 @@ export const SUBJECT_LIST: SubjectConfig[] = [
     name: 'Social Studies',
     teluguName: 'సాంఘిక శాస్త్రం',
     icon: Globe,
-    color: 'text-rose-600 dark:text-rose-400',
-    bg: 'bg-rose-500/10 border-rose-500/30',
+    color: 'text-subject-8',
+    bg: 'bg-subject-8/10 border-subject-8/30',
     tag: 'Geography & Polity',
   },
   {
@@ -79,8 +79,8 @@ export const SUBJECT_LIST: SubjectConfig[] = [
     name: 'Educational Psychology + Perspectives in Education',
     teluguName: 'విద్యా మనోవిజ్ఞాన శాస్త్రం & విద్యా దృక్పథాలు',
     icon: Brain,
-    color: 'text-purple-600 dark:text-purple-400',
-    bg: 'bg-purple-500/10 border-purple-500/30',
+    color: 'text-subject-3',
+    bg: 'bg-subject-3/10 border-subject-3/30',
     tag: 'Psychology & Perspectives',
   },
   {
@@ -88,8 +88,8 @@ export const SUBJECT_LIST: SubjectConfig[] = [
     name: 'GK & Current Affairs',
     teluguName: 'సాధారణ జ్ఞానం & వర్తమాన వ్యవహారాలు',
     icon: Newspaper,
-    color: 'text-indigo-600 dark:text-indigo-400',
-    bg: 'bg-indigo-500/10 border-indigo-500/30',
+    color: 'text-subject-6',
+    bg: 'bg-subject-6/10 border-subject-6/30',
     tag: 'Current Affairs & Static GK',
   },
 ]
@@ -178,8 +178,8 @@ export default function SubjectSelector({
 
       {/* Notice when current selected subject has 0 questions */}
       {totalAvailable === 0 && (
-        <div className="mt-4 flex items-start gap-2.5 rounded-2xl border border-blue-500/30 bg-blue-500/10 p-3.5 text-xs text-blue-900 dark:text-blue-200 animate-in fade-in-50">
-          <HelpCircle className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+        <div className="mt-4 flex items-start gap-2.5 rounded-2xl border border-primary/30 bg-secondary p-3.5 text-xs text-primary animate-in fade-in-50">
+          <HelpCircle className="h-4 w-4 text-primary shrink-0 mt-0.5" />
           <div>
             <p className="font-bold">No questions available currently for {selectedSubject}</p>
             <p className="mt-0.5 text-[11px] text-muted-foreground leading-relaxed">

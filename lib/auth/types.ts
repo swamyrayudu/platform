@@ -144,6 +144,8 @@ export interface PublicUser {
   role: UserRole
   onboardingCompleted: boolean
   educationMedium?: EducationMedium | null
+  /** Study goals picked at onboarding and editable from the profile page. */
+  learningGoals: LearningGoal[]
 }
 
 export interface PublicSession {
@@ -188,6 +190,7 @@ export function toPublicUser(user: DbUser): PublicUser {
     role: user.role,
     onboardingCompleted: user.onboarding_completed,
     educationMedium: user.education_medium ?? null,
+    learningGoals: user.learning_goals ?? [],
   }
 }
 

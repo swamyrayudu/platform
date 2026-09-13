@@ -17,6 +17,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import QuestionFeedbackButton from '@/app/components/dsc-sgt/QuestionFeedbackButton'
 import type { ClientSafeMockQuestion, SelectedOption } from '@/types/mock-tests'
 
 // ── Constants ─────────────────────────────────────────────────────
@@ -231,7 +232,7 @@ function QuestionGrid({
                 const isVisited = visited.has(q.question_number)
 
                 let cls = 'bg-muted/60 border border-border text-muted-foreground'
-                if (isCurrent) cls = 'bg-primary text-white shadow-md scale-110'
+                if (isCurrent) cls = 'bg-primary text-primary-foreground shadow-md scale-110'
                 else if (isMarked && hasAnswer) cls = 'bg-amber-500 text-white'
                 else if (isMarked) cls = 'bg-amber-500/70 text-white'
                 else if (hasAnswer) cls = 'bg-emerald-600 text-white'
@@ -669,7 +670,7 @@ function MockExamContent() {
               తెలుగు మాధ్యమం
             </span>
           ) : (
-            <span className="hidden sm:inline-flex items-center rounded-md border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[9px] font-bold text-sky-700 dark:text-sky-300 shrink-0">
+            <span className="hidden sm:inline-flex items-center rounded-md border border-primary/30 bg-secondary px-2 py-0.5 text-[9px] font-bold text-primary shrink-0">
               English Medium
             </span>
           )}
@@ -744,15 +745,25 @@ function MockExamContent() {
                 <span className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
                   currentQ.difficulty.toLowerCase() === 'easy' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' :
                   currentQ.difficulty.toLowerCase() === 'hard' ? 'bg-red-500/10 text-red-500' :
-                  'bg-blue-500/10 text-blue-500'
+                  'bg-secondary text-primary'
                 }`}>
                   {currentQ.difficulty}
                 </span>
               )}
             </div>
-            <span className="text-[10px] text-muted-foreground font-medium">
-              {currentQ.marks} mark{currentQ.marks !== 1 ? 's' : ''}
-            </span>
+            <div className="flex items-center gap-2.5">
+              <span className="text-[10px] text-muted-foreground font-medium">
+                {currentQ.marks} mark{currentQ.marks !== 1 ? 's' : ''}
+              </span>
+
+              {/* Report a problem with this question */}
+              <QuestionFeedbackButton
+                questionUid={currentQ.question_uid}
+                source="mock_exam"
+                mockTestId={testId}
+                questionText={currentQ.question}
+              />
+            </div>
           </div>
 
           {/* Question text */}
@@ -780,7 +791,7 @@ function MockExamContent() {
                   }`}
                 >
                   <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[11px] font-black transition ${
-                    isSelected ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'
+                    isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
                   }`}>
                     {key}
                   </span>

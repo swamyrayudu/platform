@@ -18,6 +18,15 @@ export type DifficultyLevel = 'Easy' | 'Medium' | 'Hard'
 export interface PracticeQuestion {
   id: string
   question_id: string
+  /**
+   * `question_table:question_id` — the globally unique identity, matching what
+   * the mock bank uses. question_id alone is NOT unique across the bank
+   * (pedagogy_subject_questions and telugu_medium_math share Q000001..Q005000),
+   * so anything addressing a question across subjects keys on this.
+   *
+   * Optional because older cached sessions predate it.
+   */
+  question_uid?: string
   medium: PracticeMedium
   subject: string
   class_level: string

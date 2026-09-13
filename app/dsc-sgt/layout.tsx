@@ -7,6 +7,7 @@ import { LoadingScreen } from '@/components/ui/loading-screen'
 import { PremiumProvider } from '@/app/components/dsc-sgt/PremiumContext'
 import DscHeader from '@/app/components/dsc-sgt/DscHeader'
 import PremiumModal from '@/app/components/dsc-sgt/PremiumModal'
+import { setActiveExam } from '@/lib/active-exam'
 
 export default function DscLayout({
   children,
@@ -19,9 +20,16 @@ export default function DscLayout({
   useEffect(() => {
     if (!loading && !user) {
       router.replace('/')
+      return
     }
     if (!loading && user && !user.onboardingCompleted) {
       router.replace('/onboarding')
+      return
+    }
+    // Re-assert the lock on every entry, so a direct link or a page refresh
+    // keeps the candidate inside this hub rather than dropping the lock.
+    if (!loading && user) {
+      setActiveExam(user.id, 'dsc-sgt')
     }
   }, [user, loading, router])
 

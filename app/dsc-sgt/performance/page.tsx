@@ -61,8 +61,8 @@ const STATUS_STYLE: Record<string, { bar: string; badge: string }> = {
   },
   Good: { bar: 'bg-primary', badge: 'border-primary/30 bg-primary/10 text-primary' },
   Moderate: {
-    bar: 'bg-cyan-500',
-    badge: 'border-cyan-500/30 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400',
+    bar: 'bg-primary',
+    badge: 'border-primary/30 bg-secondary text-primary',
   },
   'Needs Practice': {
     bar: 'bg-amber-500',
@@ -235,7 +235,7 @@ export default function PerformancePage() {
         <div className="rounded-3xl border border-border/80 bg-card p-5 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground font-medium">Questions Attempted</span>
-            <CheckCircle2 className="h-4 w-4 text-purple-500" />
+            <CheckCircle2 className="h-4 w-4 text-primary" />
           </div>
           <p className="mt-3 text-2xl sm:text-3xl font-black text-foreground">
             {data.questions_attempted.toLocaleString()}

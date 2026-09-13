@@ -22,6 +22,71 @@ import type { ExamMedium } from './question-bank'
 export const MODULE_PAGE_SIZE_DEFAULT = 20
 export const MODULE_PAGE_SIZE_MAX = 100
 
+/**
+ * Series gate: modules open one at a time. Module 1 is open to everyone, and
+ * submitting module N opens module N+1.
+ *
+ * Expressed as "up to the highest submitted module, plus one" rather than
+ * "is my predecessor submitted" so the ladder cannot strand a candidate. If
+ * a gap ever appears in their history — data repair, a module unpublished,
+ * or progress made before this rule existed — they keep everything they had
+ * reached instead of being sent back to module 1.
+ *
+ * Legacy one-off papers carry no module_number and are never gated.
+ */
+export function isModuleSequenceLocked(
+  moduleNumber: number | null,
+  highestCompletedModule: number
+): boolean {
+  if (moduleNumber == null) return false
+  return moduleNumber > highestCompletedModule + 1
+}
+
+/**
+ * Highest module_number this candidate has submitted; 0 if none.
+ *
+ * Deliberately not scoped to a medium. Module 05 is the same paper in Telugu
+ * and in English, so clearing it in one medium should not make the candidate
+ * climb the ladder again in the other.
+ */
+export async function getHighestCompletedModule(userId: string): Promise<number> {
+  let completedIds: string[] = []
+
+  const { data, error } = await supabaseAdmin
+    .from('user_mock_test_progress')
+    .select('mock_test_id')
+    .eq('user_id', userId)
+    .eq('status', 'completed')
+
+  if (!error) {
+    completedIds = (data ?? []).map((r) => r.mock_test_id as string)
+  } else {
+    // Same fallback the listing uses: the progress table arrives with
+    // migration 019, so until then derive it from submitted attempts.
+    console.warn('[MockModules] progress table unavailable for gate:', error.message)
+    const { data: attempts } = await supabaseAdmin
+      .from('mock_test_attempts')
+      .select('mock_test_id')
+      .eq('user_id', userId)
+      .eq('status', 'submitted')
+    completedIds = [...new Set((attempts ?? []).map((r) => r.mock_test_id as string))]
+  }
+
+  if (completedIds.length === 0) return 0
+
+  // Resolved with a second query rather than an embedded join so this does
+  // not depend on PostgREST relationship naming.
+  const { data: rows } = await supabaseAdmin
+    .from('mock_tests')
+    .select('module_number')
+    .in('id', completedIds)
+    .not('module_number', 'is', null)
+    .order('module_number', { ascending: false })
+    .limit(1)
+
+  return (rows?.[0]?.module_number as number | undefined) ?? 0
+}
+
 const MODULE_LIST_COLUMNS =
   'id, slug, title, description, category, medium, duration_minutes, total_questions, ' +
   'total_marks, is_free, status, published_at, module_number, series, version'
@@ -90,10 +155,11 @@ export async function listMockTestModules(
       total: 0,
       total_pages: 0,
       medium_counts: { english: 0, telugu: 0 },
+      highest_completed_module: 0,
     }
   }
 
-  const [mediumCounts, progressByTestId] = await Promise.all([
+  const [mediumCounts, progressByTestId, highestCompleted] = await Promise.all([
     countPublishedByMedium(series, category),
     userId
       ? loadUserProgressForTests(
@@ -101,6 +167,8 @@ export async function listMockTestModules(
           (tests as unknown as MockTestListItem[]).map((t) => t.id)
         )
       : Promise.resolve(new Map<string, UserModuleProgress>()),
+    // Signed-out visitors see the gate as it applies to a brand-new candidate.
+    userId ? getHighestCompletedModule(userId) : Promise.resolve(0),
   ])
 
   const items: MockTestListItem[] = (tests as unknown as MockTestListItem[]).map((t) => {
@@ -108,6 +176,7 @@ export async function listMockTestModules(
     return {
       ...t,
       progress_status: progress?.status ?? 'not_started',
+      is_sequence_locked: isModuleSequenceLocked(t.module_number, highestCompleted),
       user_attempt: progress?.attempt_id
         ? {
             attempt_id: progress.attempt_id,
@@ -130,6 +199,7 @@ export async function listMockTestModules(
     total,
     total_pages: Math.max(1, Math.ceil(total / safePageSize)),
     medium_counts: mediumCounts,
+    highest_completed_module: highestCompleted,
   }
 }
 

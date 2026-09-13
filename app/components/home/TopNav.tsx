@@ -4,6 +4,7 @@
 'use client'
 
 import React from 'react'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import {
   User,
@@ -13,6 +14,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { ModeToggle } from '@/components/mode-toggle'
+import { BloomMark } from '@/app/components/landing/LandingHeader'
 
 export interface UserProfile {
   name?: string | null
@@ -43,43 +45,37 @@ export default function TopNav({ user, logout, logoutAll }: TopNavProps) {
   const initials = (user.name ?? user.email)[0].toUpperCase()
 
   return (
-    <header className="sticky top-0 z-20 border-b border-border/60 bg-background/80 backdrop-blur-md transition-colors duration-200">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-30 bg-card/75 backdrop-blur-md transition-colors duration-200">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
 
         {/* Logo */}
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-xs">
-            R
-          </div>
-          <span className="text-sm font-bold tracking-tight text-foreground">
+        <Link href="/home" className="flex items-center gap-2.5">
+          <BloomMark />
+          <span className="text-[15px] font-semibold tracking-tight text-foreground">
             rsd<span className="font-normal text-muted-foreground">education</span>
           </span>
-        </div>
+        </Link>
 
-        {/* Right side: ModeToggle + Profile */}
+        {/* Right side: theme toggle + profile */}
         <div className="flex items-center gap-2.5 sm:gap-3" ref={ref}>
-
-          {/* Dark / Light Mode Toggle */}
           <ModeToggle />
 
-          {/* Profile avatar button */}
           <button
             id="profile-menu-btn"
             onClick={() => setOpen((v) => !v)}
             aria-label="Open profile menu"
-            className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full ring-2 ring-border transition-all hover:ring-primary/60 focus:outline-none"
+            className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full ring-1 ring-border transition-all hover:ring-ring focus:outline-none"
           >
             {user.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={user.avatarUrl} alt={user.name ?? 'avatar'} className="h-9 w-9 object-cover" />
             ) : (
-              <div className="flex h-9 w-9 items-center justify-center bg-primary text-sm font-bold text-primary-foreground">
+              <div className="flex h-9 w-9 items-center justify-center bg-primary text-sm font-semibold text-primary-foreground">
                 {initials}
               </div>
             )}
           </button>
 
-          {/* Dropdown menu */}
           {open && (
             <ProfileDropdown
               user={user}
@@ -114,24 +110,24 @@ function ProfileDropdown({
   isAdmin: boolean
 }) {
   return (
-    <div className="absolute right-4 top-[3.75rem] w-64 overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-2xl animate-in fade-in-50 zoom-in-95 sm:right-6 lg:right-8">
+    <div className="absolute right-4 top-[3.75rem] w-64 overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-xl animate-in fade-in-50 zoom-in-95 sm:right-6 lg:right-8">
 
       {/* User info */}
-      <div className="border-b border-border px-4 py-4 bg-muted/20">
+      <div className="bloom-tint border-b border-border px-4 py-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 overflow-hidden rounded-full ring-2 ring-border">
+          <div className="flex h-11 w-11 shrink-0 overflow-hidden rounded-full ring-1 ring-border">
             {user.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={user.avatarUrl} alt="" className="h-11 w-11 object-cover" />
             ) : (
-              <div className="flex h-11 w-11 items-center justify-center bg-primary text-base font-bold text-primary-foreground">
+              <div className="flex h-11 w-11 items-center justify-center bg-primary text-base font-semibold text-primary-foreground">
                 {initials}
               </div>
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-foreground">{user.name ?? '—'}</p>
-            <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+            <p className="truncate text-sm font-medium text-bloom-ink">{user.name ?? '—'}</p>
+            <p className="truncate text-xs text-bloom-ink/60">{user.email}</p>
           </div>
         </div>
       </div>
@@ -200,13 +196,13 @@ function DDItem({
   return (
     <button
       onClick={onClick}
-      className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
+      className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm transition-colors ${
         red
           ? 'text-destructive hover:bg-destructive/10'
           : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
       }`}
     >
-      <Icon className="h-4 w-4 shrink-0" />
+      <Icon className="h-4 w-4 shrink-0" strokeWidth={1.6} />
       <span>{label}</span>
     </button>
   )

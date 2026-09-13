@@ -13,6 +13,7 @@ import React, {
   useState,
 } from 'react'
 import type { PublicUser, LearningGoal, EducationMedium } from '@/lib/auth/types'
+import { clearActiveExam } from '@/lib/active-exam'
 
 // ---- Context types ---------------------------------------------
 
@@ -51,6 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const handleRevocation = useCallback(() => {
     if (handlingRevocation.current) return
     handlingRevocation.current = true
+    clearActiveExam()
     setUser(null)
     setLoading(false)
 
@@ -111,6 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
     } finally {
+      clearActiveExam()
       setUser(null)
       if (typeof window !== 'undefined' && window.location.pathname !== '/') {
         window.location.href = '/'
@@ -122,6 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await fetch('/api/auth/logout-all', { method: 'POST', credentials: 'include' })
     } finally {
+      clearActiveExam()
       setUser(null)
       if (typeof window !== 'undefined' && window.location.pathname !== '/') {
         window.location.href = '/'

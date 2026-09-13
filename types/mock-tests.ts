@@ -287,6 +287,12 @@ export interface MockTestListItem {
   version: number
   /** Per-user completion state, from user_mock_test_progress. */
   progress_status: ModuleProgressStatus
+  /**
+   * True when this module is further up the ladder than the candidate has
+   * climbed — i.e. more than one past their highest submitted module.
+   * Independent of the Pro gate; a module can be behind either, or both.
+   */
+  is_sequence_locked: boolean
   user_attempt?: {
     attempt_id: string
     status: AttemptStatus
@@ -320,6 +326,11 @@ export interface MockTestListResponse {
   total_pages: number
   /** Counts per medium so the tabs can show totals without a second request. */
   medium_counts: Record<ExamMediumKey, number>
+  /**
+   * Highest module_number the candidate has submitted; 0 for a new candidate.
+   * The next module in the ladder is this + 1.
+   */
+  highest_completed_module: number
 }
 
 // ---- Generation report -------------------------------------------

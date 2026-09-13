@@ -152,6 +152,48 @@ export async function updateOnboarding(
   return data as DbUser
 }
 
+/**
+ * Update the editable parts of a profile.
+ *
+ * Only the fields present on `patch` are written, so a caller changing just
+ * the display name cannot accidentally blank out study preferences. Identity
+ * fields (email, google_id, avatar) come from Google and are never writable
+ * here; neither are role or subscription, which are not the user's to set.
+ */
+export async function updateUserProfile(
+  userId: string,
+  patch: {
+    name?: string | null
+    learningGoals?: LearningGoal[]
+    educationMedium?: EducationMedium
+  }
+): Promise<DbUser> {
+  const update: Record<string, unknown> = {}
+  if ('name' in patch) update.name = patch.name
+  if (patch.learningGoals) update.learning_goals = patch.learningGoals
+  if (patch.educationMedium) update.education_medium = patch.educationMedium
+
+  if (Object.keys(update).length === 0) {
+    const existing = await getUserById(userId)
+    if (!existing) throw new AuthError('INTERNAL_ERROR', 500, 'User not found')
+    return existing
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .update(update)
+    .eq('id', userId)
+    .select('*')
+    .single()
+
+  if (error) {
+    console.error('[DB] updateUserProfile error:', error)
+    throw new AuthError('INTERNAL_ERROR', 500, 'Failed to save profile')
+  }
+
+  return data as DbUser
+}
+
 // ---- Devices ---------------------------------------------------------
 
 /**

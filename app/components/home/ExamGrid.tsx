@@ -9,9 +9,12 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import ExamCard from './ExamCard'
 import { EXAMS, type ExamItem } from './examData'
+import { useAuth } from '@/app/contexts/AuthContext'
+import { setActiveExam } from '@/lib/active-exam'
 
 export default function ExamGrid() {
   const router = useRouter()
+  const { user } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
 
@@ -38,72 +41,79 @@ export default function ExamGrid() {
         description: `Entering ${exam.sublabel} Preparation Hub...`,
         duration: 2000,
       })
-      router.push('/dsc-sgt')
+      // Lock the candidate into this hub. They stay here until they sign out.
+      setActiveExam(user?.id, 'dsc-sgt')
+      router.replace('/dsc-sgt')
     }
   }
 
   return (
-    <section className="mb-10">
-      {/* Category Header & Controls Row */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        
-        {/* Left: Category Title with Primary Accent Bar */}
-        <div className="flex items-center gap-2.5">
-          <span className="h-5 w-1 rounded-full bg-primary" />
-          <h2 className="text-lg font-bold text-foreground sm:text-xl">
-            All Categories
+    <section className="mt-14 lg:mt-20">
+      {/* Header & controls — the landing page's editorial section rhythm */}
+      <div className="mb-8 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+
+        <div>
+          <p className="bloom-eyebrow">Choose a category</p>
+          <h2 className="mt-2 text-3xl font-medium text-foreground sm:text-[2.5rem]">
+            All exams
           </h2>
+          <p className="mt-3 max-w-md text-[13px] leading-relaxed text-muted-foreground">
+            Each category opens its own hub — syllabus-mapped practice,
+            full-length mock tests and solved previous papers.
+          </p>
         </div>
 
-        {/* Right: Search Input + View Toggles */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
-          {/* Search Box */}
+        <div className="flex shrink-0 items-center gap-2.5">
+          {/* Search */}
           <div className="relative flex-1 sm:w-64 sm:flex-initial">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search
+              className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+              strokeWidth={1.6}
+            />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search exam category..."
-              className="h-9.5 w-full rounded-xl border border-border/80 bg-card pl-9 pr-3.5 text-xs text-foreground placeholder:text-muted-foreground shadow-2xs focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-ring/20 transition-all"
+              className="h-10 w-full rounded-full border border-border bg-card pl-11 pr-4 text-xs text-foreground transition-all placeholder:text-muted-foreground focus:border-ring/60 focus:outline-none focus:ring-2 focus:ring-ring/15"
             />
           </div>
 
-          {/* Grid / List View Toggle Buttons */}
-          <div className="flex items-center gap-1 rounded-xl border border-border/70 bg-card p-1 shadow-2xs">
+          {/* View toggle */}
+          <div className="flex items-center gap-1 rounded-full border border-border bg-card p-1">
             <button
               onClick={() => setViewMode('grid')}
               aria-label="Grid view"
-              className={`flex h-7.5 w-7.5 items-center justify-center rounded-lg transition-colors ${
+              className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
                 viewMode === 'grid'
-                  ? 'bg-primary text-primary-foreground shadow-xs'
+                  ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              <LayoutGrid className="h-4 w-4" />
+              <LayoutGrid className="h-4 w-4" strokeWidth={1.6} />
             </button>
             <button
               onClick={() => setViewMode('list')}
               aria-label="List view"
-              className={`flex h-7.5 w-7.5 items-center justify-center rounded-lg transition-colors ${
+              className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
                 viewMode === 'list'
-                  ? 'bg-primary text-primary-foreground shadow-xs'
+                  ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              <List className="h-4 w-4" />
+              <List className="h-4 w-4" strokeWidth={1.6} />
             </button>
           </div>
         </div>
 
       </div>
 
-      {/* Grid or List Layout */}
+      {/* Grid or list */}
       {filteredExams.length > 0 ? (
         <div
           className={
             viewMode === 'grid'
-              ? 'grid gap-4.5 sm:grid-cols-2 lg:grid-cols-3'
+              ? 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
               : 'flex flex-col gap-3'
           }
         >
@@ -117,17 +127,17 @@ export default function ExamGrid() {
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-12 text-center">
-          <Search className="h-8 w-8 text-muted-foreground" />
-          <p className="mt-3 text-sm font-semibold text-foreground">No categories found</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Try searching with a different term like &quot;DSC&quot;, &quot;Railway&quot;, or &quot;APPSC&quot;.
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-14 text-center">
+          <Search className="h-6 w-6 text-muted-foreground" strokeWidth={1.6} />
+          <p className="mt-4 text-sm font-medium text-foreground">No categories found</p>
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            Try a different term like &quot;DSC&quot;, &quot;Railway&quot; or &quot;APPSC&quot;.
           </p>
           <button
             onClick={() => setSearchQuery('')}
-            className="mt-4 rounded-xl border border-border bg-card px-4 py-1.5 text-xs font-semibold text-foreground hover:bg-accent"
+            className="bloom-pill bloom-pill-dark mt-5 px-4 py-2 text-[13px]"
           >
-            Clear Search
+            Clear search
           </button>
         </div>
       )}

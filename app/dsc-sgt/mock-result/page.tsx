@@ -16,10 +16,11 @@ import {
   Loader2,
   AlertCircle,
   RotateCcw,
-  Share2,
   Target,
   ArrowRight,
 } from 'lucide-react'
+import { COPY_GUARD_CLASS, copyGuardProps } from '@/app/components/dsc-sgt/CopyGuard'
+import QuestionFeedbackButton from '@/app/components/dsc-sgt/QuestionFeedbackButton'
 import type { MockTestResultSummary, SectionScore, QuestionReviewItem } from '@/types/mock-tests'
 
 function ScoreGauge({ percentage }: { percentage: number }) {
@@ -47,7 +48,13 @@ function ScoreGauge({ percentage }: { percentage: number }) {
   )
 }
 
-function QuestionReviewCard({ item, index }: { item: QuestionReviewItem; index: number }) {
+function QuestionReviewCard({
+  item,
+  mockTestId,
+}: {
+  item: QuestionReviewItem
+  mockTestId: string | null
+}) {
   const [open, setOpen] = useState(false)
 
   const statusIcon = item.is_skipped
@@ -119,8 +126,8 @@ function QuestionReviewCard({ item, index }: { item: QuestionReviewItem; index: 
           </div>
 
           {item.explanation && (
-            <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3">
-              <p className="font-bold text-blue-600 dark:text-blue-400 mb-1 text-[10px] uppercase tracking-wide">Explanation</p>
+            <div className="rounded-xl border border-primary/20 bg-secondary p-3">
+              <p className="font-bold text-primary mb-1 text-[10px] uppercase tracking-wide">Explanation</p>
               <p className="text-foreground leading-relaxed">{item.explanation}</p>
             </div>
           )}
@@ -131,6 +138,15 @@ function QuestionReviewCard({ item, index }: { item: QuestionReviewItem; index: 
             {item.difficulty && <><span>·</span><span>{item.difficulty}</span></>}
             <span>·</span>
             <span>{item.time_taken_seconds}s</span>
+
+            {/* Spotted a problem with this question? */}
+            <QuestionFeedbackButton
+              className="ml-auto"
+              questionUid={item.question_uid}
+              source="mock_result"
+              mockTestId={mockTestId}
+              questionText={item.question}
+            />
           </div>
         </div>
       )}
@@ -271,7 +287,10 @@ function MockResultContent() {
     : `${mins}m ${secs}s`
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+    <main
+      className={`mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 space-y-6 ${COPY_GUARD_CLASS}`}
+      {...copyGuardProps}
+    >
 
       {/* ── Module completion state ── */}
       <div className="flex items-center justify-center gap-2 rounded-3xl border border-emerald-500/40 bg-emerald-500/10 px-5 py-3 text-center">
@@ -338,7 +357,7 @@ function MockResultContent() {
             <button
               onClick={() => void startNextModule()}
               disabled={startingNext}
-              className="inline-flex items-center gap-2 rounded-2xl bg-purple-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-purple-700 disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-2xl bg-primary px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-primary disabled:opacity-60"
             >
               {startingNext ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -427,7 +446,7 @@ function MockResultContent() {
                   onClick={() => setReviewFilter(f.value)}
                   className={`shrink-0 rounded-full border px-3 py-1 text-[10px] font-bold transition ${
                     reviewFilter === f.value
-                      ? 'border-primary bg-primary text-white'
+                      ? 'border-primary bg-primary text-primary-foreground'
                       : 'border-border text-muted-foreground hover:text-foreground'
                   }`}
                 >
@@ -455,8 +474,12 @@ function MockResultContent() {
             {filteredReview.length === 0 ? (
               <p className="py-8 text-center text-xs text-muted-foreground">No questions match this filter.</p>
             ) : (
-              filteredReview.map((item, idx) => (
-                <QuestionReviewCard key={item.question_id} item={item} index={idx} />
+              filteredReview.map((item) => (
+                <QuestionReviewCard
+                  key={item.question_uid}
+                  item={item}
+                  mockTestId={result.mock_test_id ?? null}
+                />
               ))
             )}
           </div>

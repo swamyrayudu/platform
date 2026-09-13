@@ -11,6 +11,7 @@ import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { getMockTestById, startOrResumeAttempt } from '@/lib/mock-tests/db'
 import { isUserPremium } from '@/lib/auth/session'
+import { getHighestCompletedModule, isModuleSequenceLocked } from '@/lib/mock-tests/modules'
 
 export const POST = requireAuth(async (
   _request: Request,
@@ -31,6 +32,24 @@ export const POST = requireAuth(async (
         { success: false, error: 'PREMIUM_REQUIRED', message: 'This test requires a Pro subscription' },
         { status: 403 }
       )
+    }
+
+    // Series gate. Enforced here as well as in the UI — the list endpoint only
+    // says which cards to draw locked, and nothing stops a client POSTing
+    // straight to this route for a module it was never shown.
+    if (test.module_number != null && test.module_number > 1) {
+      const highestCompleted = await getHighestCompletedModule(user.id)
+      if (isModuleSequenceLocked(test.module_number, highestCompleted)) {
+        const required = String(test.module_number - 1).padStart(2, '0')
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'SEQUENCE_LOCKED',
+            message: `Submit Module ${required} to unlock this one.`,
+          },
+          { status: 403 }
+        )
+      }
     }
 
     const result = await startOrResumeAttempt(user.id, test)

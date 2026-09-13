@@ -52,43 +52,43 @@ interface Syllabus {
  */
 const SECTION_STYLE: Record<string, { border: string; iconColor: string; topics: string }> = {
   gk: {
-    border: 'border-blue-500/30',
-    iconColor: 'text-blue-500',
+    border: 'border-subject-6/35',
+    iconColor: 'text-subject-6',
     topics: 'National & AP State Events, Schemes, Awards, History',
   },
   perspectives: {
-    border: 'border-purple-500/30',
-    iconColor: 'text-purple-500',
+    border: 'border-subject-1/35',
+    iconColor: 'text-subject-1',
     topics: 'History of Education, RTE 2009, NEP 2020, Teacher Empowerment',
   },
   psychology: {
-    border: 'border-pink-500/30',
-    iconColor: 'text-pink-500',
+    border: 'border-subject-3/35',
+    iconColor: 'text-subject-3',
     topics: 'Child Development, Learning Theories, Guidance & Counselling',
   },
   telugu: {
-    border: 'border-amber-500/30',
-    iconColor: 'text-amber-500',
+    border: 'border-subject-4/35',
+    iconColor: 'text-subject-4',
     topics: 'Vyakaranam, Literature, Padajalam, Methodology',
   },
   english: {
-    border: 'border-emerald-500/30',
-    iconColor: 'text-emerald-500',
+    border: 'border-subject-5/35',
+    iconColor: 'text-subject-5',
     topics: 'Vocabulary, Tenses, Prepositions, Comprehension, Methods',
   },
   mathematics: {
-    border: 'border-cyan-500/30',
-    iconColor: 'text-cyan-500',
+    border: 'border-subject-2/35',
+    iconColor: 'text-subject-2',
     topics: 'Number System, Geometry, Algebra, Data Handling, Methods',
   },
   science: {
-    border: 'border-green-500/30',
-    iconColor: 'text-green-500',
+    border: 'border-subject-7/35',
+    iconColor: 'text-subject-7',
     topics: 'Living World, Physics, Chemistry, Health, EVS, Methodology',
   },
   social: {
-    border: 'border-orange-500/30',
-    iconColor: 'text-orange-500',
+    border: 'border-subject-8/35',
+    iconColor: 'text-subject-8',
     topics: 'Geography, History, Civics, AP Economy, Methods',
   },
 }
@@ -197,7 +197,7 @@ export default function DscSgtOverviewPage() {
                 <>
                   <div className="h-3 w-px bg-border" />
                   <div className="flex items-center gap-1.5">
-                    <Layers className="h-4 w-4 text-purple-500" />
+                    <Layers className="h-4 w-4 text-primary" />
                     <span>
                       <strong className="text-foreground">
                         {stats.modules_completed}/{stats.modules_total}
@@ -245,7 +245,7 @@ export default function DscSgtOverviewPage() {
             className="group relative flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-5 transition-all hover:border-primary/50 hover:shadow-md hover:-translate-y-1"
           >
             <div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:scale-105 transition-transform">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-secondary text-primary group-hover:scale-105 transition-transform">
                 <BookOpen className="h-6 w-6 stroke-[2.2]" />
               </div>
               <h3 className="mt-4 text-base font-bold text-foreground group-hover:text-primary transition-colors">
@@ -267,7 +267,7 @@ export default function DscSgtOverviewPage() {
             className="group relative flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-5 transition-all hover:border-primary/50 hover:shadow-md hover:-translate-y-1"
           >
             <div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 group-hover:scale-105 transition-transform">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-secondary text-primary group-hover:scale-105 transition-transform">
                 <FileCheck2 className="h-6 w-6 stroke-[2.2]" />
               </div>
               <h3 className="mt-4 text-base font-bold text-foreground group-hover:text-primary transition-colors">
@@ -277,7 +277,7 @@ export default function DscSgtOverviewPage() {
                 Full-length test series, previous years papers (2018–2024), and subject-wise timed mock tests.
               </p>
             </div>
-            <div className="mt-5 flex items-center justify-between border-t border-border/60 pt-3 text-xs font-semibold text-purple-600 dark:text-purple-400">
+            <div className="mt-5 flex items-center justify-between border-t border-border/60 pt-3 text-xs font-semibold text-primary">
               <span>View 45+ Tests</span>
               <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
             </div>

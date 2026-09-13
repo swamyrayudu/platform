@@ -4,189 +4,225 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ============================================================
+   rsdeducation — "Bloom" design language
+   Warm cream canvas, deep indigo ink, lavender accents.
+   Large radii, soft shadows, pill buttons, bento cards.
+   ============================================================ */
+
 :root {
+  /* Keeps native controls — checkboxes, scrollbars, autofill — in step with
+     the theme instead of always rendering light. */
+  color-scheme: light;
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.147 0.004 49.3);
+  /* ── Brand ramp ── */
+  --bloom-cream: #f2f0eb;
+  --bloom-cream-deep: #e9e6df;
+  --bloom-ink: #1b1a2e;
+  --bloom-indigo: #2e2b55;
+  --bloom-indigo-soft: #3d3a6b;
+  --bloom-lavender: #a9a3e4;
+  --bloom-lavender-soft: #ddd9f5;
+  --bloom-mist: #ebe9f7;
+  --bloom-violet: #7e71cd;
 
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.147 0.004 49.3);
+  /* Bloom tones for the hero meadow, far to near */
+  --meadow-back: #aba3e5;
+  --meadow-mid: #8b80d2;
+  --meadow-front: #6558b4;
 
-  --primary: oklch(0.214 0.009 43.1);
-  --primary-foreground: oklch(0.986 0.002 67.8);
+  /* Subject key — eight hues a reader can tell apart, all desaturated far
+     enough to sit inside the lavender family rather than fight it. */
+  --subject-1: #6f66ba;
+  --subject-2: #8b7fd0;
+  --subject-3: #a06d9c;
+  --subject-4: #b3835a;
+  --subject-5: #4f8b81;
+  --subject-6: #5878b8;
+  --subject-7: #74945a;
+  --subject-8: #bd7f52;
 
-  --secondary: oklch(0.96 0.002 17.2);
-  --secondary-foreground: oklch(0.214 0.009 43.1);
+  /* ── Semantic tokens ── */
+  --background: #f2f0eb;
+  --foreground: #1b1a2e;
 
-  --muted: oklch(0.96 0.002 17.2);
-  --muted-foreground: oklch(0.547 0.021 43.1);
+  --card: #ffffff;
+  --card-foreground: #1b1a2e;
 
-  --accent: oklch(0.96 0.002 17.2);
-  --accent-foreground: oklch(0.214 0.009 43.1);
+  --popover: #ffffff;
+  --popover-foreground: #1b1a2e;
 
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: #fafafa;
+  --primary: #2e2b55;
+  --primary-foreground: #f7f5f1;
 
-  --border: oklch(0.922 0.005 34.3);
-  --input: oklch(0.922 0.005 34.3);
-  --ring: oklch(0.714 0.014 41.2);
+  --secondary: #ebe9f7;
+  --secondary-foreground: #2e2b55;
 
-  --radius: 0.625rem;
+  --muted: #eceae4;
+  --muted-foreground: #6e6b83;
 
-  --background: oklch(1 0 0);
+  --accent: #e4e1f5;
+  --accent-foreground: #2e2b55;
 
-  --foreground: oklch(0.147 0.004 49.3);
+  --destructive: #c0442f;
+  --destructive-foreground: #fdf7f5;
 
-  --chart-1: oklch(0.868 0.007 39.5);
+  --border: #e4e1da;
+  --input: #e4e1da;
+  --ring: #8b84d4;
 
-  --chart-2: oklch(0.547 0.021 43.1);
+  --radius: 0.8rem;
 
-  --chart-3: oklch(0.438 0.017 39.3);
+  --chart-1: #2e2b55;
+  --chart-2: #7e71cd;
+  --chart-3: #a9a3e4;
+  --chart-4: #c9c4ee;
+  --chart-5: #ddd9f5;
 
-  --chart-4: oklch(0.367 0.016 35.7);
-
-  --chart-5: oklch(0.268 0.011 36.5);
-
-  --sidebar: oklch(0.986 0.002 67.8);
-
-  --sidebar-foreground: oklch(0.147 0.004 49.3);
-
-  --sidebar-primary: oklch(0.214 0.009 43.1);
-
-  --sidebar-primary-foreground: oklch(0.986 0.002 67.8);
-
-  --sidebar-accent: oklch(0.96 0.002 17.2);
-
-  --sidebar-accent-foreground: oklch(0.214 0.009 43.1);
-
-  --sidebar-border: oklch(0.922 0.005 34.3);
-
-  --sidebar-ring: oklch(0.714 0.014 41.2);
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1b1a2e;
+  --sidebar-primary: #2e2b55;
+  --sidebar-primary-foreground: #f7f5f1;
+  --sidebar-accent: #ebe9f7;
+  --sidebar-accent-foreground: #2e2b55;
+  --sidebar-border: #e4e1da;
+  --sidebar-ring: #8b84d4;
 }
 
 .dark {
-  --background: oklch(0.147 0.004 49.3);
-  --foreground: oklch(0.986 0.002 67.8);
+  color-scheme: dark;
 
-  --card: oklch(0.214 0.009 43.1);
-  --card-foreground: oklch(0.986 0.002 67.8);
+  --bloom-cream: #121124;
+  --bloom-cream-deep: #0d0c1c;
+  --bloom-ink: #efedf8;
+  --bloom-indigo: #c5c0ef;
+  --bloom-indigo-soft: #ddd9f5;
+  --bloom-lavender: #8b84d4;
+  --bloom-lavender-soft: #2a2748;
+  --bloom-mist: #211f3a;
+  --bloom-violet: #9a8fe0;
 
-  --popover: oklch(0.214 0.009 43.1);
-  --popover-foreground: oklch(0.986 0.002 67.8);
+  --meadow-back: #5c54a0;
+  --meadow-mid: #4a4288;
+  --meadow-front: #373068;
 
-  --primary: oklch(0.922 0.005 34.3);
-  --primary-foreground: oklch(0.214 0.009 43.1);
+  --subject-1: #a79cee;
+  --subject-2: #bcb2f2;
+  --subject-3: #d09cc9;
+  --subject-4: #e0b184;
+  --subject-5: #7dc0b4;
+  --subject-6: #8fadea;
+  --subject-7: #a7c78a;
+  --subject-8: #e8ab7c;
 
-  --secondary: oklch(0.268 0.011 36.5);
-  --secondary-foreground: oklch(0.986 0.002 67.8);
+  --background: #121124;
+  --foreground: #efedf8;
 
-  --muted: oklch(0.268 0.011 36.5);
-  --muted-foreground: oklch(0.714 0.014 41.2);
+  --card: #1c1a33;
+  --card-foreground: #efedf8;
 
-  --accent: oklch(0.268 0.011 36.5);
-  --accent-foreground: oklch(0.986 0.002 67.8);
+  --popover: #1c1a33;
+  --popover-foreground: #efedf8;
 
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: #fafafa;
+  --primary: #c5c0ef;
+  --primary-foreground: #1b1a2e;
 
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.547 0.021 43.1);
-  --chart-1: oklch(0.868 0.007 39.5);
-  --chart-2: oklch(0.547 0.021 43.1);
-  --chart-3: oklch(0.438 0.017 39.3);
-  --chart-4: oklch(0.367 0.016 35.7);
-  --chart-5: oklch(0.268 0.011 36.5);
-  --sidebar: oklch(0.214 0.009 43.1);
-  --sidebar-foreground: oklch(0.986 0.002 67.8);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.986 0.002 67.8);
-  --sidebar-accent: oklch(0.268 0.011 36.5);
-  --sidebar-accent-foreground: oklch(0.986 0.002 67.8);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.547 0.021 43.1);
+  --secondary: #252340;
+  --secondary-foreground: #efedf8;
+
+  --muted: #252340;
+  --muted-foreground: #9d99b8;
+
+  --accent: #2a2748;
+  --accent-foreground: #efedf8;
+
+  --destructive: #e2705a;
+  --destructive-foreground: #1b1a2e;
+
+  --border: rgb(255 255 255 / 9%);
+  --input: rgb(255 255 255 / 13%);
+  --ring: #8b84d4;
+
+  --chart-1: #c5c0ef;
+  --chart-2: #9a8fe0;
+  --chart-3: #8b84d4;
+  --chart-4: #6f66ba;
+  --chart-5: #4b4486;
+
+  --sidebar: #1c1a33;
+  --sidebar-foreground: #efedf8;
+  --sidebar-primary: #c5c0ef;
+  --sidebar-primary-foreground: #1b1a2e;
+  --sidebar-accent: #2a2748;
+  --sidebar-accent-foreground: #efedf8;
+  --sidebar-border: rgb(255 255 255 / 9%);
+  --sidebar-ring: #8b84d4;
 }
 
 @theme inline {
-
   --font-sans: var(--font-sans);
-
   --font-heading: var(--font-heading);
 
+  --color-bloom-cream: var(--bloom-cream);
+  --color-bloom-cream-deep: var(--bloom-cream-deep);
+  --color-bloom-ink: var(--bloom-ink);
+  --color-bloom-indigo: var(--bloom-indigo);
+  --color-bloom-indigo-soft: var(--bloom-indigo-soft);
+  --color-bloom-lavender: var(--bloom-lavender);
+  --color-bloom-lavender-soft: var(--bloom-lavender-soft);
+  --color-bloom-mist: var(--bloom-mist);
+  --color-bloom-violet: var(--bloom-violet);
+
+  --color-subject-1: var(--subject-1);
+  --color-subject-2: var(--subject-2);
+  --color-subject-3: var(--subject-3);
+  --color-subject-4: var(--subject-4);
+  --color-subject-5: var(--subject-5);
+  --color-subject-6: var(--subject-6);
+  --color-subject-7: var(--subject-7);
+  --color-subject-8: var(--subject-8);
+
   --color-sidebar-ring: var(--sidebar-ring);
-
   --color-sidebar-border: var(--sidebar-border);
-
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-
   --color-sidebar-accent: var(--sidebar-accent);
-
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-
   --color-sidebar-primary: var(--sidebar-primary);
-
   --color-sidebar-foreground: var(--sidebar-foreground);
-
   --color-sidebar: var(--sidebar);
 
   --color-chart-5: var(--chart-5);
-
   --color-chart-4: var(--chart-4);
-
   --color-chart-3: var(--chart-3);
-
   --color-chart-2: var(--chart-2);
-
   --color-chart-1: var(--chart-1);
 
   --color-ring: var(--ring);
-
   --color-input: var(--input);
-
   --color-border: var(--border);
-
   --color-destructive: var(--destructive);
-
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-accent-foreground: var(--accent-foreground);
-
   --color-accent: var(--accent);
-
   --color-muted-foreground: var(--muted-foreground);
-
   --color-muted: var(--muted);
-
   --color-secondary-foreground: var(--secondary-foreground);
-
   --color-secondary: var(--secondary);
-
   --color-primary-foreground: var(--primary-foreground);
-
   --color-primary: var(--primary);
-
   --color-popover-foreground: var(--popover-foreground);
-
   --color-popover: var(--popover);
-
   --color-card-foreground: var(--card-foreground);
-
   --color-card: var(--card);
-
   --color-foreground: var(--foreground);
-
   --color-background: var(--background);
 
   --radius-sm: calc(var(--radius) * 0.6);
-
   --radius-md: calc(var(--radius) * 0.8);
-
   --radius-lg: var(--radius);
-
   --radius-xl: calc(var(--radius) * 1.4);
-
   --radius-2xl: calc(var(--radius) * 1.8);
-
   --radius-3xl: calc(var(--radius) * 2.2);
-
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
@@ -199,5 +235,71 @@
   }
   html {
     @apply font-sans;
+  }
+
+  /* Display type in the reference is large, light in weight, tightly tracked. */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-heading), var(--font-sans), sans-serif;
+    letter-spacing: -0.025em;
+  }
+}
+
+@layer components {
+  /* ── The white page shell the whole layout sits on ── */
+  .bloom-shell {
+    background-color: var(--card);
+    border-radius: calc(var(--radius) * 2.6);
+    box-shadow:
+      0 1px 2px rgb(27 26 46 / 4%),
+      0 24px 60px -30px rgb(27 26 46 / 18%);
+  }
+
+  /* ── Hero sky: pale horizon fading down into lavender ── */
+  .bloom-sky {
+    background-image: radial-gradient(
+      140% 95% at 50% -10%,
+      #fbfbfe 0%,
+      #eeedfa 30%,
+      #d9d5f3 58%,
+      #b3ace6 82%,
+      #9089d6 100%
+    );
+  }
+  .dark .bloom-sky {
+    background-image: radial-gradient(
+      140% 95% at 50% -10%,
+      #2a2750 0%,
+      #232046 30%,
+      #1e1b3c 58%,
+      #191631 82%,
+      #141227 100%
+    );
+  }
+
+  /* ── Lavender surface for the highlight bento card ── */
+  .bloom-tint {
+    background-image: linear-gradient(150deg, #dcd8f4 0%, #e9e7f8 45%, #f1effb 100%);
+  }
+  .dark .bloom-tint {
+    background-image: linear-gradient(150deg, #2b2850 0%, #252243 45%, #201e3a 100%);
+  }
+
+  /* ── Pill button, the reference's only button shape ── */
+  .bloom-pill {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all duration-200;
+  }
+  .bloom-pill-dark {
+    background-color: var(--bloom-indigo);
+    color: var(--primary-foreground);
+  }
+  .bloom-pill-dark:hover {
+    background-color: var(--bloom-indigo-soft);
+  }
+
+  /* ── Small muted label that sits above a section heading ── */
+  .bloom-eyebrow {
+    @apply text-[11px] font-medium tracking-wide text-muted-foreground;
   }
 }

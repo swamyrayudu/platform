@@ -9,6 +9,7 @@
 
 import React from 'react'
 import type { PracticeResultSummary } from '@/types/practice'
+import { COPY_GUARD_CLASS, copyGuardProps } from '@/app/components/dsc-sgt/CopyGuard'
 import {
   ScoreSummaryCard,
   TopicPerformanceList,
@@ -40,7 +41,10 @@ export default function PracticeResults({
   const hasIncorrect = results.incorrect_count > 0
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto">
+    <div
+      className={`space-y-8 max-w-5xl mx-auto ${COPY_GUARD_CLASS}`}
+      {...copyGuardProps}
+    >
       {/* ── Top Score & Celebration Card ─────────────────────── */}
       <ScoreSummaryCard results={results} />
 

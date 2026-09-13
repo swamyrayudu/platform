@@ -9,6 +9,7 @@
 // ============================================================
 
 import React, { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
 import MockModuleGenerator from '@/app/components/admin/MockModuleGenerator'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/app/contexts/AuthContext'
@@ -34,6 +35,7 @@ import {
   Activity,
   Clock,
   Database,
+  Flag,
   Download,
   FileSpreadsheet,
   FileJson,
@@ -431,7 +433,7 @@ function StatCard({
     emerald: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
     amber: 'bg-amber-500/10 text-amber-500',
     red: 'bg-red-500/10 text-red-500',
-    blue: 'bg-blue-500/10 text-blue-500',
+    blue: 'bg-secondary text-primary',
   }
   return (
     <div className="rounded-2xl border border-border bg-card p-5 transition-all hover:border-primary/30 hover:shadow-md hover:shadow-primary/5">
@@ -701,14 +703,24 @@ export default function AdminDashboard() {
               </p>
             </div>
           </div>
-          <button
-            onClick={fetchAll}
-            disabled={loadingData}
-            className="flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2 text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-50 transition-colors"
-          >
-            <Activity className={`h-3.5 w-3.5 ${loadingData ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/admin/question-feedback"
+              className="flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <Flag className="h-3.5 w-3.5" />
+              Question reports
+            </Link>
+
+            <button
+              onClick={fetchAll}
+              disabled={loadingData}
+              className="flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2 text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-50 transition-colors"
+            >
+              <Activity className={`h-3.5 w-3.5 ${loadingData ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
         </div>
 
         {/* ── Error ───────────────────────────────────────────── */}
@@ -879,10 +891,10 @@ export default function AdminDashboard() {
           {/* Medium-Wise Quick Download Cards */}
           <div className="grid gap-4 md:grid-cols-2 mb-6">
             {/* English Medium Card */}
-            <div className="relative overflow-hidden rounded-2xl border border-blue-500/25 bg-gradient-to-br from-blue-500/5 via-card to-card p-5 transition-all hover:border-blue-500/40 hover:shadow-lg hover:shadow-blue-500/5">
+            <div className="relative overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/5 via-card to-card p-5 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-blue-500/5">
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary border border-primary/20">
                     <Languages className="h-5 w-5" />
                   </div>
                   <div>
@@ -890,7 +902,7 @@ export default function AdminDashboard() {
                     <p className="text-[11px] text-muted-foreground">Complete English medium practice archive</p>
                   </div>
                 </div>
-                <span className="rounded-full border border-blue-500/30 bg-blue-500/15 px-2.5 py-0.5 text-xs font-bold text-blue-600 dark:text-blue-400">
+                <span className="rounded-full border border-primary/30 bg-secondary px-2.5 py-0.5 text-xs font-bold text-primary">
                   {practiceStats ? practiceStats.englishQuestions.toLocaleString() : '...'} Questions
                 </span>
               </div>
@@ -901,7 +913,7 @@ export default function AdminDashboard() {
                 <button
                   onClick={() => handlePracticeDownload({ medium: 'english', subject: 'all', format: 'csv', label: 'English Medium Dataset' })}
                   disabled={Boolean(downloadingKey)}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white px-3.5 py-2 text-xs font-bold shadow-sm shadow-blue-500/20 disabled:opacity-60 transition-all cursor-pointer"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary text-primary-foreground px-3.5 py-2 text-xs font-bold shadow-sm shadow-blue-500/20 disabled:opacity-60 transition-all cursor-pointer"
                 >
                   {downloadingKey === 'all_english_csv' ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -918,7 +930,7 @@ export default function AdminDashboard() {
                   {downloadingKey === 'all_english_json' ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : (
-                    <FileJson className="h-3.5 w-3.5 text-blue-500" />
+                    <FileJson className="h-3.5 w-3.5 text-primary" />
                   )}
                   <span>JSON</span>
                 </button>
@@ -1018,7 +1030,7 @@ export default function AdminDashboard() {
                         </td>
                         <td className="px-4 py-3.5 text-center">
                           {subj.englishCount > 0 ? (
-                            <span className="inline-flex items-center rounded-md border border-blue-500/20 bg-blue-500/10 px-2 py-0.5 text-[11px] font-semibold text-blue-600 dark:text-blue-400">
+                            <span className="inline-flex items-center rounded-md border border-primary/20 bg-secondary px-2 py-0.5 text-[11px] font-semibold text-primary">
                               {subj.englishCount.toLocaleString()} Qs
                             </span>
                           ) : (
@@ -1075,7 +1087,7 @@ export default function AdminDashboard() {
                               <button
                                 onClick={() => handlePracticeDownload({ medium: 'english', subject: subj.key, format: 'csv', label: `${subj.name} (English)` })}
                                 disabled={Boolean(downloadingKey)}
-                                className="inline-flex items-center gap-1 rounded-lg border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 px-2 py-1 text-[11px] font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+                                className="inline-flex items-center gap-1 rounded-lg border border-primary/30 bg-secondary hover:bg-secondary text-primary px-2 py-1 text-[11px] font-semibold transition-colors disabled:opacity-50 cursor-pointer"
                                 title={`Download ${subj.name} English medium questions (${subj.englishCount.toLocaleString()})`}
                               >
                                 {downloadingKey === `${subj.key}_english_csv` ? (

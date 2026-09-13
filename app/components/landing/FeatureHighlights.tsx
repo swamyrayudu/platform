@@ -1,53 +1,51 @@
 // ============================================================
-// app/components/landing/FeatureHighlights.tsx — Bottom 3-Column Value Prop Bar
+// app/components/landing/FeatureHighlights.tsx — Closing value-prop band
 // ============================================================
 'use client'
 
 import React from 'react'
 import { ShieldCheck, Lock, Headphones } from 'lucide-react'
 
-export default function FeatureHighlights() {
-  const features = [
-    {
-      icon: ShieldCheck,
-      title: 'Trusted by thousands of aspirants',
-      description: 'Reliable. Secure. Effective.',
-    },
-    {
-      icon: Lock,
-      title: 'Secure & Private',
-      description: 'Your data is 100% secure with us.',
-    },
-    {
-      icon: Headphones,
-      title: '24/7 AI Support',
-      description: 'Get help anytime, anywhere.',
-    },
-  ]
+const FEATURES = [
+  {
+    icon: ShieldCheck,
+    title: 'Trusted by thousands of aspirants',
+    description: 'Reliable, current and built around the official pattern.',
+  },
+  {
+    icon: Lock,
+    title: 'Secure and private',
+    description: 'Your attempts and scores stay yours alone.',
+  },
+  {
+    icon: Headphones,
+    title: 'Support whenever you study',
+    description: 'Answers at 6am or midnight, whichever you keep.',
+  },
+]
 
+export default function FeatureHighlights() {
   return (
-    <div className="my-10 rounded-2xl border border-border/80 bg-card p-6 shadow-2xs sm:p-7">
-      <div className="grid gap-6 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border/60">
-        {features.map((item, idx) => {
+    <section className="mt-14 overflow-hidden rounded-3xl bg-bloom-indigo p-8 sm:p-10 lg:mt-20">
+      <div className="grid gap-8 sm:grid-cols-3 sm:gap-6">
+        {FEATURES.map((item) => {
           const Icon = item.icon
           return (
-            <div
-              key={idx}
-              className={`flex items-center gap-3.5 ${
-                idx > 0 ? 'pt-4 sm:pt-0 sm:pl-6' : ''
-              }`}
-            >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/40 bg-muted text-primary">
-                <Icon className="h-5 w-5 stroke-[2.2]" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-foreground sm:text-sm">{item.title}</h4>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">{item.description}</p>
-              </div>
+            <div key={item.title} className="flex flex-col">
+              <Icon
+                className="h-5 w-5 text-[color:var(--primary-foreground)]"
+                strokeWidth={1.6}
+              />
+              <h3 className="mt-4 text-base font-medium leading-snug text-[color:var(--primary-foreground)]">
+                {item.title}
+              </h3>
+              <p className="mt-1.5 text-xs leading-relaxed text-[color:var(--primary-foreground)]/65">
+                {item.description}
+              </p>
             </div>
           )
         })}
       </div>
-    </div>
+    </section>
   )
 }
