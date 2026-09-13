@@ -36,10 +36,16 @@ function refreshTokenExpiresAt(): string {
 /**
  * Find an existing user by google_id, or create a new one.
  * Uses an upsert on google_id to prevent duplicate accounts.
+ *
+ * `resolveSupabaseUid` is a thunk rather than a value because obtaining the
+ * Supabase UID costs a round trip to Supabase Auth (which in turn calls
+ * Google). Only a brand-new row needs one — for everybody else the column is
+ * already populated and re-deriving it just to write back the same value made
+ * every single sign-in pay for it. It is awaited lazily, on the create path.
  */
 export async function findOrCreateUser(
-  supabaseUid: string,
-  profile: GoogleProfile
+  profile: GoogleProfile,
+  resolveSupabaseUid: () => Promise<string>
 ): Promise<DbUser> {
   // Try to find existing user by google_id first
   const { data: existing, error: selectErr } = await supabaseAdmin
@@ -54,22 +60,28 @@ export async function findOrCreateUser(
   }
 
   if (existing) {
-    // Update name/avatar in case they changed in Google
+    // Google rarely changes a name or a photo, so writing them back on every
+    // sign-in was a round trip that almost always stored what was already
+    // there. Skip it unless something actually differs.
+    const row = existing as DbUser
+    if (row.name === profile.name && row.avatar_url === profile.avatarUrl) {
+      return row
+    }
+
     const { data: updated, error: updateErr } = await supabaseAdmin
       .from('users')
       .update({
         name: profile.name,
         avatar_url: profile.avatarUrl,
-        supabase_uid: supabaseUid,
       })
-      .eq('id', existing.id)
+      .eq('id', row.id)
       .select('*')
       .single()
 
     if (updateErr) {
       console.error('[DB] findOrCreateUser update error:', updateErr)
       // Non-fatal: return existing data
-      return existing as DbUser
+      return row
     }
     return updated as DbUser
   }
@@ -78,7 +90,7 @@ export async function findOrCreateUser(
   const { data: created, error: insertErr } = await supabaseAdmin
     .from('users')
     .insert({
-      supabase_uid: supabaseUid,
+      supabase_uid: await resolveSupabaseUid(),
       google_id: profile.googleId,
       email: profile.email,
       name: profile.name,

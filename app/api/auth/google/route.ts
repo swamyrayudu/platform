@@ -4,15 +4,19 @@
 // Full login flow:
 // 1. Rate limit check
 // 2. Verify Google ID token server-side
-// 3. Find/create user
-// 4. Get trusted client IP → HMAC hash
-// 5. Upsert device
-// 6. DB: revoke old session → create new session (atomic)
-// 7. Issue access token + refresh token
-// 8. Web: set HttpOnly cookies | Mobile: return JSON
+// 3. Get trusted client IP → HMAC hash
+// 4. Find/create user
+// 5. DB: revoke old session → create new session (atomic)
+// 6. Issue access token + refresh token
+// 7. Web: set HttpOnly cookies | Mobile: return JSON
+// 8. After the response: upsert device, write the audit entry
+//
+// Everything on the critical path is a network round trip, so the ordering
+// above is load-bearing: anything the browser does not need before it is
+// signed in has been moved out of it.
 // ============================================================
 
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import { createHash } from 'crypto'
 import { verifyGoogleIdToken } from '@/lib/auth/google'
 import { findOrCreateUser, upsertDevice, revokeActiveSession, createSession, logSecurityEvent } from '@/lib/auth/db'
@@ -42,6 +46,26 @@ function googleIdToUuid(googleId: string): string {
 }
 
 const ALLOWED_PLATFORMS: Platform[] = ['WEB', 'ANDROID', 'IOS']
+
+/**
+ * Does nothing, on purpose.
+ *
+ * A cold serverless function costs about a second before a single line of the
+ * handler below runs, and the landing page knows a sign-in is coming long
+ * before the credential arrives. GET and POST of one route file ship in the
+ * same bundle, so touching this boots the instance that POST will land on.
+ * It reads nothing, writes nothing, and is not rate limited because there is
+ * nothing here to abuse.
+ */
+export function GET(): Response {
+  // A one-byte body rather than a 204: fetch() treats an empty no-content
+  // response as aborted, which puts a red line in the network panel for a
+  // request that did exactly what it was meant to.
+  return new Response('ok', {
+    status: 200,
+    headers: { 'Cache-Control': 'no-store', 'Content-Type': 'text/plain' },
+  })
+}
 
 export async function POST(request: Request): Promise<Response> {
   try {
@@ -93,26 +117,25 @@ export async function POST(request: Request): Promise<Response> {
     // ---- Verify Google ID token (server-side) --------------------
     const googleProfile = await verifyGoogleIdToken(idToken, expectedNonce)
 
-    // ---- Use Supabase Auth to get/create the Supabase user -------
-    // signInWithIdToken handles Google OIDC token verification at the Supabase level
-    // We use this to get a stable supabase_uid for the user.
-    const { data: supabaseAuthData, error: supabaseAuthError } = await supabaseAdmin.auth.signInWithIdToken({
-      provider: 'google',
-      token: idToken,
-    })
-
-    let supabaseUid: string
-    if (supabaseAuthError || !supabaseAuthData.user) {
-      // Fallback: Supabase Google provider not yet enabled.
-      // Derive a deterministic UUID from the Google ID so it fits the UUID column.
-      console.warn('[Auth] Supabase signInWithIdToken failed, deriving UUID from google_id:', supabaseAuthError?.message)
-      supabaseUid = googleIdToUuid(googleProfile.googleId)
-    } else {
-      supabaseUid = supabaseAuthData.user.id
-    }
-
     // ---- Find or create user in our custom users table ----------
-    const user = await findOrCreateUser(supabaseUid, googleProfile)
+    // signInWithIdToken gives us a stable supabase_uid, but it is a second
+    // full verification of a token this route has already verified itself,
+    // and Supabase Auth calls out to Google to do it. Only a first-ever
+    // sign-in needs the value, so it is passed as a thunk and never runs for
+    // a returning user.
+    const user = await findOrCreateUser(googleProfile, async () => {
+      const { data, error } = await supabaseAdmin.auth.signInWithIdToken({
+        provider: 'google',
+        token: idToken,
+      })
+      if (error || !data.user) {
+        // Fallback: Supabase Google provider not yet enabled.
+        // Derive a deterministic UUID from the Google ID so it fits the UUID column.
+        console.warn('[Auth] Supabase signInWithIdToken failed, deriving UUID from google_id:', error?.message)
+        return googleIdToUuid(googleProfile.googleId)
+      }
+      return data.user.id
+    })
 
     // ---- Device info -------------------------------------------
     const deviceInfo: DeviceInfo = {
@@ -120,9 +143,6 @@ export async function POST(request: Request): Promise<Response> {
       platform: platform as Platform,
       userAgent: typeof userAgent === 'string' ? userAgent : (request.headers.get('user-agent') ?? 'unknown'),
     }
-
-    // ---- Upsert device record ----------------------------------
-    await upsertDevice(user.id, deviceInfo, ipHash)
 
     // ---- Generate tokens BEFORE transaction -------------------------
     // (so we have the hash to store)
@@ -144,16 +164,24 @@ export async function POST(request: Request): Promise<Response> {
       user.session_version
     )
 
-    // ---- Log security event ------------------------------------
-    await logSecurityEvent({
-      userId: user.id,
-      eventType: 'NEW_DEVICE_LOGIN',
-      deviceId: deviceInfo.deviceId,
-      ipHash,
-      metadata: {
-        platform: deviceInfo.platform,
-        isNewUser: user.created_at === user.updated_at,
-      },
+    // ---- Bookkeeping, after the response ------------------------
+    // Neither the device row nor the audit entry is read back before the user
+    // is signed in, and sessions.device_id carries no foreign key to devices,
+    // so making the browser wait on two more writes bought nothing. They still
+    // run on the same invocation — `after` defers them past the response
+    // rather than dropping them.
+    after(async () => {
+      await upsertDevice(user.id, deviceInfo, ipHash)
+      await logSecurityEvent({
+        userId: user.id,
+        eventType: 'NEW_DEVICE_LOGIN',
+        deviceId: deviceInfo.deviceId,
+        ipHash,
+        metadata: {
+          platform: deviceInfo.platform,
+          isNewUser: user.created_at === user.updated_at,
+        },
+      })
     })
 
     // ---- Sign access token -------------------------------------

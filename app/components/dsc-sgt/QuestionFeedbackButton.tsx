@@ -35,6 +35,22 @@ export default function QuestionFeedbackButton({
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
 
+  // During an exam this component is mounted once and the question changes
+  // underneath it, so React keeps the same instance. Without this, reporting
+  // Q1 left the button stuck on "Reported" for every question after it — and
+  // the panel would have reopened carrying Q1's reason and notes.
+  //
+  // Adjusted during render rather than in an effect so the button is never
+  // briefly wrong on the first frame of a new question.
+  const [lastUid, setLastUid] = useState(questionUid)
+  if (lastUid !== questionUid) {
+    setLastUid(questionUid)
+    setSent(false)
+    setOpen(false)
+    setReason(null)
+    setDetails('')
+  }
+
   const needsDetails = reason === 'other'
   const canSend = reason !== null && !sending && (!needsDetails || details.trim().length > 0)
 

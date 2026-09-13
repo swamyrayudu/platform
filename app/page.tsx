@@ -34,7 +34,7 @@ declare global {
 
 export default function Home() {
   const router = useRouter()
-  const { user, loading, refreshUser } = useAuth()
+  const { user, loading, updateUser } = useAuth()
   const [isSigningIn, setIsSigningIn] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [rateLimit, setRateLimit] = useState<{ limited: boolean; retryAfter?: number }>({
@@ -52,7 +52,9 @@ export default function Home() {
   // Redirect if already logged in
   useEffect(() => {
     if (!loading && user) {
-      router.replace('/home')
+      // Must agree with the destination chosen right after sign-in below,
+      // or the two send the same user to two different places at once.
+      router.replace(user.onboardingCompleted === false ? '/onboarding' : '/home')
     }
   }, [user, loading, router])
 
@@ -63,6 +65,8 @@ export default function Home() {
     setIsSigningIn(true)
     setError(null)
     setRateLimit({ limited: false })
+
+    let navigating = false
 
     try {
       const deviceId = getOrCreateDeviceId()
@@ -85,12 +89,17 @@ export default function Home() {
         toast.success('Signed in successfully!', {
           description: 'Welcome to rsdeducation.',
         })
-        await refreshUser()
+        // This response already carries the freshly signed-in user, so the
+        // refetch that used to sit here was a second round trip to a server
+        // in another region for something we were holding. Adopt it directly
+        // and navigate in the same tick.
+        if (data.user) updateUser(data.user)
         // Route based on onboarding status
+        navigating = true
         if (data.user && data.user.onboardingCompleted === false) {
-          router.push('/onboarding')
+          router.replace('/onboarding')
         } else {
-          router.push('/home')
+          router.replace('/home')
         }
         return
       }
@@ -124,7 +133,9 @@ export default function Home() {
       setError(errorMsg)
       toast.error('Connection Error', { description: errorMsg })
     } finally {
-      setIsSigningIn(false)
+      // Leaving it set on the success path keeps the button in its pending
+      // state until the new page paints, instead of flashing back to idle.
+      if (!navigating) setIsSigningIn(false)
     }
   }
 
@@ -152,6 +163,11 @@ export default function Home() {
       // returned ID token, and /api/auth/google requires it to match the
       // HttpOnly cookie the server set — which binds the token to this browser
       // so a captured token cannot be replayed from elsewhere.
+      //
+      // Kicked off alongside, never awaited: this only boots the sign-in
+      // function so the click that follows does not pay for its cold start.
+      fetch('/api/auth/google', { method: 'GET' }).catch(() => {})
+
       let nonce: string | undefined
       try {
         const res = await fetch('/api/auth/nonce', { credentials: 'include' })
