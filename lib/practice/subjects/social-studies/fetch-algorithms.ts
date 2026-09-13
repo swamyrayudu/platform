@@ -90,6 +90,9 @@ export async function fetchTeluguMediumQuestions(
     let query = supabaseAdmin
       .from('socal_telugu_medimum')
       .select('*')
+      // Retired questions stay in the table so existing mock mappings keep
+      // resolving, but they must not be served to practice.
+      .eq('is_active', true)
       .order('created_at', { ascending: false })
 
     // 1. Filter by Class Levels
@@ -157,6 +160,9 @@ export async function fetchEnglishMediumQuestions(
     let query = supabaseAdmin
       .from('socal_english_medium')
       .select('*')
+      // Retired questions stay in the table so existing mock mappings keep
+      // resolving, but they must not be served to practice.
+      .eq('is_active', true)
       .order('created_at', { ascending: false })
 
     // 1. Filter by Class Levels
