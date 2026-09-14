@@ -15,6 +15,7 @@
 import type { CsvRow } from './csv'
 import {
   BULK_EDITABLE_COLUMNS,
+  BULK_TAXONOMY_COLUMNS,
   type BulkEditableColumn,
   type BulkFieldDiff,
   type BulkRowResult,
@@ -72,6 +73,7 @@ export function diffPastedRows(input: BulkDiffInput): BulkDiffOutput {
     const warnings: string[] = []
     const diffs: BulkFieldDiff[] = []
     let changesAnswer = false
+    let changesTaxonomy = false
 
     if (!questionId) {
       results.push({
@@ -82,6 +84,7 @@ export function diffPastedRows(input: BulkDiffInput): BulkDiffOutput {
         errors: ['Missing question_id'],
         warnings: [],
         changesAnswer: false,
+        changesTaxonomy: false,
       })
       return
     }
@@ -97,6 +100,7 @@ export function diffPastedRows(input: BulkDiffInput): BulkDiffOutput {
         errors: ['This question_id appears more than once in the paste'],
         warnings: [],
         changesAnswer: false,
+        changesTaxonomy: false,
       })
       return
     }
@@ -111,6 +115,7 @@ export function diffPastedRows(input: BulkDiffInput): BulkDiffOutput {
         errors: [],
         warnings: [`No question with this id in ${tableName}`],
         changesAnswer: false,
+        changesTaxonomy: false,
       })
       return
     }
@@ -144,6 +149,9 @@ export function diffPastedRows(input: BulkDiffInput): BulkDiffOutput {
       }
 
       if (incoming !== before) {
+        if ((BULK_TAXONOMY_COLUMNS as readonly string[]).includes(column)) {
+          changesTaxonomy = true
+        }
         diffs.push({ column, before, after: incoming })
         update[column] = incoming
       }
@@ -176,7 +184,9 @@ export function diffPastedRows(input: BulkDiffInput): BulkDiffOutput {
 
     if (status === 'changed') writes.push({ id: questionId, update })
 
-    results.push({ questionId, line, status, diffs, errors, warnings, changesAnswer })
+    results.push({
+      questionId, line, status, diffs, errors, warnings, changesAnswer, changesTaxonomy,
+    })
   })
 
   return { results, writes }

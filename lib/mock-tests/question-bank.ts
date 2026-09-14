@@ -127,7 +127,21 @@ const DIFFICULTY_ALIASES: Record<string, DifficultyBucket> = {
  * eligible instead of being silently discarded.
  */
 export function normalizeDifficulty(raw: string | null | undefined): DifficultyBucket {
-  if (!raw) return 'medium'
+  return matchDifficulty(raw) ?? 'medium'
+}
+
+/**
+ * The bucket a label genuinely maps to, or null when nothing recognised it.
+ *
+ * normalizeDifficulty answers 'medium' both for a real "Medium" and for a
+ * label it has never seen, which is the right behaviour for generation — a
+ * question stays eligible instead of vanishing. It is the wrong answer for an
+ * admin about to write that label, who needs to know the difference between
+ * "this is medium" and "this will be treated as medium because I do not
+ * understand it". Hence the split.
+ */
+export function matchDifficulty(raw: string | null | undefined): DifficultyBucket | null {
+  if (!raw) return null
   const key = String(raw).trim().toLowerCase()
   const direct = DIFFICULTY_ALIASES[key]
   if (direct) return direct
@@ -136,7 +150,7 @@ export function normalizeDifficulty(raw: string | null | undefined): DifficultyB
   for (const [alias, bucket] of Object.entries(DIFFICULTY_ALIASES)) {
     if (key.includes(alias)) return bucket
   }
-  return 'medium'
+  return null
 }
 
 // ---- Pool question shape -----------------------------------------

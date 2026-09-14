@@ -8,10 +8,25 @@
  * The only columns a paste may write.
  *
  * question_id is identity — a mock module maps to it, so reassigning one would
- * silently repoint an exam at different content. Taxonomy columns (subject,
- * chapter, topic, difficulty) are excluded too: mock generation picks
- * questions by them, so a reworded chapter name would quietly change which
- * module a question is eligible for. Wording is what this tool edits.
+ * silently repoint an exam at different content.
+ *
+ * Classification columns are writable too, because a wrong topic or a wrong
+ * difficulty is one of the things worth fixing during a rewrite pass. None of
+ * them can disturb an existing mock module, which stores a fixed mapping. What
+ * they do reach:
+ *
+ *   topic      a live practice filter, and the spread key for future mock
+ *              generation — a spelling variant splits one filter into two
+ *   subtopic   shown alongside topic, same fragmentation risk
+ *   chapter    display only, plus a fallback for topic when topic is null
+ *   difficulty a live practice filter AND the mock difficulty blueprint, where
+ *              an unrecognised label silently falls back to "medium"
+ *
+ * So topic/subtopic are checked against values already in the table, and
+ * difficulty is checked against the labels the normaliser understands.
+ *
+ * subject stays out: it decides which section of a module a question belongs
+ * to, and nothing in a wording pass should move it.
  */
 export const BULK_EDITABLE_COLUMNS = [
   'question',
@@ -21,7 +36,26 @@ export const BULK_EDITABLE_COLUMNS = [
   'option_d',
   'correct_answer',
   'explanation',
+  // Appended, not inserted: a CSV exported before these existed still parses,
+  // and an 8-column paste is still a valid subset.
+  'topic',
+  'subtopic',
+  'chapter',
+  'difficulty',
 ] as const
+
+/** The subset that classifies a question rather than wording it. */
+export const BULK_TAXONOMY_COLUMNS = ['topic', 'subtopic', 'chapter', 'difficulty'] as const
+
+/**
+ * Classification columns worth checking against what the table already uses.
+ *
+ * chapter is left out because nothing filters on it, so a new value there is
+ * harmless and a warning would be noise. difficulty is left out because it has
+ * a stricter check of its own — a fixed alias list, not whatever happens to be
+ * in the table already.
+ */
+export const BULK_TAXONOMY_CHECKED_COLUMNS = ['topic', 'subtopic'] as const
 
 export type BulkEditableColumn = (typeof BULK_EDITABLE_COLUMNS)[number]
 
@@ -60,6 +94,8 @@ export interface BulkRowResult {
   warnings: string[]
   /** True when this row moves the answer key. Drives the red highlight. */
   changesAnswer: boolean
+  /** True when this row moves topic, subtopic, chapter or difficulty. */
+  changesTaxonomy: boolean
 }
 
 export interface BulkPreviewSummary {
@@ -77,6 +113,20 @@ export interface BulkPreviewSummary {
   outOfRange: number
   /** Rows in the loaded range the paste did not mention. Informational. */
   missing: number
+  /** Rows that move topic, subtopic, chapter or difficulty. */
+  taxonomyChanges: number
+  /**
+   * Pasted difficulty labels the mock generator's normaliser does not know.
+   * These do not fail — they quietly become "medium" — which is exactly why
+   * they are worth seeing before the write.
+   */
+  unrecognisedDifficulty: string[]
+  /**
+   * topic/subtopic values in the paste that appear nowhere else in the table.
+   * Usually a spelling variant of an existing one, which would split a practice
+   * filter in two rather than fixing anything.
+   */
+  newTaxonomyValues: string[]
   /** Present only on an applied run. */
   written?: number
   modulesInvalidated?: number
@@ -95,16 +145,16 @@ export interface BulkPreviewResponse {
   fileErrors: string[]
 }
 
-export interface BulkExportRow {
-  question_id: string
-  question: string
-  option_a: string
-  option_b: string
-  option_c: string
-  option_d: string
-  correct_answer: string
-  explanation: string
-}
+/**
+ * One exported row, derived from BULK_CSV_COLUMNS rather than listed by hand.
+ *
+ * It was listed by hand once, and adding topic/subtopic/chapter/difficulty to
+ * the column list left that literal behind: the query selected twelve columns,
+ * the handler copied eight, and the type agreed with the handler — so the
+ * export silently shipped four empty columns with nothing failing. Deriving it
+ * means a new column cannot be added to the CSV without also being carried.
+ */
+export type BulkExportRow = Record<(typeof BULK_CSV_COLUMNS)[number], string>
 
 export interface BulkExportResponse {
   success: true

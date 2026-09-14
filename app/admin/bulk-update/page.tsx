@@ -395,16 +395,23 @@ export default function BulkUpdatePage() {
           <code className="rounded bg-muted px-1 py-0.5">question_id</code> column. Only{' '}
           <code className="rounded bg-muted px-1 py-0.5">question</code>,{' '}
           <code className="rounded bg-muted px-1 py-0.5">option_a…d</code>,{' '}
-          <code className="rounded bg-muted px-1 py-0.5">correct_answer</code> and{' '}
-          <code className="rounded bg-muted px-1 py-0.5">explanation</code> are written — anything
-          else in the file is ignored. An empty cell leaves that field as it is.
+          <code className="rounded bg-muted px-1 py-0.5">correct_answer</code>,{' '}
+          <code className="rounded bg-muted px-1 py-0.5">explanation</code>,{' '}
+          <code className="rounded bg-muted px-1 py-0.5">topic</code>,{' '}
+          <code className="rounded bg-muted px-1 py-0.5">subtopic</code>,{' '}
+          <code className="rounded bg-muted px-1 py-0.5">chapter</code> and{' '}
+          <code className="rounded bg-muted px-1 py-0.5">difficulty</code> are written.{' '}
+          <code className="rounded bg-muted px-1 py-0.5">subject</code> and everything else in the
+          file is ignored. An empty cell leaves that field as it is, and an older 8-column file
+          still works.
         </p>
 
         <textarea
           value={csv}
           onChange={(e) => setCsv(e.target.value)}
           spellCheck={false}
-          placeholder={'question_id,question,option_a,option_b,option_c,option_d,correct_answer,explanation\nQ000001,"Rewritten stem…","…","…","…","…",B,"…"'}
+          placeholder={`question_id,question,option_a,option_b,option_c,option_d,correct_answer,explanation,topic,subtopic,chapter,difficulty
+Q000001,"Rewritten stem","opt A","opt B","opt C","opt D",B,"why B is right","జీవశాస్త్రం","కణం","అధ్యాయం 1","Medium"`}
           className="mt-3 h-56 w-full resize-y rounded-xl border border-border bg-background p-3 font-mono text-[11px] leading-relaxed text-foreground placeholder:text-muted-foreground/50"
         />
 
@@ -461,7 +468,50 @@ export default function BulkUpdatePage() {
               value={summary.answerChanges}
               tone={summary.answerChanges ? 'bad' : undefined}
             />
+            <Stat
+              label="Reclassified"
+              value={summary.taxonomyChanges}
+              tone={
+                summary.newTaxonomyValues.length || summary.unrecognisedDifficulty.length
+                  ? 'warn'
+                  : undefined
+              }
+            />
           </div>
+
+          {summary.newTaxonomyValues.length > 0 && !applied && (
+            <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs text-amber-700 dark:text-amber-300">
+              <FileWarning className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                <strong>
+                  {summary.newTaxonomyValues.length} topic/subtopic value(s) are new to this table.
+                </strong>{' '}
+                Practice filters on topic, so a near-miss spelling of one that already exists splits
+                that filter in two instead of fixing anything. Check these are deliberate:
+                <span className="mt-1.5 block font-medium">
+                  {summary.newTaxonomyValues.join(' · ')}
+                </span>
+              </span>
+            </div>
+          )}
+
+          {summary.unrecognisedDifficulty.length > 0 && !applied && (
+            <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs text-amber-700 dark:text-amber-300">
+              <FileWarning className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                <strong>
+                  {summary.unrecognisedDifficulty.length} difficulty label(s) the mock generator
+                  cannot read.
+                </strong>{' '}
+                These will not fail — they are silently treated as Medium when a module is built,
+                so the difficulty mix would be wrong without any error. Use a label it knows (Easy
+                / Medium / Hard / Difficult / సులభం / మధ్యస్థం / కఠినం, among others):
+                <span className="mt-1.5 block font-medium">
+                  {summary.unrecognisedDifficulty.join(' · ')}
+                </span>
+              </span>
+            </div>
+          )}
 
           {wrongRange && !applied && (
             <div className="mt-4 flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3.5 text-xs text-destructive">
@@ -643,6 +693,11 @@ function RowCard({ row }: { row: BulkRowResult }) {
         {row.changesAnswer && (
           <span className="rounded-md bg-destructive/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-destructive">
             answer changed
+          </span>
+        )}
+        {row.changesTaxonomy && (
+          <span className="rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+            reclassified
           </span>
         )}
         {row.status === 'not_found' && (

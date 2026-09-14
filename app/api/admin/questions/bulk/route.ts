@@ -33,9 +33,12 @@ import { invalidateMockTestCache } from '@/lib/mock-tests/cache'
 import { parseCsv } from '@/lib/questions/csv'
 import { getQuestionTable, buildQuestionUid } from '@/lib/questions/tables'
 import { collectIds, diffPastedRows, presentEditableColumns } from '@/lib/questions/bulk-diff'
+import { matchDifficulty } from '@/lib/mock-tests/question-bank'
 import {
+  BULK_CSV_COLUMNS,
   BULK_EDITABLE_COLUMNS,
   BULK_MAX_ROWS,
+  BULK_TAXONOMY_CHECKED_COLUMNS,
   type BulkEditableColumn,
   type BulkExportRow,
 } from '@/types/bulk-update'
@@ -119,17 +122,13 @@ export const GET = requireAdmin(async (request) => {
 
     if (error) throw error
 
+    // Built from the column list, not written out field by field — see the
+    // note on BulkExportRow for what hand-listing them cost.
     const rows: BulkExportRow[] = ((data ?? []) as unknown as Record<string, string | null>[]).map(
-      (row) => ({
-        question_id: row.question_id ?? '',
-        question: row.question ?? '',
-        option_a: row.option_a ?? '',
-        option_b: row.option_b ?? '',
-        option_c: row.option_c ?? '',
-        option_d: row.option_d ?? '',
-        correct_answer: row.correct_answer ?? '',
-        explanation: row.explanation ?? '',
-      })
+      (row) =>
+        Object.fromEntries(
+          BULK_CSV_COLUMNS.map((column) => [column, row[column] ?? ''])
+        ) as BulkExportRow
     )
 
     return NextResponse.json({
@@ -145,6 +144,37 @@ export const GET = requireAdmin(async (request) => {
     return NextResponse.json({ success: false, error: 'Could not read that range' }, { status: 500 })
   }
 })
+
+/**
+ * Of the given topic/subtopic values, the ones that appear nowhere else in the
+ * table.
+ *
+ * A rewrite pass legitimately fixes a wrong topic, but it also happily invents
+ * a near-miss spelling of an existing one. Practice filters on topic, so that
+ * would quietly split one filter entry into two rather than correcting
+ * anything. One tiny existence query per distinct value — a hundred rows
+ * moving to three topics costs three queries, not a hundred.
+ */
+async function unknownTaxonomyValues(
+  table: string,
+  values: Map<string, Set<string>>
+): Promise<string[]> {
+  const unknown: string[] = []
+
+  for (const [column, set] of values) {
+    for (const value of set) {
+      const { data, error } = await supabaseAdmin
+        .from(table)
+        .select('question_id')
+        .eq(column, value)
+        .limit(1)
+      if (error) throw error
+      if (!data || data.length === 0) unknown.push(`${column}: ${value}`)
+    }
+  }
+
+  return unknown
+}
 
 // ---- POST: preview, or apply -------------------------------------
 
@@ -297,6 +327,50 @@ export const POST = requireAdmin(async (request) => {
       tableName: table,
     })
 
+    // ---- Flag topic/subtopic values that are new to this table ---
+    const proposedTaxonomy = new Map<string, Set<string>>()
+    for (const result of results) {
+      for (const diff of result.diffs) {
+        if ((BULK_TAXONOMY_CHECKED_COLUMNS as readonly string[]).includes(diff.column)) {
+          const set = proposedTaxonomy.get(diff.column) ?? new Set<string>()
+          set.add(diff.after)
+          proposedTaxonomy.set(diff.column, set)
+        }
+      }
+    }
+    const newTaxonomyValues = await unknownTaxonomyValues(table, proposedTaxonomy)
+    if (newTaxonomyValues.length > 0) {
+      const unknownSet = new Set(newTaxonomyValues)
+      for (const result of results) {
+        for (const diff of result.diffs) {
+          if (unknownSet.has(`${diff.column}: ${diff.after}`)) {
+            result.warnings.push(
+              `"${diff.after}" is a new ${diff.column} — nothing else in this table uses it`
+            )
+          }
+        }
+      }
+    }
+
+    // ---- Flag difficulty labels the generator cannot read ---------
+    // An unknown label is not an error anywhere downstream; it just becomes
+    // "medium" without saying so. Surfacing it here is the only chance to
+    // notice.
+    const unrecognisedDifficulty: string[] = []
+    for (const result of results) {
+      for (const diff of result.diffs) {
+        if (diff.column !== 'difficulty') continue
+        if (matchDifficulty(diff.after) === null) {
+          if (!unrecognisedDifficulty.includes(diff.after)) {
+            unrecognisedDifficulty.push(diff.after)
+          }
+          result.warnings.push(
+            `"${diff.after}" is not a difficulty the mock generator recognises — it would be treated as Medium`
+          )
+        }
+      }
+    }
+
     // A row outside the loaded range is refused whatever else it says, and it
     // reports as its own thing so the UI can explain the real problem rather
     // than showing a generic validation failure.
@@ -323,6 +397,9 @@ export const POST = requireAdmin(async (request) => {
       answerChanges: results.filter((r) => r.changesAnswer).length,
       outOfRange: outOfRangeIds.size,
       missing: allowedIds.size - pastedInRange.size,
+      taxonomyChanges: results.filter((r) => r.changesTaxonomy).length,
+      newTaxonomyValues,
+      unrecognisedDifficulty,
     }
 
     // ---- Preview stops here --------------------------------------
