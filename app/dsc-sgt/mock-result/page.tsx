@@ -18,6 +18,7 @@ import {
   RotateCcw,
   Target,
   ArrowRight,
+  Pencil,
 } from 'lucide-react'
 import { COPY_GUARD_CLASS, copyGuardProps } from '@/app/components/dsc-sgt/CopyGuard'
 import QuestionFeedbackButton from '@/app/components/dsc-sgt/QuestionFeedbackButton'
@@ -92,6 +93,21 @@ function QuestionReviewCard({
 
       {open && (
         <div className="border-t border-border/60 px-4 py-3.5 text-xs space-y-3">
+          {/* The result itself is frozen at submit time, so an edit can never
+              change the mark. It can change the wording, and a candidate who
+              remembers the old question deserves to know why it reads
+              differently. */}
+          {item.edited_since_attempt && (
+            <p className="flex items-start gap-2 rounded-xl bg-amber-500/10 px-3 py-2 text-[11px] text-amber-700 dark:text-amber-300">
+              <Pencil className="mt-0.5 h-3 w-3 shrink-0" />
+              <span>
+                ఈ ప్రశ్న మీరు పరీక్ష రాసిన తర్వాత సవరించబడింది. మీ మార్కులు మారవు.
+                <span className="block opacity-80">
+                  This question was updated after your attempt. Your score is unchanged.
+                </span>
+              </span>
+            </p>
+          )}
           <p className="font-semibold text-foreground leading-relaxed">{item.question}</p>
           <div className="grid gap-1.5">
             {(['A', 'B', 'C', 'D'] as const).map((key) => {

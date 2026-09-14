@@ -36,6 +36,8 @@ import {
   Clock,
   Database,
   Flag,
+  Replace,
+  Plus,
   Download,
   FileSpreadsheet,
   FileJson,
@@ -704,6 +706,22 @@ export default function AdminDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Link
+              href="/admin/module-questions"
+              className="flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <Replace className="h-3.5 w-3.5" />
+              Module questions
+            </Link>
+
+            <Link
+              href="/admin/import-questions"
+              className="flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Import questions
+            </Link>
+
             <Link
               href="/admin/bulk-update"
               className="flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"

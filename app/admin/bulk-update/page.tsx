@@ -276,6 +276,9 @@ export default function BulkUpdatePage() {
   // A paste carrying rows from some other slice of the table is not a
   // validation problem to fix row by row — it is the wrong file.
   const wrongRange = (summary?.outOfRange ?? 0) > 0
+  // Not a mistake in the paste — a timing problem. Applying is off until the
+  // candidates sitting those modules are done.
+  const liveBlocked = (summary?.liveLocked ?? 0) > 0
   const blocked = (summary?.invalid ?? 0) > 0 || (summary?.changed ?? 0) === 0
 
   return (
@@ -461,6 +464,7 @@ Q000001,"Rewritten stem","opt A","opt B","opt C","opt D",B,"why B is right","జ
             <Stat label="Will change" value={summary.changed} tone="primary" />
             <Stat label="Already match" value={summary.unchanged} />
             <Stat label="Not in range" value={summary.outOfRange} tone={wrongRange ? 'bad' : undefined} />
+            <Stat label="Exam live" value={summary.liveLocked} tone={liveBlocked ? 'bad' : undefined} />
             <Stat label="Not found" value={summary.notFound} tone={summary.notFound ? 'warn' : undefined} />
             <Stat label="Invalid" value={summary.invalid} tone={summary.invalid ? 'bad' : undefined} />
             <Stat
@@ -491,6 +495,22 @@ Q000001,"Rewritten stem","opt A","opt B","opt C","opt D",B,"why B is right","జ
                 <span className="mt-1.5 block font-medium">
                   {summary.newTaxonomyValues.join(' · ')}
                 </span>
+              </span>
+            </div>
+          )}
+
+          {liveBlocked && !applied && (
+            <div className="mt-4 flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3.5 text-xs text-destructive">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                <strong>
+                  {summary.liveAttempts} candidate(s) are mid-exam on modules containing these
+                  questions.
+                </strong>{' '}
+                {summary.liveLocked} row(s) change an option or the answer key. A stored answer is
+                only the letter they tapped, so moving what B says marks them on an answer they
+                never gave. Wait until those attempts finish, or paste a version that changes only
+                the wording.
               </span>
             </div>
           )}
@@ -571,7 +591,9 @@ Q000001,"Rewritten stem","opt A","opt B","opt C","opt D",B,"why B is right","జ
               <p className="text-[11px] text-muted-foreground">
                 {wrongRange
                   ? 'Applying is off until the paste matches the range you loaded.'
-                  : blocked
+                  : liveBlocked
+                    ? 'Applying is off while those attempts are in progress.'
+                    : blocked
                     ? summary.invalid > 0
                       ? 'Fix the invalid rows above — nothing can be written until they are valid.'
                       : 'Nothing to write.'
@@ -579,7 +601,7 @@ Q000001,"Rewritten stem","opt A","opt B","opt C","opt D",B,"why B is right","జ
               </p>
               {/* Not merely disabled: a paste from the wrong range is not
                   something to nudge past, so the control is not offered. */}
-              {!wrongRange && (
+              {!wrongRange && !liveBlocked && (
                 <button
                   onClick={() => runPreview(true)}
                   disabled={applying || blocked}
@@ -681,6 +703,7 @@ const STATUS_STYLE: Record<BulkRowResult['status'], string> = {
   unchanged: 'border-border',
   not_found: 'border-amber-500/40',
   out_of_range: 'border-destructive/50',
+  live_locked: 'border-destructive/50',
   invalid: 'border-destructive/50',
 }
 
@@ -703,6 +726,11 @@ function RowCard({ row }: { row: BulkRowResult }) {
         {row.status === 'not_found' && (
           <span className="rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400">
             not found
+          </span>
+        )}
+        {row.status === 'live_locked' && (
+          <span className="rounded-md bg-destructive/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-destructive">
+            exam in progress
           </span>
         )}
         {row.status === 'out_of_range' && (

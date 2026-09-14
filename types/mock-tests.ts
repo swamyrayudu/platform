@@ -249,10 +249,21 @@ export interface QuestionReviewItem extends ClientSafeMockQuestion {
   user_answer: SelectedOption
   correct_answer: string        // Revealed ONLY after submission
   explanation: string | null    // Revealed ONLY after submission
+  /**
+   * The verdict recorded when the attempt was submitted, not a fresh
+   * comparison. A question edited afterwards must not be able to change what
+   * a finished result says.
+   */
   is_correct: boolean
   is_skipped: boolean
   is_marked: boolean
   time_taken_seconds: number
+  /**
+   * True when the source question was edited after this attempt was submitted,
+   * so the text shown here is not what the candidate actually sat. Their score
+   * is unaffected — it is the wording that has moved on.
+   */
+  edited_since_attempt: boolean
 }
 
 export interface MockTestLeaderboardEntry {

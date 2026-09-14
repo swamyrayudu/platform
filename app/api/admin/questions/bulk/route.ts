@@ -33,6 +33,7 @@ import { invalidateMockTestCache } from '@/lib/mock-tests/cache'
 import { parseCsv } from '@/lib/questions/csv'
 import { getQuestionTable, buildQuestionUid } from '@/lib/questions/tables'
 import { collectIds, diffPastedRows, presentEditableColumns } from '@/lib/questions/bulk-diff'
+import { findLiveAttempts } from '@/lib/mock-tests/live-attempts'
 import { matchDifficulty } from '@/lib/mock-tests/question-bank'
 import {
   BULK_CSV_COLUMNS,
@@ -201,6 +202,54 @@ async function findModulesUsingAny(uids: string[]) {
     .in('id', [...testIds])
 
   return (tests ?? []) as { id: string; version: number }[]
+}
+
+/** Columns whose change makes a stored answer mean something different. */
+const ANSWER_AFFECTING = ['option_a', 'option_b', 'option_c', 'option_d', 'correct_answer']
+
+/**
+ * Which of these questions sit in a module somebody is sitting right now, and
+ * how many such attempts there are.
+ *
+ * A candidate's answer is stored as nothing but the letter they tapped. Reword
+ * option B underneath them and that letter now points at a different
+ * statement — they are marked on an answer they never gave. Wording the stem
+ * is survivable; the options and the key are not.
+ */
+async function liveAttemptScope(
+  uids: string[]
+): Promise<{ lockedUids: Set<string>; attempts: number }> {
+  const lockedUids = new Set<string>()
+  if (uids.length === 0) return { lockedUids, attempts: 0 }
+
+  // uid -> the modules that contain it
+  const modulesByUid = new Map<string, string[]>()
+  const allModules = new Set<string>()
+  for (let i = 0; i < uids.length; i += 100) {
+    const { data } = await supabaseAdmin
+      .from('mock_test_questions')
+      .select('question_uid, mock_test_id')
+      .in('question_uid', uids.slice(i, i + 100))
+    for (const row of data ?? []) {
+      const uid = row.question_uid as string
+      const testId = row.mock_test_id as string
+      modulesByUid.set(uid, [...(modulesByUid.get(uid) ?? []), testId])
+      allModules.add(testId)
+    }
+  }
+  if (allModules.size === 0) return { lockedUids, attempts: 0 }
+
+  // Only attempts still inside their exam window. A closed tab leaves a row at
+  // in_progress indefinitely, and counting those would block edits for ever.
+  const liveList = await findLiveAttempts([...allModules])
+  const liveModules = new Set(liveList.map((a) => a.mockTestId))
+  const attempts = liveList.length
+
+  for (const [uid, testIds] of modulesByUid) {
+    if (testIds.some((id) => liveModules.has(id))) lockedUids.add(uid)
+  }
+
+  return { lockedUids, attempts }
 }
 
 export const POST = requireAdmin(async (request) => {
@@ -383,10 +432,44 @@ export const POST = requireAdmin(async (request) => {
         result.changesAnswer = false
       }
     }
+    // ---- Refuse edits that move the ground under a live exam ------
+    const changedUids = results
+      .filter((r) => r.status === 'changed')
+      .map((r) => buildQuestionUid(table, r.questionId))
+    const { lockedUids, attempts: liveAttempts } = await liveAttemptScope(changedUids)
+
+    let liveLocked = 0
+    if (lockedUids.size > 0) {
+      const writeByeId = new Map(writes.map((w) => [w.id, w.update]))
+      for (const result of results) {
+        if (result.status !== 'changed') continue
+        if (!lockedUids.has(buildQuestionUid(table, result.questionId))) continue
+
+        const update = writeByeId.get(result.questionId) ?? {}
+        const touchesAnswer = ANSWER_AFFECTING.some((column) => column in update)
+
+        if (touchesAnswer) {
+          result.status = 'live_locked'
+          result.errors.push(
+            'Someone is sitting a module with this question right now — changing an option or the answer would mark them on an answer they never gave'
+          )
+          liveLocked++
+        } else {
+          result.warnings.push(
+            'A module with this question has a live attempt; wording-only changes are safe'
+          )
+        }
+      }
+    }
+
     const blockedByRange = outOfRangeIds.size > 0
-    const writable = blockedByRange
-      ? []
-      : writes.filter(({ id }) => pastedInRange.has(id))
+    const lockedIds = new Set(
+      results.filter((r) => r.status === 'live_locked').map((r) => r.questionId)
+    )
+    const writable =
+      blockedByRange || liveLocked > 0
+        ? []
+        : writes.filter(({ id }) => pastedInRange.has(id) && !lockedIds.has(id))
 
     const summary = {
       parsed: parsed.rows.length,
@@ -396,6 +479,8 @@ export const POST = requireAdmin(async (request) => {
       invalid: results.filter((r) => r.status === 'invalid').length,
       answerChanges: results.filter((r) => r.changesAnswer).length,
       outOfRange: outOfRangeIds.size,
+      liveAttempts,
+      liveLocked,
       missing: allowedIds.size - pastedInRange.size,
       taxonomyChanges: results.filter((r) => r.changesTaxonomy).length,
       newTaxonomyValues,
@@ -414,6 +499,16 @@ export const POST = requireAdmin(async (request) => {
         rows: results,
         fileErrors,
       })
+    }
+
+    if (liveLocked > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `${liveLocked} row(s) change an option or the answer key while ${liveAttempts} candidate(s) are mid-exam on a module containing them. Nothing was written — apply these once those attempts finish, or edit only the wording for now.`,
+        },
+        { status: 409 }
+      )
     }
 
     if (blockedByRange) {

@@ -553,7 +553,11 @@ export async function submitAttempt(
     qMappings || [],
     answersMap,
     answerKeyMap,
-    await getCachedQuestionsForReview(mockTestId, testVersion)
+    await getCachedQuestionsForReview(mockTestId, testVersion),
+    // Submitting right now, so nothing can have been edited since. answersMap
+    // here still predates the is_correct write below, which is why the live
+    // comparison fallback matters on this path.
+    new Date().toISOString()
   )
 
   return {
@@ -606,7 +610,7 @@ async function getCachedQuestionsForReview(
   const fetches = Array.from(tableGroups.entries()).map(([tableName, ids]) =>
     supabaseAdmin
       .from(tableName)
-      .select('question_id, question, option_a, option_b, option_c, option_d, subject, chapter, topic, subtopic, difficulty, question_type')
+      .select('question_id, question, option_a, option_b, option_c, option_d, subject, chapter, topic, subtopic, difficulty, question_type, updated_at')
       .in('question_id', ids)
       .then(({ data }) => {
         if (!data) return
@@ -626,6 +630,9 @@ async function getCachedQuestionsForReview(
               subtopic: row.subtopic || null,
               difficulty: row.difficulty || 'Medium',
               question_type: row.question_type || 'MCQ',
+              // Used only to tell a candidate their question has been reworded
+              // since they sat it; never to re-mark anything.
+              updated_at: row.updated_at ?? null,
               section_id: meta.section_id,
               section_name: meta.section_name,
               question_number: meta.question_number,
@@ -644,8 +651,10 @@ function buildQuestionsReview(
   qMappings: any[],
   answersMap: Map<string, any>,
   answerKeyMap: Map<string, any>,
-  questionContent: Map<string, any>
+  questionContent: Map<string, any>,
+  submittedAt: string | null
 ): QuestionReviewItem[] {
+  const submittedMs = submittedAt ? new Date(submittedAt).getTime() : null
   return qMappings
     .sort((a: any, b: any) => a.question_number - b.question_number)
     .map((m: any) => {
@@ -675,7 +684,17 @@ function buildQuestionsReview(
         user_answer: userAnswer?.selected_option ?? null,
         correct_answer: keyEntry?.correct_answer || 'A',  // Revealed after submit
         explanation: keyEntry?.explanation || null,        // Revealed after submit
-        is_correct: userAnswer?.selected_option === keyEntry?.correct_answer,
+        // The verdict written at submit time wins. Recomputing it here against
+        // the current answer key let a later edit silently contradict the score
+        // the candidate was given — a review that ticked a question the total
+        // had counted wrong. The live comparison stays only as a fallback for
+        // rows predating the stored column.
+        is_correct:
+          userAnswer?.is_correct ?? userAnswer?.selected_option === keyEntry?.correct_answer,
+        edited_since_attempt:
+          submittedMs !== null &&
+          content?.updated_at != null &&
+          new Date(content.updated_at).getTime() > submittedMs,
         is_skipped: !userAnswer?.selected_option,
         is_marked: userAnswer?.marked_for_review || false,
         time_taken_seconds: userAnswer?.time_taken_seconds || 0,
@@ -761,7 +780,13 @@ export async function getAttemptResult(
 
   const questionContent = await getCachedQuestionsForReview(attempt.mock_test_id, attempt.test_version)
   const questionsReview = answerKeyMap
-    ? buildQuestionsReview(qMappings || [], answersMap, answerKeyMap, questionContent)
+    ? buildQuestionsReview(
+        qMappings || [],
+        answersMap,
+        answerKeyMap,
+        questionContent,
+        attempt.submitted_at ?? null
+      )
     : []
 
   const avgTime = attempt.total_questions > 0

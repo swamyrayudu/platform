@@ -74,6 +74,11 @@ export type BulkRowStatus =
   | 'not_found'
   /** Real row, but outside the range that was loaded — refused. */
   | 'out_of_range'
+  /**
+   * Changes an option or the answer key while somebody is sitting a module
+   * that contains it — refused until they finish.
+   */
+  | 'live_locked'
   /** Failed validation — skipped, and blocks apply. */
   | 'invalid'
 
@@ -113,6 +118,14 @@ export interface BulkPreviewSummary {
   outOfRange: number
   /** Rows in the loaded range the paste did not mention. Informational. */
   missing: number
+  /** In-progress attempts on modules containing any of the pasted questions. */
+  liveAttempts: number
+  /**
+   * Rows refused because they would move an option or the answer key out from
+   * under someone mid-exam. A stored answer is only the letter they picked, so
+   * changing what B says silently repoints it.
+   */
+  liveLocked: number
   /** Rows that move topic, subtopic, chapter or difficulty. */
   taxonomyChanges: number
   /**
