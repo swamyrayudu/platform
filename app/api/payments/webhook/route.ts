@@ -103,7 +103,10 @@ export async function POST(request: Request) {
               expiresAt: result.expiresAt,
               via: 'webhook',
               event,
-              orderId: payment.order_id,
+              // The resolved id, not payment.order_id: on an `order.paid`
+              // event the payment entity may not carry one, and a null here
+              // would drop the row out of the per-order payment log.
+              orderId,
               paymentId: payment.id,
             },
           })

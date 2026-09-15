@@ -36,6 +36,10 @@ export type ReconcileOutcome =
   | 'already_paid'
   /** Razorpay has no payment at all — the candidate never paid. Correct as-is. */
   | 'no_payment'
+  /** A payment exists but has not resolved yet — a UPI collect request the
+   *  candidate has not approved or rejected. Ask again later; do NOT treat
+   *  this as a failure, and above all do not mark the order FAILED. */
+  | 'pending'
   /** Every attempt against this order was declined. Marked FAILED. */
   | 'failed'
   /** Payment exists but its amount or currency does not match the order. */
@@ -179,26 +183,21 @@ async function reconcileOne(order: UnsettledOrderRow): Promise<ReconcileRow> {
     return { ...base, outcome: 'no_payment' }
   }
 
-  // An "authorized" payment is money held but not yet taken. Capturing it is
-  // what verify would have done, so do the same here rather than leaving the
-  // candidate's money in limbo until Razorpay auto-voids it.
-  let settled = payments.find((p) => p.status === 'captured')
-  if (!settled) {
-    const authorized = payments.find((p) => p.status === 'authorized')
-    if (authorized) {
-      try {
-        await getRazorpay().payments.capture(authorized.id, order.amount, order.currency)
-        settled = { ...authorized, status: 'captured' }
-      } catch (err) {
-        console.error(`[Reconcile] ${authorized.id}: capture failed:`, err)
-        return { ...base, outcome: 'error', paymentId: authorized.id, detail: 'Capture failed' }
-      }
-    }
-  }
+  // A payment sitting at "created" has not resolved: that is a UPI collect
+  // request waiting in somebody's PhonePe. It is neither a success nor a
+  // failure, and calling it a failure here would tell a candidate their
+  // payment was declined while their money is still on its way.
+  const stillPending = payments.some((p) => p.status === 'created')
 
-  if (!settled) {
-    // Everything against this order was declined. Record why, so the admin
-    // list can show something better than a silent CREATED row.
+  const candidate =
+    payments.find((p) => p.status === 'captured') ?? payments.find((p) => p.status === 'authorized')
+
+  if (!candidate) {
+    if (stillPending) {
+      return { ...base, outcome: 'pending', detail: 'Awaiting approval in the UPI app' }
+    }
+    // Everything against this order really was declined. Record why, so the
+    // admin list can show something better than a silent CREATED row.
     const last = payments[0]
     await markPaymentOrderFailed(
       order.razorpay_order_id,
@@ -213,13 +212,27 @@ async function reconcileOne(order: UnsettledOrderRow): Promise<ReconcileRow> {
     }
   }
 
-  // Never activate on an amount we did not ask for.
-  if (Number(settled.amount) !== order.amount || settled.currency !== order.currency) {
+  // Check the amount BEFORE capturing, never after. Capturing first and
+  // validating second would take money against an order we then refuse to
+  // honour. This is the order verify does it in, and reconcile must match.
+  if (Number(candidate.amount) !== order.amount || candidate.currency !== order.currency) {
     return {
       ...base,
       outcome: 'mismatch',
-      paymentId: settled.id,
-      detail: `Razorpay says ${settled.amount} ${settled.currency}, order says ${order.amount} ${order.currency}`,
+      paymentId: candidate.id,
+      detail: `Razorpay says ${candidate.amount} ${candidate.currency}, order says ${order.amount} ${order.currency}`,
+    }
+  }
+
+  // "authorized" is money held but not yet taken. Capture it, exactly as
+  // verify would have, rather than leaving it to be auto-voided.
+  const settled = candidate
+  if (candidate.status === 'authorized') {
+    try {
+      await getRazorpay().payments.capture(candidate.id, order.amount, order.currency)
+    } catch (err) {
+      console.error(`[Reconcile] ${candidate.id}: capture failed:`, err)
+      return { ...base, outcome: 'error', paymentId: candidate.id, detail: 'Capture failed' }
     }
   }
 

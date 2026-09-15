@@ -12,6 +12,7 @@ type Endpoint =
   | 'logout'
   | 'payment_order'
   | 'payment_verify'
+  | 'payment_recover'
   | 'coupon'
 
 // ---- Limits per endpoint --------------------------------------
@@ -21,6 +22,10 @@ const LIMITS: Record<Endpoint, { max: number; windowMs: number }> = {
   logout:  { max: 10, windowMs: 15 * 60 * 1000 }, // 10 req / 15 min
   payment_order:  { max: 10, windowMs: 15 * 60 * 1000 }, // 10 orders / 15 min per user
   payment_verify: { max: 20, windowMs: 15 * 60 * 1000 }, // 20 verifies / 15 min per user
+  // Recovery polls while a UPI collect request is still in flight, so it
+  // needs more headroom than verify. It only writes when Razorpay confirms
+  // real money, so a generous budget costs nothing.
+  payment_recover: { max: 60, windowMs: 15 * 60 * 1000 }, // 60 checks / 15 min per user
   coupon:         { max: 30, windowMs: 15 * 60 * 1000 }, // 30 coupon checks / 15 min per user
 }
 

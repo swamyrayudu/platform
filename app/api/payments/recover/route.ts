@@ -30,9 +30,10 @@ export const POST = requireAuth(async (request, _ctx, { user, session }) => {
     return NextResponse.json({ error: 'PAYMENTS_UNAVAILABLE' }, { status: 503 })
   }
 
-  // Reuses the verify bucket: this is the same "settle my payment" action
-  // from the same user, so it should share the same budget.
-  const limit = await checkRateLimit(`payment_verify:${user.id}`, 'payment_verify')
+  // Its own bucket, not verify's: the browser polls this while a UPI collect
+  // request is still in flight, which would otherwise burn through the verify
+  // budget in a single checkout.
+  const limit = await checkRateLimit(`payment_recover:${user.id}`, 'payment_recover')
   if (!limit.allowed) {
     return NextResponse.json(
       { error: 'RATE_LIMITED', retryAfter: limit.retryAfter },
@@ -76,9 +77,12 @@ export const POST = requireAuth(async (request, _ctx, { user, session }) => {
     // 'already_paid'— someone else settled it first (webhook or verify)
     // 'no_payment'  — they never paid; stop asking
     // 'failed'      — the bank declined; stop asking
+    // 'pending'     — a UPI collect request is still in flight; ask again
     outcome: row.outcome,
-    /** Whether the browser should forget this order and stop retrying. */
-    settled: row.outcome !== 'error',
+    /** Whether the browser should forget this order and stop retrying.
+     *  'pending' and 'error' both mean "not yet" — forgetting the order on
+     *  either would strand a payment that is still on its way. */
+    settled: row.outcome !== 'error' && row.outcome !== 'pending',
     user: toPublicUser(fresh ?? user),
   })
 })

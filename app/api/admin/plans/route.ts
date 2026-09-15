@@ -98,16 +98,39 @@ export const PATCH = requireAdmin(async (request, _ctx, { user }) => {
     return NextResponse.json({ error: 'INVALID_PLAN_ID' }, { status: 400 })
   }
 
-  if (typeof amountPaise !== 'number' || amountPaise < 100) {
+  // Number.isInteger, not `typeof === 'number'`. NaN and Infinity are both
+  // numbers, and `NaN < 100` is false, so the old check let them straight
+  // through to the database — and a price of NaN is a broken checkout.
+  // The ceiling is ₹1,00,000: a fat-fingered extra zero should be rejected,
+  // not charged to a candidate.
+  const MAX_AMOUNT_PAISE = 100_000_00
+
+  if (
+    typeof amountPaise !== 'number' ||
+    !Number.isInteger(amountPaise) ||
+    amountPaise < 100 ||
+    amountPaise > MAX_AMOUNT_PAISE
+  ) {
     return NextResponse.json(
-      { error: 'INVALID_AMOUNT', message: 'amountPaise must be an integer ≥ 100 (₹1)' },
+      {
+        error: 'INVALID_AMOUNT',
+        message: `amountPaise must be a whole number between 100 (₹1) and ${MAX_AMOUNT_PAISE} (₹1,00,000)`,
+      },
       { status: 400 }
     )
   }
 
-  if (typeof originalAmountPaise !== 'number' || originalAmountPaise < 100) {
+  if (
+    typeof originalAmountPaise !== 'number' ||
+    !Number.isInteger(originalAmountPaise) ||
+    originalAmountPaise < 100 ||
+    originalAmountPaise > MAX_AMOUNT_PAISE
+  ) {
     return NextResponse.json(
-      { error: 'INVALID_ORIGINAL_AMOUNT', message: 'originalAmountPaise must be an integer ≥ 100' },
+      {
+        error: 'INVALID_ORIGINAL_AMOUNT',
+        message: `originalAmountPaise must be a whole number between 100 and ${MAX_AMOUNT_PAISE}`,
+      },
       { status: 400 }
     )
   }

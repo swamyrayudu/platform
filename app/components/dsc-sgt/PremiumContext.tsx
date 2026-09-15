@@ -120,6 +120,77 @@ function readPendingOrder(): PendingOrder | null {
   }
 }
 
+/** The one place that announces a successful activation. Both the normal
+ *  handler and the recovery paths go through here, so the wording — and the
+ *  renewal-vs-first-purchase distinction — stays consistent. */
+function announceActivation(wasPremium: boolean, planName: string, expiresAt: string | null) {
+  const until = expiresAt
+    ? new Date(expiresAt).toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
+    : null
+  toast.success(wasPremium ? '✅ Access extended' : '🎉 Welcome to DSC / SGT Pro!', {
+    description: until
+      ? `${planName} added. Your Pro access now runs until ${until}.`
+      : `${planName} is active. All Mock Tests, Grand Exams and AI Explanations are unlocked.`,
+    duration: 7000,
+  })
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+/** How long to keep asking after the checkout window closes.
+ *
+ *  A UPI collect request is asynchronous: Razorpay pushes a request to the
+ *  candidate's PhonePe/GPay, they approve it over there, and only then does
+ *  the money move. The checkout window is often closed by that point — they
+ *  tap "Done", or the browser is backgrounded while they switch apps — so
+ *  the success handler never runs even though the payment is going through.
+ *
+ *  These delays cover roughly half a minute after the window closes, which
+ *  is comfortably longer than a collect request takes to settle. */
+const RECOVER_POLL_DELAYS_MS = [0, 3000, 5000, 8000, 14000]
+
+type SettleCheck = 'activated' | 'declined' | 'pending' | 'nothing'
+
+/** Ask the server whether money actually arrived for this order. */
+async function checkWithServer(orderId: string): Promise<{
+  result: SettleCheck
+  user?: PublicUser
+  expiresAt?: string
+}> {
+  let sawPending = false
+  for (const delay of RECOVER_POLL_DELAYS_MS) {
+    if (delay) await sleep(delay)
+    try {
+      const res = await fetch('/api/payments/recover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ orderId }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) continue
+
+      if (data.outcome === 'activated' || data.outcome === 'already_paid') {
+        return { result: 'activated', user: data.user, expiresAt: data.user?.subscriptionExpiresAt }
+      }
+      if (data.outcome === 'failed') return { result: 'declined' }
+      if (data.outcome === 'pending') sawPending = true
+      // 'no_payment' — nothing yet. Keep asking; a collect request in flight
+      // looks exactly like this until the moment it does not.
+    } catch {
+      // Network blip mid-poll. Try again on the next tick.
+    }
+  }
+  // Out of patience, not out of hope: if Razorpay told us a payment was still
+  // in flight, saying "cancelled" here would be the same wrong claim we set
+  // out to remove.
+  return { result: sawPending ? 'pending' : 'nothing' }
+}
+
 export function PremiumProvider({ children }: { children: React.ReactNode }) {
   const { user, updateUser, refreshUser } = useAuth()
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -264,12 +335,60 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
             theme: { color: '#f59e0b' },
             retry: { enabled: true, max_count: 3 },
             modal: {
+              // Closing the window is NOT proof that nothing was paid. With
+              // UPI the money often moves after this fires, so the old
+              // behaviour — announcing "no money was deducted" on the spot —
+              // was a claim we had no way to back up, and it was wrong in
+              // exactly the case that costs the candidate money.
               ondismiss: () => {
                 if (settled) return
-                toast.info('Payment cancelled', {
-                  description: 'No money was deducted. You can upgrade any time.',
+                const checking = toast.loading('Checking your payment…', {
+                  description:
+                    'If you approved a UPI request, this takes a few seconds. Please do not pay again.',
                 })
-                settle('cancelled')
+
+                void (async () => {
+                  const check = await checkWithServer(order.orderId)
+                  toast.dismiss(checking)
+                  if (settled) return
+
+                  if (check.result === 'activated') {
+                    forgetPendingOrder()
+                    if (check.user) updateUser(check.user)
+                    else await refreshUser()
+                    setIsModalOpen(false)
+                    announceActivation(wasPremium, plan.name, check.expiresAt ?? null)
+                    settle('success')
+                    return
+                  }
+
+                  if (check.result === 'declined') {
+                    forgetPendingOrder()
+                    toast.error('Payment declined', {
+                      description: 'Your bank refused the payment. No money was taken.',
+                    })
+                    settle('failed')
+                    return
+                  }
+
+                  if (check.result === 'pending') {
+                    toast.warning('Payment still processing', {
+                      description:
+                        'Your UPI app has not confirmed yet. Do not pay again — reopen the app in a minute and your Pro access will be waiting.',
+                      duration: 12000,
+                    })
+                    settle('failed')
+                    return
+                  }
+
+                  // Razorpay has no payment against this order. Now we can say
+                  // so — and the order id is still remembered, so a late UPI
+                  // approval is still picked up on the next app start.
+                  toast.info('Payment cancelled', {
+                    description: 'No money was deducted. You can upgrade any time.',
+                  })
+                  settle('cancelled')
+                })()
               },
             },
             handler: async (response: RazorpaySuccessResponse) => {
@@ -288,25 +407,10 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
                   if (data.user) updateUser(data.user as PublicUser)
                   else await refreshUser()
                   setIsModalOpen(false)
-                  // The server tells us the resulting expiry. Show it: for a
-                  // renewal the useful news is not "you are Pro" — they already
-                  // were — it is the new date their days now run to.
-                  const until =
-                    typeof data.expiresAt === 'string'
-                      ? new Date(data.expiresAt).toLocaleDateString('en-IN', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })
-                      : null
-                  toast.success(
-                    wasPremium ? '✅ Access extended' : '🎉 Welcome to DSC / SGT Pro!',
-                    {
-                      description: until
-                        ? `${plan.name} added. Your Pro access now runs until ${until}.`
-                        : `${plan.name} is active. All Mock Tests, Grand Exams and AI Explanations are unlocked.`,
-                      duration: 7000,
-                    }
+                  announceActivation(
+                    wasPremium,
+                    plan.name,
+                    typeof data.expiresAt === 'string' ? data.expiresAt : null
                   )
                   settle('success')
                   return
