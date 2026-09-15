@@ -11,7 +11,6 @@ import {
   Languages,
   BookOpen,
   Bot,
-  ClipboardCheck,
   ArrowRight,
 } from 'lucide-react'
 import BloomField from './BloomField'
@@ -31,14 +30,28 @@ const FEATURE_BOXES = [
 // "95% report score gains". None of it was true — the platform had nine
 // registered users and two submitted attempts when this was written, and no
 // survey exists behind the 95%. Invented traction on a page that takes money
-// is not a design decision anyone gets to make, so these are now counts of
-// what actually exists, which is genuinely the strongest thing the product
-// can say about itself.
-const STATS = [
-  { icon: BookOpen, value: '39,181', label: 'Questions in the bank' },
-  { icon: ClipboardCheck, value: '200', label: 'Full-length mock papers' },
-  { icon: Languages, value: '2', label: 'Media — Telugu & English' },
+// is not a design decision anyone gets to make.
+//
+// What replaced it is counted straight out of the question bank, and split by
+// medium because that is the first thing a candidate wants to know: whether
+// the side they sit the paper in is actually covered. Telugu is the larger
+// half, which is worth showing rather than hiding behind a single total.
+const MEDIUM_STATS = [
+  {
+    medium: 'Telugu medium',
+    native: 'తెలుగు మాధ్యమం',
+    questions: '22,389',
+    papers: '100',
+  },
+  {
+    medium: 'English medium',
+    native: 'English',
+    questions: '16,792',
+    papers: '100',
+  },
 ]
+
+const TOTAL_QUESTIONS = '39,181'
 
 interface HeroContentProps {
   /** Slot for Google's own button. Null when sign-in is not configured. */
@@ -159,26 +172,52 @@ export default function HeroContent({ heroGsiRef, googleEnabled = false }: HeroC
         />
       </section>
 
-      {/* ══════════════ 4. Trust strip ══════════════ */}
-      <section className="mt-12 flex flex-col gap-6 border-t border-border/70 pt-8 sm:flex-row sm:items-center sm:justify-between">
-        <p className="bloom-eyebrow max-w-[14rem] leading-relaxed">
-          Built with teachers and toppers across Andhra Pradesh &amp; Telangana.
+      {/* ══════════════ 4. What is actually in here ══════════════ */}
+      <section className="mt-12 border-t border-border/70 pt-8">
+        <p className="bloom-eyebrow">What is in the bank</p>
+        <h2 className="mt-2 text-2xl font-semibold text-foreground sm:text-3xl">
+          {TOTAL_QUESTIONS} questions, both media
+        </h2>
+        <p className="mt-2.5 max-w-lg text-[13px] leading-relaxed text-muted-foreground">
+          Every subject is covered on both sides — not an English bank with a
+          Telugu translation bolted on. Each medium has its own questions and
+          its own hundred full-length papers.
         </p>
 
-        <div className="grid grid-cols-3 gap-x-6 gap-y-4 sm:flex sm:flex-wrap sm:items-center sm:gap-x-8">
-          {STATS.map((stat) => {
-            const Icon = stat.icon
-            return (
-              <div key={stat.value} className="flex items-center gap-2.5">
-                <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          {MEDIUM_STATS.map((m) => (
+            <div
+              key={m.medium}
+              className="rounded-2xl border border-border bg-card p-5"
+            >
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="text-sm font-semibold text-foreground">{m.medium}</p>
+                <p className="text-[13px] text-muted-foreground">{m.native}</p>
+              </div>
+
+              <div className="mt-4 flex items-end gap-6">
                 <div>
-                  <p className="text-sm font-semibold text-foreground">{stat.value}</p>
-                  <p className="text-[11px] leading-tight text-muted-foreground">{stat.label}</p>
+                  <p className="text-2xl font-bold leading-none text-foreground">
+                    {m.questions}
+                  </p>
+                  <p className="mt-1.5 text-[11px] text-muted-foreground">questions</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold leading-none text-foreground">
+                    {m.papers}
+                  </p>
+                  <p className="mt-1.5 text-[11px] text-muted-foreground">
+                    full papers
+                  </p>
                 </div>
               </div>
-            )
-          })}
+            </div>
+          ))}
         </div>
+
+        <p className="mt-4 text-[11px] text-muted-foreground">
+          Each paper is 160 questions in 150 minutes, on the official pattern.
+        </p>
       </section>
 
       {/* ══════════════ 5. Use cases grid ══════════════ */}

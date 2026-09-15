@@ -4,6 +4,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import Link from 'next/link'
 import { Mail, Lock, Eye, EyeOff, Check } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -175,13 +176,13 @@ export default function AuthCard({
       {/* Terms */}
       <p className="mt-6 text-center text-[11px] leading-relaxed text-muted-foreground">
         By continuing, you agree to our{' '}
-        <a href="#" className="text-foreground underline underline-offset-4">
+        <Link href="/terms" className="text-foreground underline underline-offset-4">
           Terms of Service
-        </a>{' '}
+        </Link>{' '}
         and{' '}
-        <a href="#" className="text-foreground underline underline-offset-4">
+        <Link href="/privacy" className="text-foreground underline underline-offset-4">
           Privacy Policy
-        </a>
+        </Link>
         .
       </p>
 

@@ -9,8 +9,12 @@ import { ShieldCheck, Lock, Headphones } from 'lucide-react'
 const FEATURES = [
   {
     icon: ShieldCheck,
-    title: 'Trusted by thousands of aspirants',
-    description: 'Reliable, current and built around the official pattern.',
+    // Was "Trusted by thousands of aspirants". It is the last survivor of the
+    // invented-traction copy that also claimed 1L+ students and 50K+ attempts;
+    // there are nine registered accounts. What the papers are is true and is a
+    // better thing to say.
+    title: 'Built on the official pattern',
+    description: '160 questions in 150 minutes, the same structure as the real paper.',
   },
   {
     icon: Lock,
