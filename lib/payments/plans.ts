@@ -7,7 +7,12 @@
 // the price up here before creating a Razorpay order.
 // ============================================================
 
-export type PlanId = 'pro_sprint' | 'pro_full' | 'lifetime'
+// `lifetime` used to be the third id while the plan itself ran for 365 days.
+// Nothing in the database ever used it — every order and every subscription
+// was pro_sprint — so it was renamed rather than aliased. An id that says
+// "lifetime" next to durationDays: 365 is the kind of thing that eventually
+// gets read as a promise.
+export type PlanId = 'pro_sprint' | 'pro_full' | 'pro_year'
 
 export interface Plan {
   id: PlanId
@@ -31,17 +36,25 @@ export const CURRENCY = 'INR'
 // These features are the fallback shown when the admin has not set DB overrides.
 // The PremiumModal renders a shared feature list from PREMIUM_FEATURES (in PremiumModal.tsx)
 // and only uses the plan.features field inside the admin pricing editor.
+// Every plan unlocks the same thing — only the length differs — so this list
+// is shared, and it is what the product actually does.
+//
+// What it used to claim, and why those lines are gone:
+//   "Previous Year Papers 2018-2024"   no such feature exists anywhere
+//   "AI-powered Instant Explanations"  there is no AI in this codebase
+//   "Downloadable PDF Revision Notes"  no such feature exists anywhere
+// It also undersold the real thing: 150+ mocks when there are 200, and
+// 12,000+ MCQs when the bank holds 39,181.
 const ALL_PLAN_FEATURES = [
-  'All 150+ Grand Mock Tests (Telugu & English medium)',
-  '12,000+ Practice MCQs — Chapter-wise & Subject-wise',
-  'Previous Year Papers 2018–2024 with Answer Keys',
-  'AI-powered Instant Question Explanations',
-  'Live State-level Rank & Percentile Tracking',
-  'Mock Exam Simulator — Full Paper Mode',
-  'Weak Topic Diagnostic & Targeted Drills',
-  'Performance Analytics Dashboard',
-  'Chapter-wise Topic Picker (unlimited topics)',
-  'Downloadable PDF High-Yield Revision Notes',
+  '200 full-length mock papers — 100 Telugu medium, 100 English medium',
+  'Every paper 160 questions in 150 minutes, on the official pattern',
+  '39,181 practice questions — 22,389 Telugu medium, 16,792 English medium',
+  'Practice by subject, chapter and topic, with unlimited attempts',
+  'Answers and explanations revealed after every submission',
+  'Rank and percentile against everyone who sat the same paper',
+  'Weak-topic tracking that shows where your marks are going',
+  'Performance dashboard across practice and mock tests',
+  'Progress saved and synced across every device you sign in on',
 ]
 
 export const PLANS: Record<PlanId, Plan> = {
@@ -67,8 +80,8 @@ export const PLANS: Record<PlanId, Plan> = {
     popular: true,
     features: ALL_PLAN_FEATURES,
   },
-  lifetime: {
-    id: 'lifetime',
+  pro_year: {
+    id: 'pro_year',
     name: 'Ultimate All-Exams Pass',
     amountPaise: 99900,
     originalAmountPaise: 299900,
@@ -80,7 +93,7 @@ export const PLANS: Record<PlanId, Plan> = {
   },
 }
 
-export const PLAN_LIST: Plan[] = [PLANS.pro_sprint, PLANS.pro_full, PLANS.lifetime]
+export const PLAN_LIST: Plan[] = [PLANS.pro_sprint, PLANS.pro_full, PLANS.pro_year]
 
 export function isPlanId(value: unknown): value is PlanId {
   // hasOwnProperty, NOT `in`: `in` walks the prototype chain, so `in PLANS`

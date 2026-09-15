@@ -41,64 +41,72 @@ interface AppliedCoupon {
 // ---- Actual premium features (same for ALL plans) ----------------
 // Every plan unlocks the exact same feature set — only duration differs.
 
+// What the product actually does. Three entries were removed rather than
+// reworded, because no amount of rewording makes them true:
+//   "Previous Year Papers 2018-2024"   no such feature exists in this codebase
+//   "AI-powered Question Explanations" there is no AI integration anywhere
+//   "Downloadable PDF High-Yield Notes" no such feature exists
+// The two headline numbers were also wrong in the other direction — 150+ mocks
+// against a real 200, and 12,000+ MCQs against a real 39,181.
 const PREMIUM_FEATURES = [
   {
     icon: FileCheck2,
-    title: 'All 150+ Grand Mock Tests',
-    desc: 'Full-length AP DSC SGT mocks in Telugu & English medium',
+    title: '200 full-length mock papers',
+    desc: '100 Telugu medium and 100 English medium, on the official pattern',
     color: 'text-amber-500',
     bg: 'bg-amber-500/10',
   },
   {
-    icon: BookOpen,
-    title: '12,000+ Practice MCQs',
-    desc: 'Chapter-wise & subject-wise practice with unlimited attempts',
+    icon: Timer,
+    title: '160 questions in 150 minutes',
+    desc: 'The same structure and timing as the paper you will sit',
     color: 'text-primary',
     bg: 'bg-secondary',
   },
   {
-    icon: Timer,
-    title: 'Previous Year Papers 2018–2024',
-    desc: 'Fully solved with answer keys and detailed explanations',
+    icon: BookOpen,
+    title: '39,181 practice questions',
+    desc: '22,389 Telugu medium and 16,792 English medium',
+    color: 'text-primary',
+    bg: 'bg-secondary',
+  },
+  {
+    icon: Layers,
+    title: 'Practice by subject, chapter and topic',
+    desc: 'Pick any area and attempt it as many times as you need',
     color: 'text-primary',
     bg: 'bg-secondary',
   },
   {
     icon: Brain,
-    title: 'AI-powered Question Explanations',
-    desc: 'Instant hints and step-by-step solutions on every question',
+    title: 'Answers and explanations after every paper',
+    desc: 'Every question reviewed with the correct answer and why',
     color: 'text-primary',
     bg: 'bg-secondary',
   },
   {
     icon: BarChart3,
-    title: 'Live State-level Rank & Percentile',
-    desc: 'See exactly where you stand among all AP DSC aspirants',
+    title: 'Rank and percentile',
+    desc: 'Where you stand among everyone who sat the same paper',
     color: 'text-emerald-500',
     bg: 'bg-emerald-500/10',
   },
   {
-    icon: Layers,
-    title: 'Chapter-wise Targeted Practice',
-    desc: 'Pick any topic, subject, or weak area for focused revision',
-    color: 'text-primary',
-    bg: 'bg-secondary',
-  },
-  {
     icon: TrendingUp,
-    title: 'Weak Topic Diagnostic & Drills',
-    desc: 'Automatic weak-area detection with targeted drill sessions',
+    title: 'Weak-topic tracking',
+    desc: 'Which topics are costing you marks, from your own attempts',
     color: 'text-orange-500',
     bg: 'bg-orange-500/10',
   },
   {
     icon: Download,
-    title: 'Downloadable PDF High-Yield Notes',
-    desc: 'Printable revision cards for last-minute exam preparation',
+    title: 'Progress on every device',
+    desc: 'Scores and history follow your account, not your phone',
     color: 'text-primary',
     bg: 'bg-secondary',
   },
 ]
+
 
 // ---- Helpers -----------------------------------------------------
 

@@ -56,12 +56,17 @@ const english: LegalDocument = {
       ],
     },
     {
-      heading: 'Payments, plans and refunds',
+      heading: 'Payments, plans, cancellation and refunds',
+      body: [
+        'Plans are a one-time payment for a fixed period. There is no subscription, no auto-renewal and no standing instruction on your card or UPI — nothing is ever charged again unless you deliberately buy another plan.',
+      ],
       items: [
-        'Plans are prepaid for a fixed period. The price, the duration and what is included are shown before you pay.',
+        'The price, the duration and what is included are all shown before you pay.',
+        'Because nothing renews, there is nothing to cancel. Access ends on its expiry date and you return to the free plan — no reminder, no action and no contact with us is needed.',
+        'A plan cannot be cancelled part-way through for a partial refund. Once it is active it runs to its expiry date.',
+        'Because the full question bank is unlocked the moment payment succeeds, we do not offer refunds once a plan is active. If a payment was taken in error, or you were charged twice, contact us and we will put it right.',
+        'Buying another plan while one is still running adds its days to what you already have; it does not replace or shorten it.',
         'Payments are handled by Razorpay. We never see or store your card, UPI or bank details.',
-        'A plan gives you access for its stated period. Buying another plan extends your access rather than replacing it.',
-        'Because access to the full question bank is granted immediately on payment, we do not offer refunds once a plan is active. If a payment was taken in error, or you were charged twice, contact us and we will put it right.',
         'We may change prices for future purchases. A plan you have already paid for is not affected.',
       ],
     },
@@ -136,12 +141,17 @@ const telugu: LegalDocument = {
       ],
     },
     {
-      heading: 'చెల్లింపులు, ప్లాన్లు మరియు రీఫండ్‌లు',
+      heading: 'చెల్లింపులు, ప్లాన్లు, రద్దు మరియు రీఫండ్‌లు',
+      body: [
+        'ప్లాన్లు నిర్ణీత కాలానికి ఒక్కసారి చేసే చెల్లింపు. ఇది సబ్‌స్క్రిప్షన్ కాదు — ఆటో-రెన్యువల్ లేదు, మీ కార్డు లేదా యూపీఐపై ఎలాంటి స్టాండింగ్ ఇన్‌స్ట్రక్షన్ ఉండదు. మీరు స్వయంగా మరో ప్లాన్ కొనకపోతే మళ్లీ ఎప్పుడూ డబ్బు కట్ కాదు.',
+      ],
       items: [
-        'ప్లాన్లు నిర్ణీత కాలానికి ముందుగా చెల్లించేవి. ధర, కాలవ్యవధి మరియు ఏమి ఉన్నాయో చెల్లించే ముందే చూపబడతాయి.',
+        'ధర, కాలవ్యవధి మరియు ఏమి ఉన్నాయో చెల్లించే ముందే చూపబడతాయి.',
+        'ఏదీ రెన్యూ కానందున, రద్దు చేయాల్సిన అవసరమే లేదు. గడువు తేదీన ప్రవేశం ముగుస్తుంది, మీరు ఉచిత ప్లాన్‌కు తిరిగి వస్తారు — రిమైండర్ అవసరం లేదు, మీ వైపు చర్య అవసరం లేదు, మమ్మల్ని సంప్రదించనవసరం లేదు.',
+        'ప్లాన్ మధ్యలో రద్దు చేసి పాక్షిక రీఫండ్ పొందడం సాధ్యం కాదు. ఒకసారి యాక్టివ్ అయిన తర్వాత అది గడువు తేదీ వరకు కొనసాగుతుంది.',
+        'చెల్లింపు విజయవంతమైన క్షణమే పూర్తి ప్రశ్న బ్యాంకు తెరవబడుతుంది కాబట్టి, ప్లాన్ యాక్టివ్ అయిన తర్వాత రీఫండ్ ఇవ్వము. పొరపాటున చెల్లింపు జరిగితే లేదా రెండుసార్లు డబ్బు కట్ అయితే మమ్మల్ని సంప్రదించండి, సరిచేస్తాము.',
+        'ఒక ప్లాన్ నడుస్తుండగా మరో ప్లాన్ కొంటే, దాని రోజులు మీ ప్రస్తుత కాలానికి కలుపబడతాయి — అది మార్చబడదు లేదా తగ్గించబడదు.',
         'చెల్లింపులను Razorpay నిర్వహిస్తుంది. మీ కార్డు, యూపీఐ లేదా బ్యాంకు వివరాలను మేము చూడము, నిల్వ చేయము.',
-        'ఒక ప్లాన్ దాని కాలవ్యవధి వరకు ప్రవేశం ఇస్తుంది. మరో ప్లాన్ కొంటే మీ ప్రవేశం పొడిగించబడుతుంది, మార్చబడదు.',
-        'చెల్లింపు పూర్తయిన వెంటనే పూర్తి ప్రశ్న బ్యాంకుకు ప్రవేశం ఇవ్వబడుతుంది కాబట్టి, ప్లాన్ యాక్టివ్ అయిన తర్వాత రీఫండ్ ఇవ్వము. పొరపాటున చెల్లింపు జరిగితే లేదా రెండుసార్లు డబ్బు కట్ అయితే మమ్మల్ని సంప్రదించండి, సరిచేస్తాము.',
         'భవిష్యత్ కొనుగోళ్లకు ధరలు మారవచ్చు. మీరు ఇప్పటికే చెల్లించిన ప్లాన్‌పై ప్రభావం ఉండదు.',
       ],
     },

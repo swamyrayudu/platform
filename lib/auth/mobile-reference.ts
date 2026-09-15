@@ -239,7 +239,7 @@
  * import RazorpayCheckout from 'react-native-razorpay'
  *
  * // 1. Ask OUR server for an order. Send only the planId — never an amount.
- * //    planId: 'pro_sprint' | 'pro_full' | 'lifetime'
+ * //    planId: 'pro_sprint' | 'pro_full' | 'pro_year'
  * const { data: order } = await api.post('/api/payments/orders', {
  *   planId: 'pro_full',
  *   couponCode: 'APDSC50', // optional

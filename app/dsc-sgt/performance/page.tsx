@@ -53,33 +53,82 @@ interface PerformanceData {
   weak_areas: SubjectProficiency[]
 }
 
-/** Colour/badge styling derived from the status the server computed. */
-const STATUS_STYLE: Record<string, { bar: string; badge: string }> = {
-  Strong: {
-    bar: 'bg-emerald-500',
-    badge: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-  },
-  Good: { bar: 'bg-primary', badge: 'border-primary/30 bg-primary/10 text-primary' },
-  Moderate: {
-    bar: 'bg-primary',
-    badge: 'border-primary/30 bg-secondary text-primary',
-  },
-  'Needs Practice': {
-    bar: 'bg-amber-500',
-    badge: 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400',
-  },
-  'Weak Area': {
-    bar: 'bg-red-500',
-    badge: 'border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400',
-  },
-  'Not Started': {
-    bar: 'bg-muted-foreground/40',
-    badge: 'border-border bg-muted/60 text-muted-foreground',
-  },
+/** Accuracy as a ring rather than a bar.
+ *
+ * A row of horizontal bars all start at the same left edge, so telling 33%
+ * from 45% means reading the numbers anyway. Rings of different fill are
+ * distinguishable at a glance and survive being two-across on a phone, which
+ * is where this page is actually read. */
+function SubjectRing({
+  subject,
+  accuracy,
+  correct,
+  attempted,
+  status,
+}: {
+  subject: string
+  accuracy: number
+  correct: number
+  attempted: number
+  status: string
+}) {
+  const RADIUS = 30
+  const CIRCUMFERENCE = 2 * Math.PI * RADIUS
+  const filled = Math.max(0, Math.min(100, accuracy))
+  const stroke =
+    status === 'Strong'
+      ? 'stroke-emerald-500'
+      : status === 'Weak Area'
+        ? 'stroke-red-500'
+        : 'stroke-amber-500'
+  const text =
+    status === 'Strong'
+      ? 'text-emerald-600 dark:text-emerald-400'
+      : status === 'Weak Area'
+        ? 'text-red-600 dark:text-red-400'
+        : 'text-amber-600 dark:text-amber-400'
+
+  return (
+    <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-3 text-center">
+      <div className="relative h-[76px] w-[76px]">
+        <svg viewBox="0 0 76 76" className="h-full w-full -rotate-90" aria-hidden>
+          <circle
+            cx="38" cy="38" r={RADIUS}
+            className="fill-none stroke-muted"
+            strokeWidth="7"
+          />
+          <circle
+            cx="38" cy="38" r={RADIUS}
+            className={`fill-none ${stroke} transition-[stroke-dashoffset] duration-700`}
+            strokeWidth="7"
+            strokeLinecap="round"
+            strokeDasharray={CIRCUMFERENCE}
+            strokeDashoffset={CIRCUMFERENCE * (1 - filled / 100)}
+          />
+        </svg>
+        <span className="absolute inset-0 flex items-center justify-center">
+          <span className={`text-base font-bold ${text}`}>{Math.round(accuracy)}%</span>
+        </span>
+      </div>
+
+      <p className="mt-2 line-clamp-2 text-[12px] font-semibold leading-snug text-foreground">
+        {subject}
+      </p>
+      <p className="mt-0.5 text-[11px] text-muted-foreground">
+        {correct}/{attempted} correct
+      </p>
+    </div>
+  )
 }
 
-function styleFor(status: string) {
-  return STATUS_STYLE[status] ?? STATUS_STYLE['Not Started']
+
+/** One colour scale for accuracy across the whole page: the rings, the plan
+ * and the mock attempt list all read the same way. Below 45% is work to do,
+ * 65% and up is holding. */
+function accuracyTone(pct: number): string {
+  if (pct >= 65) return 'text-emerald-600 dark:text-emerald-400'
+  if (pct >= 45) return 'text-amber-600 dark:text-amber-400'
+  return 'text-red-600 dark:text-red-400'
 }
 
 /** "Yesterday, 4:30 PM" style relative date. */
@@ -158,7 +207,7 @@ export default function PerformancePage() {
             </h1>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            In-depth analysis of accuracy, subject strengths, time spent, and state-level rank ranking
+            Your accuracy by subject, what to work on next, and how your mock papers went
           </p>
         </div>
 
@@ -219,16 +268,22 @@ export default function PerformancePage() {
 
         <div className="rounded-3xl border border-border/80 bg-card p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground font-medium">Est. State Rank</span>
+            {/* Was "Est. State Rank" showing "Top 0.0%". The rank is real —
+                it is a position among the people who sat that same paper —
+                but calling it a state rank implies a field of lakhs, and a
+                percentile computed over a handful of attempts renders as
+                "Top 0.0%", which reads as a boast and is not one. The honest
+                version is the position itself and what it is out of. */}
+            <span className="text-xs text-muted-foreground font-medium">Best rank</span>
             <Crown className="h-4 w-4 text-amber-500" />
           </div>
           <p className="mt-3 text-2xl sm:text-3xl font-black text-amber-500">
-            {data.best_percentile !== null ? `Top ${(100 - data.best_percentile).toFixed(1)}%` : '—'}
+            {data.best_rank !== null ? `#${data.best_rank}` : '—'}
           </p>
-          <p className="mt-1 text-[11px] font-semibold text-foreground">
+          <p className="mt-1 text-[11px] font-medium text-muted-foreground">
             {data.best_rank !== null
-              ? `Best rank #${data.best_rank}`
-              : 'Rank appears after your first mock'}
+              ? 'Among everyone who sat that paper'
+              : 'Appears after your first mock'}
           </p>
         </div>
 
@@ -246,98 +301,100 @@ export default function PerformancePage() {
         </div>
       </div>
 
-      {/* ── Weak Area Alert (only when the data shows one) ── */}
+      {/* ── Your plan ──
+          The old block was an amber "Weak Area Alert" that named the weak
+          subjects and linked to one of them. Naming a problem is not a plan:
+          it left the candidate to work out what to do, in what order. This
+          lists the subjects worst-first, in the order worth working through,
+          each one a link straight into practice for it. */}
       {topWeak.length > 0 && (
-      <div className="mb-8 rounded-3xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-card to-orange-500/10 p-5 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-start gap-3.5">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400">
-              <AlertTriangle className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="text-sm sm:text-base font-bold text-foreground">
-                Weak Area Alert: {topWeak.map((w) => w.subject).join(' & ')}
-              </h3>
-              <p className="mt-1 text-xs text-muted-foreground max-w-2xl leading-relaxed">
-                Your accuracy in{' '}
-                {topWeak.map((w, i) => (
-                  <span key={w.subject}>
-                    {i > 0 && ' and '}
-                    <em>
-                      {w.subject} ({w.accuracy_pct}%)
-                    </em>
-                  </span>
-                ))}{' '}
-                is below your overall {data.overall_accuracy_pct}%. Targeted practice on{' '}
-                {topWeak[0].subject} is the fastest way to raise your expected score.
-              </p>
-            </div>
-          </div>
+        <section className="mb-8 rounded-3xl border border-border bg-card p-5 sm:p-6">
+          <h3 className="text-base font-bold text-foreground">What to work on next</h3>
+          <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+            These are below your overall {data.overall_accuracy_pct}%. Worst first — that is
+            where marks come back quickest.
+          </p>
 
-          <Link
-            href={`/dsc-sgt/practice?subject=${encodeURIComponent(topWeak[0].subject)}`}
-            className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition shadow-xs"
-          >
-            <span>Practice {topWeak[0].subject}</span>
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-      </div>
+          <ol className="mt-4 space-y-2.5">
+            {topWeak.map((w, i) => (
+              <li key={w.subject}>
+                <Link
+                  href={`/dsc-sgt/practice?subject=${encodeURIComponent(w.subject)}`}
+                  className="flex min-h-16 items-center gap-3 rounded-2xl border border-border bg-background p-3 transition hover:border-primary/50 hover:bg-accent/40"
+                >
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-[13px] font-bold text-primary-foreground">
+                    {i + 1}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[13px] font-semibold leading-snug text-foreground">
+                      {w.subject}
+                    </span>
+                    <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                      {w.accuracy_pct}% accurate · {w.correct} of {w.attempted} correct
+                    </span>
+                  </span>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </Link>
+              </li>
+            ))}
+          </ol>
+
+          <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground">
+            Practise a subject, then sit the next mock to see whether the ring moved.
+          </p>
+        </section>
       )}
+
 
       {/* ── 2 Column Grid: Subject Breakdown & Recent Test History ── */}
       <div className="grid gap-6 lg:grid-cols-2">
         
         {/* Left: Subject Breakdown */}
-        <div className="rounded-3xl border border-border/80 bg-card p-6 shadow-xs">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-base font-bold text-foreground">Subject Proficiency Breakdown</h3>
-            <span className="text-xs text-muted-foreground">
-              {data.subject_breakdown.length} Section
+        <div className="rounded-3xl border border-border/80 bg-card p-5 shadow-xs sm:p-6">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h3 className="text-base font-bold text-foreground">Where you stand</h3>
+            <span className="text-[11px] text-muted-foreground">
+              {data.subject_breakdown.length} subject
               {data.subject_breakdown.length === 1 ? '' : 's'}
             </span>
           </div>
 
           {data.subject_breakdown.length === 0 ? (
-            <p className="py-8 text-center text-xs text-muted-foreground">
-              Answer some practice questions or complete a mock test to see your subject
-              breakdown.
+            <p className="py-8 text-center text-[13px] text-muted-foreground">
+              Answer some practice questions or sit a mock test and your subjects appear here.
             </p>
           ) : (
-            <div className="space-y-4">
-              {data.subject_breakdown.map((item) => {
-                const style = styleFor(item.status)
-                return (
-                  <div key={item.subject} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs font-semibold">
-                      <span className="text-foreground">{item.subject}</span>
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`rounded-md border px-1.5 py-0.2 text-[11px] font-bold ${style.badge}`}
-                        >
-                          {item.status}
-                        </span>
-                        <span className="font-bold text-foreground">{item.accuracy_pct}%</span>
-                      </div>
-                    </div>
+            <>
+              {/* Two across on a phone, three once there is room. */}
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                {data.subject_breakdown.map((item) => (
+                  <SubjectRing
+                    key={item.subject}
+                    subject={item.subject}
+                    accuracy={item.accuracy_pct}
+                    correct={item.correct}
+                    attempted={item.attempted}
+                    status={item.status}
+                  />
+                ))}
+              </div>
 
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-muted/60">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${style.bar}`}
-                        style={{ width: `${Math.min(100, item.accuracy_pct)}%` }}
-                      />
-                    </div>
-
-                    <p className="text-[11px] text-muted-foreground">
-                      {item.correct}/{item.attempted} correct
-                    </p>
-                  </div>
-                )
-              })}
-            </div>
+              {/* What the colours mean, said once, instead of a badge on every
+                  card repeating it. */}
+              <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" /> Strong
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-amber-500" /> Getting there
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-red-500" /> Needs work
+                </span>
+              </div>
+            </>
           )}
         </div>
-
         {/* Right: Mock Test Attempt History */}
         <div className="rounded-3xl border border-border/80 bg-card p-6 shadow-xs flex flex-col justify-between">
           <div>
@@ -360,8 +417,16 @@ export default function PerformancePage() {
                     href={`/dsc-sgt/mock-result?attemptId=${test.attempt_id}`}
                     className="flex flex-col justify-between gap-3 rounded-2xl border border-border/70 bg-muted/20 p-4 transition hover:bg-muted/40 sm:flex-row sm:items-center"
                   >
-                    <div>
-                      <h4 className="text-xs font-bold text-foreground sm:text-sm">{test.title}</h4>
+                    <div className="min-w-0">
+                      <h4 className="text-[13px] font-bold text-foreground sm:text-sm">
+                        {test.title}
+                        {test.module_number !== null && (
+                          <span className="font-semibold text-muted-foreground">
+                            {' '}
+                            · Module {test.module_number}
+                          </span>
+                        )}
+                      </h4>
                       <span className="text-[11px] text-muted-foreground">
                         {formatWhen(test.submitted_at)}
                       </span>
@@ -369,11 +434,16 @@ export default function PerformancePage() {
 
                     <div className="flex items-center gap-4 text-xs font-semibold">
                       <div className="text-right">
-                        <p className="font-extrabold text-foreground">
+                        <p className="whitespace-nowrap font-extrabold text-foreground">
                           {test.score} / {test.total_marks}
                         </p>
-                        <p className="text-[11px] font-bold text-emerald-500">
-                          {test.accuracy_pct}% Acc.
+                        {/* The accuracy used to be printed in green whatever it
+                            was, so 16% read as a pass. Same three bands as the
+                            rings above, so one colour means one thing here. */}
+                        <p
+                          className={`whitespace-nowrap text-[11px] font-bold ${accuracyTone(test.accuracy_pct)}`}
+                        >
+                          {test.accuracy_pct}% correct
                         </p>
                       </div>
                       {test.rank !== null && (

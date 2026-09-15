@@ -32,13 +32,13 @@ const english: LegalDocument = {
         'Your study activity: which questions you practised, what you answered, your mock test attempts, scores, time taken and topic performance.',
         'Device and session information: a device identifier, your browser or app user agent, and the platform you signed in from. This is what lets you sign out of other devices.',
         'A hashed form of your IP address. We store a one-way hash, not the address itself — it is used for rate limiting and to spot suspicious sign-ins, and it cannot be turned back into your IP.',
-        'Payment records: the plan, amount, coupon used, and the order and payment identifiers returned by Razorpay.',
+        'Payment records: the plan, amount, coupon used, and the order and payment identifiers returned by Razorpay. These are records of a completed purchase, not a stored payment method — there is no card on file, no UPI mandate and no standing instruction, so nothing can be charged again without you going through checkout yourself.',
       ],
     },
     {
       heading: 'What we never collect',
       items: [
-        'Your card number, CVV, UPI PIN or bank credentials. Payments happen inside Razorpay; those details never reach our servers.',
+        'Your card number, CVV, UPI PIN or bank credentials. Payments happen inside Razorpay; those details never reach our servers, and nothing is saved for a future charge.',
         'Your Google password.',
         'Your precise location, contacts, photos or files.',
       ],
@@ -69,7 +69,7 @@ const english: LegalDocument = {
     {
       heading: 'How long we keep it',
       body: [
-        'Your account and study history stay while your account exists, because that record is the point of the product — it is how your progress survives changing phones. Payment records are kept as long as required for accounting. Sign-in sessions expire on their own, and security event logs are kept for a limited period.',
+        'Your account and study history stay while your account exists, because that record is the point of the product — it is how your progress survives changing phones. Payment records are kept as long as required for accounting, and are kept even if you delete your account, because a purchase record is something both of us may need later. Sign-in sessions expire on their own, and security event logs are kept for a limited period.',
       ],
     },
     {
@@ -122,13 +122,13 @@ const telugu: LegalDocument = {
         'మీ చదువు కార్యకలాపం: మీరు ప్రాక్టీస్ చేసిన ప్రశ్నలు, ఇచ్చిన సమాధానాలు, మాక్ టెస్ట్ ప్రయత్నాలు, స్కోర్లు, తీసుకున్న సమయం మరియు అంశాల వారీ ప్రదర్శన.',
         'పరికరం మరియు సెషన్ సమాచారం: పరికర గుర్తింపు, బ్రౌజర్ వివరాలు, మరియు మీరు సైన్ ఇన్ చేసిన ప్లాట్‌ఫామ్. ఇతర పరికరాల నుండి సైన్ అవుట్ చేయగలగడానికి ఇది అవసరం.',
         'మీ ఐపీ చిరునామా యొక్క హాష్ రూపం. మేము చిరునామాను కాక, ఒక వన్-వే హాష్‌ను మాత్రమే నిల్వ చేస్తాము — ఇది రేట్ లిమిటింగ్ మరియు అనుమానాస్పద సైన్ ఇన్‌లను గుర్తించడానికి వాడతాము; దాన్ని తిరిగి మీ ఐపీగా మార్చలేము.',
-        'చెల్లింపు రికార్డులు: ప్లాన్, మొత్తం, వాడిన కూపన్, మరియు Razorpay ఇచ్చిన ఆర్డర్ మరియు చెల్లింపు గుర్తింపులు.',
+        'చెల్లింపు రికార్డులు: ప్లాన్, మొత్తం, వాడిన కూపన్, మరియు Razorpay ఇచ్చిన ఆర్డర్ మరియు చెల్లింపు గుర్తింపులు. ఇవి పూర్తయిన కొనుగోలు రికార్డులు మాత్రమే — కార్డు సేవ్ చేయబడదు, యూపీఐ మాండేట్ ఉండదు, స్టాండింగ్ ఇన్‌స్ట్రక్షన్ ఉండదు. మీరే స్వయంగా చెక్అవుట్ చేయకపోతే మళ్లీ డబ్బు కట్ కాదు.',
       ],
     },
     {
       heading: 'మేము ఎప్పుడూ సేకరించనివి',
       items: [
-        'మీ కార్డు నంబరు, సీవీవీ, యూపీఐ పిన్ లేదా బ్యాంకు వివరాలు. చెల్లింపులు Razorpay లోపల జరుగుతాయి; ఆ వివరాలు మా సర్వర్లకు ఎప్పుడూ చేరవు.',
+        'మీ కార్డు నంబరు, సీవీవీ, యూపీఐ పిన్ లేదా బ్యాంకు వివరాలు. చెల్లింపులు Razorpay లోపల జరుగుతాయి; ఆ వివరాలు మా సర్వర్లకు ఎప్పుడూ చేరవు, భవిష్యత్ చెల్లింపు కోసం ఏదీ సేవ్ చేయబడదు.',
         'మీ గూగుల్ పాస్‌వర్డ్.',
         'మీ ఖచ్చితమైన లొకేషన్, కాంటాక్టులు, ఫోటోలు లేదా ఫైళ్లు.',
       ],
@@ -159,7 +159,7 @@ const telugu: LegalDocument = {
     {
       heading: 'ఎంతకాలం ఉంచుతాము',
       body: [
-        'మీ ఖాతా ఉన్నంత వరకు మీ ఖాతా మరియు చదువు చరిత్ర ఉంటాయి — ఫోన్ మారినా మీ పురోగతి నిలిచి ఉండటమే ఈ ఉత్పత్తి ఉద్దేశం. చెల్లింపు రికార్డులు లెక్కల అవసరం మేరకు ఉంచుతాము. సైన్ ఇన్ సెషన్లు వాటంతట అవే గడువు ముగుస్తాయి; భద్రతా లాగ్‌లు పరిమిత కాలం ఉంచుతాము.',
+        'మీ ఖాతా ఉన్నంత వరకు మీ ఖాతా మరియు చదువు చరిత్ర ఉంటాయి — ఫోన్ మారినా మీ పురోగతి నిలిచి ఉండటమే ఈ ఉత్పత్తి ఉద్దేశం. చెల్లింపు రికార్డులు లెక్కల అవసరం మేరకు ఉంచుతాము; మీరు ఖాతా తొలగించినా అవి ఉంటాయి, ఎందుకంటే కొనుగోలు రికార్డు ఇద్దరికీ తర్వాత అవసరం కావచ్చు. సైన్ ఇన్ సెషన్లు వాటంతట అవే గడువు ముగుస్తాయి; భద్రతా లాగ్‌లు పరిమిత కాలం ఉంచుతాము.',
       ],
     },
     {
