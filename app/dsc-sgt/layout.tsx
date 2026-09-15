@@ -6,6 +6,7 @@ import { useAuth } from '@/app/contexts/AuthContext'
 import { LoadingScreen } from '@/components/ui/loading-screen'
 import { PremiumProvider } from '@/app/components/dsc-sgt/PremiumContext'
 import DscHeader from '@/app/components/dsc-sgt/DscHeader'
+import { BottomNavProvider } from '@/app/components/dsc-sgt/DscBottomNav'
 import PremiumModal from '@/app/components/dsc-sgt/PremiumModal'
 import { setActiveExam } from '@/lib/active-exam'
 
@@ -48,10 +49,13 @@ export default function DscLayout({
         {/* Global Pro Modal Dialog */}
         <PremiumModal />
 
-        {/* Page Content */}
-        <div className="flex-1">
-          {children}
-        </div>
+        {/* Page Content.
+            The bottom padding on phones is the height of the tab bar plus the
+            safe-area inset — without it the bar covers whatever the page ends
+            with, which on most screens is a button. */}
+        {/* Phone navigation. Replaces the hamburger sheet; the provider renders
+            the bar after the page so a full-screen view can hide it. */}
+        <BottomNavProvider>{children}</BottomNavProvider>
       </div>
     </PremiumProvider>
   )

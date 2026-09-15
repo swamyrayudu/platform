@@ -20,20 +20,27 @@ export default function HeroBanner({ name }: HeroBannerProps) {
 
   return (
     <section className="relative overflow-hidden rounded-3xl">
-      <BloomField />
+      <BloomField compact />
 
-      <div className="relative flex min-h-[340px] flex-col items-center px-6 pb-32 pt-14 text-center sm:min-h-[420px] sm:pb-40 sm:pt-18">
-        <BloomMark className="h-5 w-5 text-bloom-indigo" />
+      {/* Light type, because the field behind it is now deep indigo. This
+          block still carried bloom-ink from when the sky was a pale lavender
+          wash, which left the heading all but invisible against it.
 
-        <p className="mt-5 text-[11px] font-medium tracking-wide text-bloom-ink/60">
+          Half the height it was, too. This is a signed-in dashboard, not a
+          landing page: the thing a candidate came for is the exam list below,
+          and a 420px banner pushed the first card off the screen. */}
+      <div className="relative flex min-h-[168px] flex-col items-center px-6 pb-16 pt-8 text-center sm:min-h-[200px] sm:pb-20 sm:pt-10">
+        <BloomMark className="h-5 w-5 text-bloom-lavender" />
+
+        <p className="mt-3 text-[11px] font-medium tracking-wide text-white/65">
           {firstName ? `Welcome back, ${firstName}` : 'Your preparation hub'}
         </p>
 
-        <h1 className="mt-2 max-w-2xl text-[1.75rem] font-medium leading-[1.12] text-bloom-ink sm:text-4xl lg:text-[2.75rem]">
+        <h1 className="mt-1.5 max-w-2xl text-[1.5rem] font-semibold leading-[1.12] text-white sm:text-3xl lg:text-[2.25rem]">
           Choose your exam
         </h1>
 
-        <p className="mt-4 max-w-md text-[13px] leading-relaxed text-bloom-ink/70 sm:text-sm">
+        <p className="mt-2.5 max-w-md text-[12px] leading-relaxed text-white/70 sm:text-[13px]">
           Pick a category to open its practice sets, mock tests and previous
           papers. Progress in each one is tracked separately.
         </p>

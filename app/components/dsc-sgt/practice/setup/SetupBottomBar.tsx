@@ -4,6 +4,7 @@
 // app/components/dsc-sgt/practice/setup/SetupBottomBar.tsx
 // ============================================================
 
+import { BOTTOM_NAV_OFFSET } from '@/app/components/dsc-sgt/DscBottomNav'
 import React from 'react'
 import { Play, Crown, Lock } from 'lucide-react'
 
@@ -35,7 +36,13 @@ export default function SetupBottomBar({
   const trialExhausted = !canPractice && !isPremium
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-30 p-3 bg-card/95 backdrop-blur-md border-t border-border shadow-2xl sm:static sm:p-0 sm:bg-transparent sm:border-0 sm:shadow-none">
+    // bottom is the height of the app's tab bar, not 0: this sits directly on
+    // top of it otherwise, and the Start button becomes unreachable. Above sm
+    // the bar is in normal flow and the offset does not apply.
+    <div
+      className="fixed left-0 right-0 z-30 p-3 bg-card/95 backdrop-blur-md border-t border-border shadow-2xl sm:static sm:p-0 sm:bg-transparent sm:border-0 sm:shadow-none"
+      style={{ bottom: BOTTOM_NAV_OFFSET }}
+    >
       <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
         <div className="hidden sm:block text-xs">
           <span className="font-semibold text-foreground">{subject} Practice</span>

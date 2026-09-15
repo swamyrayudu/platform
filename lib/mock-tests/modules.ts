@@ -271,6 +271,11 @@ async function loadProgressFromAttempts(
     .order('started_at', { ascending: false })
 
   for (const a of data ?? []) {
+    // An abandoned attempt is one the candidate chose not to save. Letting it
+    // through would map to 'in_progress' below and the module would keep
+    // offering to resume an exam that no longer exists — skipping it lets an
+    // earlier submitted attempt, or nothing at all, describe the module.
+    if (a.status === 'abandoned') continue
     if (out.has(a.mock_test_id)) continue
     out.set(a.mock_test_id, {
       mock_test_id: a.mock_test_id,

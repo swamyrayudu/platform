@@ -41,6 +41,7 @@ export default function Home() {
     limited: false,
   })
   const gsiButtonRef = useRef<HTMLDivElement>(null)
+  const heroGsiRef = useRef<HTMLDivElement>(null)
   const navGsiButtonRef = useRef<HTMLDivElement>(null)
   const navGsiCompactRef = useRef<HTMLDivElement>(null)
   const gsiLoaded = useRef(false)
@@ -193,6 +194,22 @@ export default function Home() {
       // `shape: 'pill'` is the closest official option to our button language.
       const base = { theme: 'outline', size: 'large', logo_alignment: 'left' } as const
 
+      // Hero, on the dark card. Same widget as everywhere else; `outline`
+      // renders white, which is what reads on the indigo.
+      if (heroGsiRef.current) {
+        const heroWidth = Math.max(
+          260,
+          Math.min(heroGsiRef.current.offsetWidth || 300, 320)
+        )
+        window.google.accounts.id.renderButton(heroGsiRef.current, {
+          ...base,
+          type: 'standard',
+          shape: 'pill',
+          text: 'continue_with',
+          width: heroWidth,
+        })
+      }
+
       if (gsiButtonRef.current) {
         const btnWidth = Math.max(280, Math.min(gsiButtonRef.current.offsetWidth || 340, 380))
         window.google.accounts.id.renderButton(gsiButtonRef.current, {
@@ -293,7 +310,7 @@ export default function Home() {
         <main className="px-4 pb-8 sm:px-8 lg:px-12">
 
           {/* Hero, intro, bento, use cases */}
-          <HeroContent />
+          <HeroContent heroGsiRef={heroGsiRef} googleEnabled={googleEnabled} />
 
           {/* 3. Sign-in — copy on the left, the auth card on the right */}
           <section

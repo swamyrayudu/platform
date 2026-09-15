@@ -11,9 +11,7 @@ import {
   Languages,
   BookOpen,
   Bot,
-  Users,
   ClipboardCheck,
-  Medal,
   ArrowRight,
 } from 'lucide-react'
 import BloomField from './BloomField'
@@ -29,13 +27,26 @@ const FEATURE_BOXES = [
   { icon: Bot, title: 'AI Support', desc: 'Ask about any question, any time.' },
 ]
 
+// These were "1L+ students preparing", "50K+ mock tests attempted" and
+// "95% report score gains". None of it was true — the platform had nine
+// registered users and two submitted attempts when this was written, and no
+// survey exists behind the 95%. Invented traction on a page that takes money
+// is not a design decision anyone gets to make, so these are now counts of
+// what actually exists, which is genuinely the strongest thing the product
+// can say about itself.
 const STATS = [
-  { icon: Users, value: '1L+', label: 'Students preparing' },
-  { icon: ClipboardCheck, value: '50K+', label: 'Mock tests attempted' },
-  { icon: Medal, value: '95%', label: 'Report score gains' },
+  { icon: BookOpen, value: '39,181', label: 'Questions in the bank' },
+  { icon: ClipboardCheck, value: '200', label: 'Full-length mock papers' },
+  { icon: Languages, value: '2', label: 'Media — Telugu & English' },
 ]
 
-export default function HeroContent() {
+interface HeroContentProps {
+  /** Slot for Google's own button. Null when sign-in is not configured. */
+  heroGsiRef?: React.RefObject<HTMLDivElement | null>
+  googleEnabled?: boolean
+}
+
+export default function HeroContent({ heroGsiRef, googleEnabled = false }: HeroContentProps) {
   return (
     <>
       {/* ══════════════ 1. Hero card ══════════════ */}
@@ -43,21 +54,53 @@ export default function HeroContent() {
         <BloomField />
 
         <div className="relative flex min-h-[380px] flex-col items-center px-6 pb-44 pt-14 text-center sm:min-h-[460px] sm:pb-56 sm:pt-20 lg:min-h-[520px]">
-          <BloomMark className="h-5 w-5 text-bloom-indigo" />
+          {/* Say which exam, before anything else. A candidate scanning for
+              three seconds needs to know this is theirs — the old hero opened
+              with a metaphor and never named the paper at all. */}
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-bloom-lavender backdrop-blur-sm">
+            <BloomMark className="h-3 w-3" />
+            AP DSC · SGT
+          </span>
 
-          <h1 className="mt-5 max-w-3xl text-[2rem] font-medium leading-[1.1] text-bloom-ink sm:text-5xl lg:text-[3.5rem]">
-            Where Preparation Grows
+          <h1 className="mt-5 max-w-3xl text-[2rem] font-semibold leading-[1.12] text-white sm:text-5xl lg:text-[3.4rem]">
+            The whole SGT syllabus,
+            <br className="hidden sm:block" />{' '}
+            <span className="text-bloom-lavender">practised properly.</span>
           </h1>
 
-          <p className="mt-4 max-w-md text-[13px] leading-relaxed text-bloom-ink/70 sm:text-sm">
-            A syllabus-mapped practice platform built for DSC and state exam
-            aspirants — realistic mock tests, solved previous papers and
-            performance you can actually read.
+          {/* Telugu carries equal weight, not a footnote: half the published
+              papers are Telugu medium and most candidates sit it. */}
+          <p className="mt-4 max-w-md text-[15px] font-medium leading-relaxed text-white/85 sm:text-base">
+            ఏపీ డీఎస్సీ – ఎస్‌జీటీ కోసం పూర్తి సిలబస్ ప్రాక్టీస్, తెలుగు మరియు
+            ఇంగ్లీష్ మాధ్యమాల్లో.
           </p>
 
-          <a href="#sign-in" className="bloom-pill bloom-pill-dark mt-7">
-            Start preparing
-          </a>
+          <p className="mt-2.5 max-w-md text-[13px] leading-relaxed text-white/60">
+            160 questions, 150 minutes, the official paper pattern — the same
+            exam you will sit, as often as you need it.
+          </p>
+
+          {/* Google's own button, not a lookalike that calls a function.
+              Their terms require the rendered widget, and a custom control
+              that opens the popup is exactly what gets a client id pulled.
+              The promise that used to be the button label now sits under it,
+              where it still does its job. */}
+          {googleEnabled ? (
+            <div className="mt-7 flex flex-col items-center gap-2.5">
+              <div ref={heroGsiRef} className="min-h-[44px]" />
+              <span className="text-[11px] font-medium text-white/55">
+                Free to start · no card needed
+              </span>
+            </div>
+          ) : (
+            <a
+              href="#sign-in"
+              className="mt-7 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-bloom-lavender px-7 text-sm font-semibold text-bloom-ink transition hover:brightness-105"
+            >
+              Start free — no card needed
+              <ArrowRight className="h-4 w-4" />
+            </a>
+          )}
         </div>
       </section>
 

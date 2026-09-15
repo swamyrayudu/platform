@@ -353,10 +353,15 @@ export async function saveAttemptAnswer(
       onConflict: 'attempt_id,question_id',
     })
 
-  // Update time_spent in attempt (non-blocking)
+  // Only the row's own timestamp. This used to write timeTakenSeconds into
+  // the attempt's time_spent_seconds, which is the total for the whole paper —
+  // so every saved answer overwrote the elapsed clock with however long that
+  // one question took. Resuming then handed back almost the full duration.
+  // The running total is owned by the pause and submit routes, which are the
+  // two places that actually receive it.
   void supabaseAdmin
     .from('mock_test_attempts')
-    .update({ time_spent_seconds: timeTakenSeconds, updated_at: new Date().toISOString() })
+    .update({ updated_at: new Date().toISOString() })
     .eq('id', attemptId)
 }
 

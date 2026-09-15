@@ -8,6 +8,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useHideBottomNav } from '@/app/components/dsc-sgt/DscBottomNav'
 import type { PracticeSession, UserAnswerRecord } from '@/types/practice'
 import {
   ExamHeader,
@@ -43,6 +44,11 @@ export default function PracticeExam({
   onExitSession,
   isSubmitting = false,
 }: PracticeExamProps) {
+  // A running session owns the bottom of the screen — it has its own next/
+  // previous bar. Stacking the app's tab bar under that buries the controls
+  // and offers an exit that skips the session's own handling.
+  useHideBottomNav()
+
   const [currentIndex, setCurrentIndex] = useState<number>(0)
   const [userAnswers, setUserAnswers] = useState<Record<string, UserAnswerRecord>>(
     session.user_answers || {}

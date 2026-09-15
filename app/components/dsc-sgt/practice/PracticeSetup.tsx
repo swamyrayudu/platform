@@ -103,8 +103,6 @@ export default function PracticeSetup({
   const [selectedDifficulties, setSelectedDifficulties] = useState<string[]>(['All'])
   const [hasTimer, setHasTimer] = useState<boolean>(false)
   const [timerMinutes, setTimerMinutes] = useState<number>(25)
-  const [customCountInput, setCustomCountInput] = useState<string>('')
-  const [isCustomCount, setIsCustomCount] = useState<boolean>(false)
 
   // ── Dynamic Metadata from Server ────────────────────────────
   const [dynamicOptions, setDynamicOptions] = useState<DynamicFilterOptions | null>(null)
@@ -347,7 +345,6 @@ export default function PracticeSetup({
           setSelectedTopics([])
           setTopicMode('all')
         }}
-        dynamicOptions={dynamicOptions}
         totalAvailable={totalAvailable}
       />
 
@@ -373,17 +370,8 @@ export default function PracticeSetup({
       {/* ── Step 3: Question Count ─────────────────────────────── */}
       <QuestionCountSelector
         questionCount={questionCount}
-        finalQuestionCount={finalQuestionCount}
-        isCustomCount={isCustomCount}
-        customCountInput={customCountInput}
         isPremium={isPremium}
         onSetQuestionCount={setQuestionCount}
-        onSetIsCustomCount={setIsCustomCount}
-        onCustomInputChange={(val) => {
-          setCustomCountInput(val)
-          const n = parseInt(val, 10)
-          if (!isNaN(n) && n > 0) setQuestionCount(n)
-        }}
         onOpenUpgradeModal={() => openModal('practice_question_count_preset')}
       />
 

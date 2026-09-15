@@ -10,8 +10,6 @@ import {
   BarChart3,
   Sparkles,
   Crown,
-  Menu,
-  X,
   LogOut,
   ShieldAlert,
   Home,
@@ -40,7 +38,6 @@ export default function DscHeader() {
   const { user, logout } = useAuth()
   const { isPremium, openModal, devTierOverride, setDevTierOverride } = usePremium()
   const [profileOpen, setProfileOpen] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const profileRef = useRef<HTMLDivElement>(null)
 
   // Close the profile dropdown on an outside click
@@ -54,26 +51,19 @@ export default function DscHeader() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  // Navigating dismisses both menus. Each link already closes on tap; this
+  // Navigating dismisses the profile menu. It closes on tap already; this
   // covers the routes we do not control — browser back/forward, a redirect.
   // Adjusting during render rather than in an effect avoids the extra pass.
   const [lastPath, setLastPath] = useState(pathname)
   if (lastPath !== pathname) {
     setLastPath(pathname)
-    setMobileMenuOpen(false)
     setProfileOpen(false)
   }
 
-  // The sheet is a full-screen overlay on small screens, so stop the page
-  // behind it from scrolling underneath.
-  useEffect(() => {
-    if (!mobileMenuOpen) return
-    const previous = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = previous
-    }
-  }, [mobileMenuOpen])
+  // A running exam owns the whole screen. The app header costs 56px of it and
+  // offers nothing a candidate mid-paper can use — the exam has its own bar
+  // with the timer, the palette and the way out.
+  if (pathname.startsWith('/dsc-sgt/mock-exam')) return null
 
 
   return (
@@ -138,16 +128,17 @@ export default function DscHeader() {
           ) : (
             <button
               onClick={() => openModal('header_upgrade')}
-              className="bloom-pill bloom-pill-dark hidden px-4 py-2 text-[12px] sm:inline-flex"
+              className="bloom-pill bloom-pill-dark inline-flex px-3 py-2 text-[12px] sm:px-4"
             >
               <Sparkles className="h-3.5 w-3.5" strokeWidth={1.7} />
-              <span>Get Pro</span>
+              {/* Label drops on the narrowest screens; the icon carries it. */}
+              <span className="hidden sm:inline">Get Pro</span>
             </button>
           )}
 
-          <div className="hidden sm:block">
-            <ModeToggle />
-          </div>
+          {/* Always visible now. It used to live only inside the hamburger
+              sheet, which is gone. */}
+          <ModeToggle />
 
           {/* Profile */}
           <div className="relative" ref={profileRef}>
@@ -173,70 +164,9 @@ export default function DscHeader() {
             )}
           </div>
 
-          {/* Sheet trigger */}
-          <button
-            onClick={() => setMobileMenuOpen((v) => !v)}
-            aria-label="Toggle navigation"
-            aria-expanded={mobileMenuOpen}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground transition hover:bg-accent hover:text-foreground lg:hidden"
-          >
-            {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-          </button>
         </div>
       </div>
 
-      {/* ── Mobile sheet ── */}
-      {mobileMenuOpen && (
-        <>
-          {/* Offsets track the header height, which grows at sm */}
-          <div
-            className="fixed inset-0 top-14 z-30 bg-bloom-ink/20 backdrop-blur-[2px] sm:top-16 lg:hidden"
-            onClick={() => setMobileMenuOpen(false)}
-          />
-
-          <div className="absolute inset-x-0 top-full z-40 max-h-[calc(100dvh-3.5rem)] overflow-y-auto border-b border-border bg-card p-4 shadow-xl animate-in slide-in-from-top-2 sm:max-h-[calc(100dvh-4rem)] lg:hidden">
-            <nav className="flex flex-col gap-1">
-              {DSC_NAV_ITEMS.map((item) => {
-                const Icon = item.icon
-                const active = isItemActive(pathname, item.href)
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={active ? 'page' : undefined}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors ${
-                      active
-                        ? 'bg-secondary text-secondary-foreground'
-                        : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4 shrink-0" strokeWidth={1.7} />
-                    <span>{item.label}</span>
-                  </Link>
-                )
-              })}
-            </nav>
-
-            {/* Actions that are hidden from the bar on small screens */}
-            <div className="mt-4 flex items-center gap-3 border-t border-border pt-4">
-              {!isPremium && (
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false)
-                    openModal('header_upgrade')
-                  }}
-                  className="bloom-pill bloom-pill-dark min-h-11 flex-1 text-[13px]"
-                >
-                  <Sparkles className="h-4 w-4" strokeWidth={1.7} />
-                  <span>Get Pro</span>
-                </button>
-              )}
-              <ModeToggle />
-            </div>
-          </div>
-        </>
-      )}
     </header>
   )
 }

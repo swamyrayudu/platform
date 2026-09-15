@@ -21,15 +21,21 @@
   --bloom-ink: #1b1a2e;
   --bloom-indigo: #2e2b55;
   --bloom-indigo-soft: #3d3a6b;
-  --bloom-lavender: #a9a3e4;
-  --bloom-lavender-soft: #ddd9f5;
-  --bloom-mist: #ebe9f7;
-  --bloom-violet: #7e71cd;
+  /* The accent family used to be lavender, carried over from the fintech
+     landing page this design started from. Lavender reads as wellness or
+     consumer finance; a government teacher-recruitment exam wants the
+     register of paper and ink. Warm ochre also sits beside the deep indigo
+     without fighting it, and it is already the colour of the Pro badge. */
+  --bloom-lavender: #c9a15e;
+  --bloom-lavender-soft: #f0e3cb;
+  --bloom-mist: #f6efe2;
+  --bloom-violet: #a8792f;
 
-  /* Bloom tones for the hero meadow, far to near */
-  --meadow-back: #aba3e5;
-  --meadow-mid: #8b80d2;
-  --meadow-front: #6558b4;
+  /* Hero field, far to near. Warm against the deep sky rather than a second
+     shade of it, so the horizon reads as depth instead of haze. */
+  --meadow-back: #6b6390;
+  --meadow-mid: #a98a52;
+  --meadow-front: #c9a15e;
 
   /* Subject key — eight hues a reader can tell apart, all desaturated far
      enough to sit inside the lavender family rather than fight it. */
@@ -59,7 +65,7 @@
   --secondary-foreground: #2e2b55;
 
   --muted: #eceae4;
-  --muted-foreground: #6e6b83;
+  --muted-foreground: #5a5770;
 
   --accent: #e4e1f5;
   --accent-foreground: #2e2b55;
@@ -97,14 +103,14 @@
   --bloom-ink: #efedf8;
   --bloom-indigo: #c5c0ef;
   --bloom-indigo-soft: #ddd9f5;
-  --bloom-lavender: #8b84d4;
-  --bloom-lavender-soft: #2a2748;
-  --bloom-mist: #211f3a;
-  --bloom-violet: #9a8fe0;
+  --bloom-lavender: #d4ae72;
+  --bloom-lavender-soft: #3a2f20;
+  --bloom-mist: #2b2418;
+  --bloom-violet: #e0bc84;
 
-  --meadow-back: #5c54a0;
-  --meadow-mid: #4a4288;
-  --meadow-front: #373068;
+  --meadow-back: #3b3663;
+  --meadow-mid: #6f5a34;
+  --meadow-front: #8d7139;
 
   --subject-1: #a79cee;
   --subject-2: #bcb2f2;
@@ -131,7 +137,7 @@
   --secondary-foreground: #efedf8;
 
   --muted: #252340;
-  --muted-foreground: #9d99b8;
+  --muted-foreground: #aeaac6;
 
   --accent: #2a2748;
   --accent-foreground: #efedf8;
@@ -162,6 +168,18 @@
 @theme inline {
   --font-sans: var(--font-sans);
   --font-heading: var(--font-heading);
+
+  /* ── Type scale ──
+     Raised across the board. The app was built at 11-12px for anything that
+     was not a heading — roughly six hundred places — and that is too small to
+     read comfortably for the people actually sitting this exam, who are adults
+     and not all of them young. Tailwind's own defaults are redefined here
+     rather than edited at six hundred call sites, so the change is one place
+     and one revert. */
+  --text-xs: 0.8125rem;    /* 13px, was 12 */
+  --text-sm: 0.9063rem;    /* 14.5px, was 14 */
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
 
   --color-bloom-cream: var(--bloom-cream);
   --color-bloom-cream-deep: var(--bloom-cream-deep);
@@ -246,6 +264,32 @@
   }
 }
 
+/* ── Legibility floor ──────────────────────────────────────────────
+   Three hundred places set a literal pixel size — text-[11px] and smaller —
+   and a literal cannot be redefined through @theme the way text-xs can. They
+   are lifted here instead of being rewritten one by one: the classes compile
+   to exactly these selectors, so this catches every one of them, and deleting
+   this block puts the app back exactly as it was.
+
+   12.5px rather than 13: these sit in badges, chips and palette tiles whose
+   boxes were sized around the old value, and a larger jump starts breaking
+   layouts rather than helping anyone read. */
+.text-\[9px\],
+.text-\[10px\],
+.text-\[11px\] {
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+/* The smallest text is also the lightest-coloured, which is the half of the
+   problem that size does not fix. */
+.text-\[9px\],
+.text-\[10px\],
+.text-\[11px\],
+.text-xs {
+  letter-spacing: 0.005em;
+}
+
 @layer components {
   /* ── The white page shell the whole layout sits on ── */
   .bloom-shell {
@@ -256,15 +300,20 @@
       0 24px 60px -30px rgb(27 26 46 / 18%);
   }
 
-  /* ── Hero sky: pale horizon fading down into lavender ── */
+  /* ── Hero sky ──
+     Was a pale lavender wash with dark text on it, which made the most
+     important block on the page the quietest thing on it. Deep ink with
+     light type states the product instead, and the warm field below reads
+     as horizon. Identical in both themes: a hero this dark has nothing to
+     invert. */
   .bloom-sky {
     background-image: radial-gradient(
       140% 95% at 50% -10%,
-      #fbfbfe 0%,
-      #eeedfa 30%,
-      #d9d5f3 58%,
-      #b3ace6 82%,
-      #9089d6 100%
+      #35315e 0%,
+      #2b2850 30%,
+      #232045 58%,
+      #1c1937 82%,
+      #15132a 100%
     );
   }
   .dark .bloom-sky {
@@ -276,14 +325,16 @@
       #191631 82%,
       #141227 100%
     );
+    /* Same intent as light — kept separate only so a future tweak to one
+       theme does not silently change the other. */
   }
 
   /* ── Lavender surface for the highlight bento card ── */
   .bloom-tint {
-    background-image: linear-gradient(150deg, #dcd8f4 0%, #e9e7f8 45%, #f1effb 100%);
+    background-image: linear-gradient(150deg, #f0e3cb 0%, #f6efe2 45%, #fbf7ef 100%);
   }
   .dark .bloom-tint {
-    background-image: linear-gradient(150deg, #2b2850 0%, #252243 45%, #201e3a 100%);
+    background-image: linear-gradient(150deg, #3a2f20 0%, #2f2718 45%, #272014 100%);
   }
 
   /* ── Pill button, the reference's only button shape ── */
@@ -300,6 +351,10 @@
 
   /* ── Small muted label that sits above a section heading ── */
   .bloom-eyebrow {
-    @apply text-[11px] font-medium tracking-wide text-muted-foreground;
+    /* @apply resolves the literal at build time, so the floor above cannot
+       reach it — set the size here directly. */
+    @apply font-semibold tracking-wide text-muted-foreground;
+    font-size: 0.78rem;
+    line-height: 1.45;
   }
 }

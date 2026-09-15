@@ -242,9 +242,12 @@ export default function PremiumModal() {
         <div className="relative overflow-y-auto flex-1">
           <div className="grid lg:grid-cols-[1fr_380px]">
 
-            {/* ═══ LEFT — Features ═════════════════════════════════ */}
-            <div className="p-6 sm:p-8 lg:border-r border-border/60">
-
+            {/* ═══ TOP — Identity, full width ══════════════════════
+                Lifted out of the features column so it stays above the fold
+                on a phone. Below lg the grid stacks, and a title trapped in
+                the features column would otherwise sit above eight feature
+                cards — pushing the prices off-screen entirely. */}
+            <div className="p-6 pb-0 sm:p-8 sm:pb-0 lg:col-span-2">
               {/* Header */}
               <div className="flex items-center gap-2.5 mb-1">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg shadow-amber-500/30">
@@ -280,6 +283,15 @@ export default function PremiumModal() {
                   </div>
                 </div>
               )}
+
+            </div>
+
+            {/* ═══ LEFT — Features ═════════════════════════════════
+                order-2 on a phone: the plans come first, because someone who
+                opened this wants to know the price, and reading eight feature
+                cards before finding it is the wrong way round. On lg both
+                columns are visible at once and the natural order returns. */}
+            <div className="order-2 p-6 pt-5 sm:p-8 sm:pt-5 lg:order-1 lg:border-r border-border/60">
 
               {/* Feature grid */}
               <div className="grid sm:grid-cols-2 gap-2.5">
@@ -320,7 +332,7 @@ export default function PremiumModal() {
             </div>
 
             {/* ═══ RIGHT — Plan Selector + Checkout ════════════════ */}
-            <div className="p-6 sm:p-8 bg-muted/20 flex flex-col gap-5">
+            <div className="order-1 flex flex-col gap-5 bg-muted/20 p-6 sm:p-8 lg:order-2">
 
               <div>
                 <div className="flex items-center justify-between mb-3">

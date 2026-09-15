@@ -14,9 +14,9 @@ import {
   Brain,
   Newspaper,
   HelpCircle,
+  Check,
   LucideIcon,
 } from 'lucide-react'
-import type { DynamicFilterOptions } from '@/types/practice'
 
 interface SubjectConfig {
   id: string
@@ -97,14 +97,13 @@ export const SUBJECT_LIST: SubjectConfig[] = [
 interface SubjectSelectorProps {
   selectedSubject: string
   onSelectSubject: (subjectName: string) => void
-  dynamicOptions: DynamicFilterOptions | null
+  /** Server truth for the SELECTED subject only — drives the notice below. */
   totalAvailable: number
 }
 
 export default function SubjectSelector({
   selectedSubject,
   onSelectSubject,
-  dynamicOptions,
   totalAvailable,
 }: SubjectSelectorProps) {
   return (
@@ -119,58 +118,60 @@ export default function SubjectSelector({
         <span className="text-xs font-semibold text-primary">{selectedSubject}</span>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+      {/* A list on phones, a grid once there is width for one.
+          Two cramped columns clipped the longest subject to two lines and
+          left a candidate guessing at "Educational Psychology + Perspec…";
+          a row has the whole name and the Telugu below it. */}
+      <div className="flex flex-col gap-2 sm:grid sm:grid-cols-2 lg:grid-cols-3">
         {SUBJECT_LIST.map((sub) => {
           const isSelected = selectedSubject.toLowerCase() === sub.name.toLowerCase()
           const Icon = sub.icon
-          const serverSubj = dynamicOptions?.available_subjects?.find(
-            (s) =>
-              s.name.toLowerCase() === sub.name.toLowerCase() ||
-              ((sub.name.includes('GK') || sub.name.includes('Current Affairs')) &&
-                (s.name.includes('GK') || s.name.includes('General Knowledge') || s.name.includes('Current Affairs'))) ||
-              ((sub.name.includes('Psychology') || sub.name.includes('Pedagogy') || sub.name.includes('Perspectives')) &&
-                (s.name.includes('Psychology') || s.name.includes('Pedagogy') || s.name.includes('Perspectives')))
-          )
-          const qCount = serverSubj ? serverSubj.question_count : sub.name === 'English' ? 50 : 0
-          const hasQuestions = qCount > 0
 
+          // There is no per-card availability state any more, and the reason is
+          // that it could not be computed honestly. It matched the server's
+          // subject name against the English label here, but the `subject`
+          // column is not in English for several Telugu-medium tables —
+          // telugu_medium_science stores "సైన్స్", gk_telugu_medium stores
+          // "సాధారణ జ్ఞానం మరియు ప్రస్తుత వ్యవహారాలు". Nothing matched, so every
+          // subject except English read "Coming soon" on Telugu medium while
+          // sitting on thousands of questions.
+          //
+          // The hardcoded `sub.name === 'English' ? 50 : 0` fallback underneath
+          // it dated from when English was the only bank that existed. All
+          // twelve tables have questions now, so the state it guarded is gone.
+          // A subject that genuinely has none is still caught downstream: the
+          // Start button reads the real count for the chosen subject and
+          // refuses with "No Questions Available Currently".
           return (
             <button
               key={sub.id}
               type="button"
               onClick={() => onSelectSubject(sub.name)}
-              className={`flex flex-col items-start p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+              aria-pressed={isSelected}
+              className={`flex min-h-16 w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${
                 isSelected
-                  ? 'border-primary bg-primary/10 text-foreground font-bold shadow-xs'
-                  : hasQuestions
-                  ? 'border-border/70 bg-card hover:border-border text-muted-foreground hover:text-foreground'
-                  : 'border-border/40 bg-muted/20 opacity-70 hover:opacity-100'
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border bg-card hover:bg-accent/40'
               }`}
             >
-              <div className="flex items-center justify-between w-full mb-2">
-                <div className={`flex h-8 w-8 items-center justify-center rounded-xl ${sub.bg} ${sub.color}`}>
-                  <Icon className="h-4 w-4" />
-                </div>
-                {hasQuestions ? (
-                  <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                    Live Bank
-                  </span>
-                ) : (
-                  <span className="rounded-full bg-muted px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                    No Data Yet
-                  </span>
-                )}
-              </div>
-
               <span
-                className="text-xs sm:text-sm font-bold line-clamp-2 w-full text-foreground leading-tight min-h-[2.2rem] flex items-center"
-                title={sub.name}
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${sub.bg} ${sub.color}`}
               >
-                {sub.name}
+                <Icon className="h-5 w-5" strokeWidth={1.8} />
               </span>
-              <span className="text-[11px] text-muted-foreground truncate w-full mt-1">
-                {sub.teluguName}
+
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold leading-snug text-foreground">
+                  {sub.name}
+                </span>
+                <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
+                  {sub.teluguName}
+                </span>
               </span>
+
+              {isSelected && (
+                <Check className="h-4 w-4 shrink-0 text-primary" strokeWidth={2.5} aria-hidden />
+              )}
             </button>
           )
         })}

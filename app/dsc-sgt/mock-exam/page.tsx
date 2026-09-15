@@ -1,8 +1,13 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react'
+import React, { useState, useEffect, useCallback, useRef, Suspense, useSyncExternalStore } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
+  ArrowLeft,
+  PauseCircle,
+  Play,
+  Maximize,
+  Minimize,
   Timer,
   CheckCircle2,
   Bookmark,
@@ -178,6 +183,125 @@ function SubmitConfirmModal({
   )
 }
 
+/** "1 hour 12 minutes" — the number a candidate cares about when pausing. */
+function formatRemaining(seconds: number): string {
+  const total = Math.max(0, Math.round(seconds))
+  const hours = Math.floor(total / 3600)
+  const minutes = Math.round((total % 3600) / 60)
+  if (hours === 0) return `${minutes} minute${minutes === 1 ? '' : 's'}`
+  if (minutes === 0) return `${hours} hour${hours === 1 ? '' : 's'}`
+  return `${hours} hour${hours === 1 ? '' : 's'} ${minutes} minute${minutes === 1 ? '' : 's'}`
+}
+
+// ── Leave-exam dialog ─────────────────────────────────────────────
+// Two choices, because there are only two things a candidate means by Back
+// mid-paper: "I need to stop for now" and "I mis-tapped".
+//
+// Submitting is deliberately NOT one of them. Finishing a paper is a decision
+// worth making on purpose, and it already has its own button and its own
+// confirmation with the answered/marked/unanswered counts. Offering it here,
+// one tap from a mis-hit Back, is how somebody ends a 150-minute exam by
+// accident.
+
+function LeaveExamModal({
+  answered,
+  unanswered,
+  remainingLabel,
+  onPause,
+  onCancel,
+  busy,
+}: {
+  answered: number
+  unanswered: number
+  remainingLabel: string
+  onPause: () => void
+  onCancel: () => void
+  busy: boolean
+}) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+      <div className="w-full max-w-sm rounded-t-3xl border border-border bg-card p-6 shadow-2xl sm:rounded-3xl">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/10">
+            <PauseCircle className="h-5 w-5 text-amber-500" />
+          </div>
+          <h3 className="text-sm font-bold text-foreground">Pause the exam?</h3>
+        </div>
+
+        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+          You have answered <strong className="text-foreground">{answered}</strong> question
+          {answered === 1 ? '' : 's'}, with {unanswered} left. The timer stops here and{' '}
+          <strong className="text-foreground">{remainingLabel}</strong> will be waiting when you
+          come back.
+        </p>
+
+        <div className="mt-5 flex flex-col gap-2">
+          <button
+            onClick={onPause}
+            disabled={busy}
+            className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-bold text-white transition hover:bg-primary/90 disabled:opacity-60"
+          >
+            {busy ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <PauseCircle className="h-3.5 w-3.5" />
+            )}
+            Stop the timer and go back
+          </button>
+          <button
+            onClick={onCancel}
+            disabled={busy}
+            className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border px-4 text-xs font-semibold text-foreground transition hover:bg-accent disabled:opacity-60"
+          >
+            <Play className="h-3.5 w-3.5" />
+            Resume exam
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── First-run hint for the question palette ───────────────────────
+// On a phone the palette lives behind one small button, and nothing about a
+// number in a box says "all 160 questions are in here". Desktop needs none of
+// this — the palette is a permanent sidebar from sm up.
+//
+// Read through useSyncExternalStore rather than an effect so the server
+// renders the "already seen" answer and the client renders the real one, with
+// no hydration mismatch and no flash of a hint that is about to disappear.
+
+const PALETTE_HINT_KEY = 'mock_exam_palette_hint_seen'
+const hintListeners = new Set<() => void>()
+
+function subscribeHint(onChange: () => void): () => void {
+  hintListeners.add(onChange)
+  window.addEventListener('storage', onChange)
+  return () => {
+    hintListeners.delete(onChange)
+    window.removeEventListener('storage', onChange)
+  }
+}
+
+function hintSnapshot(): string {
+  try {
+    return window.localStorage.getItem(PALETTE_HINT_KEY) ?? ''
+  } catch {
+    // Storage blocked — treat it as seen rather than showing the hint every
+    // single time the exam is opened.
+    return 'seen'
+  }
+}
+
+function dismissHint(): void {
+  try {
+    window.localStorage.setItem(PALETTE_HINT_KEY, 'seen')
+  } catch {
+    // Nothing to do; the hint simply reappears next time.
+  }
+  for (const listener of hintListeners) listener()
+}
+
 // ── Question Grid ─────────────────────────────────────────────────
 
 function QuestionGrid({
@@ -198,31 +322,60 @@ function QuestionGrid({
   const sorted = [...questions].sort((a, b) => a.question_number - b.question_number)
   const sections = buildSectionNav(sorted)
 
+  // A wall of 160 numbered tiles is not something anyone reads mid-exam. The
+  // real questions are "what have I not done yet" and "what did I flag", so
+  // those are one tap, and the full grid stays for the rare jump to a number.
+  const [filter, setFilter] = useState<'all' | 'unanswered' | 'marked' | 'answered'>('all')
+
+  const counts = {
+    all: sorted.length,
+    unanswered: sorted.filter((q) => !answers[q.question_uid]).length,
+    marked: sorted.filter((q) => marked.has(q.question_number)).length,
+    answered: sorted.filter((q) => answers[q.question_uid]).length,
+  }
+
+  const matchesFilter = (q: ClientSafeMockQuestion) => {
+    if (filter === 'unanswered') return !answers[q.question_uid]
+    if (filter === 'answered') return Boolean(answers[q.question_uid])
+    if (filter === 'marked') return marked.has(q.question_number)
+    return true
+  }
+
+  const FILTERS = [
+    { id: 'all' as const, label: 'All' },
+    { id: 'unanswered' as const, label: 'Not done' },
+    { id: 'marked' as const, label: 'Flagged' },
+    { id: 'answered' as const, label: 'Done' },
+  ]
+
   return (
     <div className="flex flex-col gap-4">
-      {/* Legend */}
-      <div className="flex flex-wrap gap-3 text-[11px] text-muted-foreground">
-        {[
-          { cls: 'bg-primary/80', label: 'Current' },
-          { cls: 'bg-emerald-600/80', label: 'Answered' },
-          { cls: 'bg-amber-500/80', label: 'Marked' },
-          { cls: 'bg-muted-foreground/30', label: 'Visited' },
-          { cls: 'bg-muted/60 border border-border', label: 'Not Visited' },
-        ].map((l) => (
-          <span key={l.label} className="inline-flex items-center gap-1">
-            <span className={`h-3 w-3 rounded-sm ${l.cls}`} />
-            {l.label}
-          </span>
+      {/* Filters */}
+      <div className="flex flex-wrap gap-1.5">
+        {FILTERS.map((f) => (
+          <button
+            key={f.id}
+            onClick={() => setFilter(f.id)}
+            aria-pressed={filter === f.id}
+            className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold transition ${
+              filter === f.id
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'border-border text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {f.label} {counts[f.id]}
+          </button>
         ))}
       </div>
 
       {/* Questions grouped by section */}
       {sections.map((section) => {
-        const sectionQs = sorted.filter((q) => q.section_id === section.id)
+        const sectionQs = sorted.filter((q) => q.section_id === section.id && matchesFilter(q))
+        if (sectionQs.length === 0) return null
         return (
           <div key={section.id}>
             <p className="mb-1.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wide truncate">
-              {section.name} ({section.count}Q)
+              {section.name} ({sectionQs.length})
             </p>
             <div className="flex flex-wrap gap-1.5">
               {sectionQs.map((q) => {
@@ -283,6 +436,13 @@ function MockExamContent() {
   } | null>(null)
   const [showConfirm, setShowConfirm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [showLeave, setShowLeave] = useState(false)
+  // Captured when the dialog opens rather than read during render:
+  // getTotalTimeSpent() reads a ref, and a ref must not be touched while
+  // rendering. It is a frozen figure anyway — the clock the candidate is
+  // being shown is the one at the moment they asked to leave.
+  const [leaveRemaining, setLeaveRemaining] = useState(0)
+  const [leaving, setLeaving] = useState(false)
 
   // Total questions in the module, from the API — used to show chunk progress
   // while the later chunks are still streaming in.
@@ -609,6 +769,89 @@ function MockExamContent() {
     }
   }, [attemptId, submitting, getTotalTimeSpent, router])
 
+  const openLeaveDialog = useCallback(() => {
+    setLeaveRemaining(Math.max(0, (testMeta?.duration_seconds ?? 0) - getTotalTimeSpent()))
+    setShowLeave(true)
+  }, [testMeta, getTotalTimeSpent])
+
+
+  // ── Leaving the exam ────────────────────────────────────────────
+  // Back is intercepted rather than blocked. A sentinel entry is pushed on
+  // top of the exam so the first Back pops that instead of the route, which
+  // gives us somewhere to ask the question; the entry is pushed again if the
+  // candidate decides to stay, so a second Back asks again rather than
+  // escaping.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.history.pushState({ examGuard: true }, '')
+
+    const onPopState = () => {
+      openLeaveDialog()
+      window.history.pushState({ examGuard: true }, '')
+    }
+
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [openLeaveDialog])
+
+  // A tab close or reload cannot be intercepted, only warned about.
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [])
+
+  // ── Fullscreen ──────────────────────────────────────────────────
+  // Worth having for a 150-minute paper: it removes the browser chrome, and
+  // on a phone that is a third of the screen back. Tracked from the
+  // fullscreenchange event rather than from the click, because Escape and the
+  // system gesture also leave it and the button must not lie about the state.
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  const hintSeen = useSyncExternalStore(subscribeHint, hintSnapshot, () => 'seen')
+  const showPaletteHint = hintSeen === ''
+
+  useEffect(() => {
+    const sync = () => setIsFullscreen(Boolean(document.fullscreenElement))
+    document.addEventListener('fullscreenchange', sync)
+    return () => document.removeEventListener('fullscreenchange', sync)
+  }, [])
+
+  const toggleFullscreen = useCallback(async () => {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen()
+      else await document.documentElement.requestFullscreen()
+    } catch {
+      // iOS Safari refuses this outside a video element. Nothing to do but
+      // leave the button inert rather than show an error mid-exam.
+    }
+  }, [])
+
+  const handlePause = useCallback(async () => {
+    if (leaving) return
+    setLeaving(true)
+    try {
+      // The elapsed figure only exists in this page — the server runs no clock
+      // for an attempt — so it is sent here and clamped there.
+      await fetch(`/api/dsc-sgt/mock-tests/attempts/${attemptId}/pause`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ totalTimeSpentSeconds: getTotalTimeSpent() }),
+      })
+    } catch {
+      // Going back matters more than the last few seconds of bookkeeping; the
+      // attempt stays in_progress either way and is picked up on return.
+    } finally {
+      setLeaving(false)
+      setShowLeave(false)
+      router.replace('/dsc-sgt/mock-tests')
+    }
+  }, [attemptId, leaving, router, getTotalTimeSpent])
+
   // ── Derived stats ─────────────────────────────────────────────
 
   const answeredCount = Object.keys(answers).length
@@ -661,19 +904,24 @@ function MockExamContent() {
       {/* ══ Topbar ══ */}
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-3 sm:px-6 gap-3 z-20">
         <div className="flex min-w-0 items-center gap-2">
+          {/* The visible counterpart of Back, so leaving is not a gesture the
+              candidate has to guess at. */}
+          <button
+            onClick={openLeaveDialog}
+            aria-label="Pause exam"
+            className="-ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition hover:bg-accent hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          {/* The module title used to sit here and was the widest thing in the
+              bar — on a phone it truncated to "గ్రాండ్ మాక్ టెస్ట్ — మా…",
+              which identifies nothing. A candidate already knows which test
+              they opened; what they need from this bar is the time left. */}
           <div className="h-2 w-2 shrink-0 rounded-full bg-red-500 animate-pulse" />
-          <span className="text-xs font-black text-foreground truncate max-w-[140px] sm:max-w-xs md:max-w-md">
-            {testMeta?.title || 'AP DSC SGT Mock Test'}
+          <span className="shrink-0 text-xs font-bold text-muted-foreground">
+            Q{currentQ.question_number}
+            <span className="text-muted-foreground/60"> / {questions.length}</span>
           </span>
-          {testMeta?.medium === 'telugu' ? (
-            <span className="hidden sm:inline-flex items-center rounded-md border border-teal-500/30 bg-teal-500/10 px-2 py-0.5 text-[11px] font-bold text-teal-700 dark:text-teal-300 shrink-0">
-              తెలుగు మాధ్యమం
-            </span>
-          ) : (
-            <span className="hidden sm:inline-flex items-center rounded-md border border-primary/30 bg-secondary px-2 py-0.5 text-[11px] font-bold text-primary shrink-0">
-              English Medium
-            </span>
-          )}
         </div>
 
         {/* Status chips — desktop only */}
@@ -697,6 +945,14 @@ function MockExamContent() {
               onExpire={handleTimerExpire}
             />
           )}
+          {/* Hidden where the API is unavailable rather than shown broken. */}
+          <button
+            onClick={toggleFullscreen}
+            aria-label={isFullscreen ? 'Exit full screen' : 'Full screen'}
+            className="hidden h-8 w-8 items-center justify-center rounded-xl border border-border bg-muted/60 text-muted-foreground transition hover:text-foreground [@supports(display:flex)]:inline-flex"
+          >
+            {isFullscreen ? <Minimize className="h-3.5 w-3.5" /> : <Maximize className="h-3.5 w-3.5" />}
+          </button>
           <button
             id="mock-exam-submit-btn"
             onClick={() => setShowConfirm(true)}
@@ -707,12 +963,43 @@ function MockExamContent() {
             <span className="hidden sm:inline">Submit</span>
           </button>
           {/* Mobile sidebar toggle */}
-          <button
-            onClick={() => setShowSidebar(true)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-border bg-muted/60 sm:hidden"
-          >
-            <span className="text-[11px] font-black">{currentQNumber}</span>
-          </button>
+          <div className="relative sm:hidden">
+            <button
+              onClick={() => {
+                setShowSidebar(true)
+                dismissHint()
+              }}
+              aria-label={`Question ${currentQNumber} of ${questions.length} — open the question list`}
+              className={`inline-flex h-8 w-8 items-center justify-center rounded-xl border bg-muted/60 ${
+                showPaletteHint ? 'border-primary ring-2 ring-primary/30' : 'border-border'
+              }`}
+            >
+              <span className="text-[11px] font-black">{currentQNumber}</span>
+            </button>
+
+            {showPaletteHint && (
+              <div
+                role="status"
+                className="absolute right-0 top-full z-30 mt-2 w-56 rounded-2xl border border-border bg-popover p-3 text-left shadow-xl animate-in fade-in-50 slide-in-from-top-1"
+              >
+                {/* Arrow, pointing back at the button. */}
+                <span className="absolute -top-1.5 right-3 h-3 w-3 rotate-45 border-l border-t border-border bg-popover" />
+                <p className="relative text-[11px] font-semibold text-foreground">
+                  All {questions.length} questions are here
+                </p>
+                <p className="relative mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                  Tap this to jump to any question, or to see what you have not
+                  answered yet.
+                </p>
+                <button
+                  onClick={dismissHint}
+                  className="relative mt-2 w-full rounded-xl bg-primary py-1.5 text-[11px] font-semibold text-primary-foreground"
+                >
+                  Got it
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -902,6 +1189,18 @@ function MockExamContent() {
           )}
         </>
       </div>
+
+      {/* ══ Leave Modal ══ */}
+      {showLeave && (
+        <LeaveExamModal
+          answered={answeredCount}
+          unanswered={unansweredCount}
+          remainingLabel={formatRemaining(leaveRemaining)}
+          onPause={handlePause}
+          onCancel={() => setShowLeave(false)}
+          busy={leaving}
+        />
+      )}
 
       {/* ══ Confirmation Modal ══ */}
       {showConfirm && (

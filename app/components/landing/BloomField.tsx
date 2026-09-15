@@ -63,22 +63,35 @@ function bloomsFor(band: Band) {
 }
 
 interface BloomFieldProps {
+  /**
+   * Half-height banner treatment. The discs and the field are sized for a
+   * 420px landing hero; at the dashboard's 200px they swallow the heading.
+   */
+  compact?: boolean
   className?: string
 }
 
-export default function BloomField({ className = '' }: BloomFieldProps) {
+export default function BloomField({ className = '', compact = false }: BloomFieldProps) {
   return (
     <div aria-hidden className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}>
       {/* Sky */}
       <div className="bloom-sky absolute inset-0" />
 
       {/* Two glass discs echoing the reference's floating coins, half-sunk in the field */}
-      <div className="absolute -left-10 bottom-[16%] h-32 w-32 rounded-full bg-white/25 ring-1 ring-inset ring-white/50 backdrop-blur-[2px] sm:h-48 sm:w-48" />
-      <div className="absolute -right-12 bottom-[22%] h-36 w-36 rounded-full bg-white/20 ring-1 ring-inset ring-white/40 backdrop-blur-[2px] sm:h-56 sm:w-56" />
+      <div
+        className={`absolute -left-10 bottom-[16%] rounded-full bg-white/25 ring-1 ring-inset ring-white/50 backdrop-blur-[2px] ${
+          compact ? 'h-20 w-20 sm:h-28 sm:w-28' : 'h-32 w-32 sm:h-48 sm:w-48'
+        }`}
+      />
+      <div
+        className={`absolute -right-12 bottom-[22%] rounded-full bg-white/20 ring-1 ring-inset ring-white/40 backdrop-blur-[2px] ${
+          compact ? 'h-24 w-24 sm:h-32 sm:w-32' : 'h-36 w-36 sm:h-56 sm:w-56'
+        }`}
+      />
 
       {/* Meadow */}
       <svg
-        className="absolute inset-x-0 bottom-0 h-[62%] w-full"
+        className={`absolute inset-x-0 bottom-0 w-full ${compact ? 'h-[52%]' : 'h-[62%]'}`}
         viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
         preserveAspectRatio="xMidYMax slice"
         xmlns="http://www.w3.org/2000/svg"
