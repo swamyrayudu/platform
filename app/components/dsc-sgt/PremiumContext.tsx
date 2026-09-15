@@ -35,7 +35,7 @@ interface PremiumContextType {
   closeModal: () => void
   modalSource: string
   /** Opens Razorpay Checkout for a plan and resolves when the flow ends. */
-  startCheckout: (planId: PlanId, couponCode?: string) => Promise<CheckoutOutcome>
+  startCheckout: (planId: PlanId, couponCode?: string, contact?: string) => Promise<CheckoutOutcome>
   isCheckingOut: boolean
 }
 
@@ -265,7 +265,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
   }, [isCheckingOut])
 
   const startCheckout = useCallback(
-    async (planId: PlanId, couponCode?: string): Promise<CheckoutOutcome> => {
+    async (planId: PlanId, couponCode?: string, contact?: string): Promise<CheckoutOutcome> => {
       if (isCheckingOut) return 'error'
       setIsCheckingOut(true)
       // Read before anything updates the user: it decides whether this is a
@@ -330,10 +330,18 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
             name: 'RSD Education',
             description: `${plan.name} — DSC / SGT Pro (${formatPaise(order.amount)})`,
             order_id: order.orderId,
-            prefill: order.prefill,
+            // A phone number here skips Razorpay's "Enter payer's number"
+            // screen — the one that was throwing "Login Failed".
+            prefill: contact ? { ...order.prefill, contact } : order.prefill,
             notes: { plan_id: plan.id },
             theme: { color: '#f59e0b' },
             retry: { enabled: true, max_count: 3 },
+            // Off deliberately. When this is on, entering a phone number makes
+            // Razorpay look the customer up to offer their saved cards and UPI
+            // IDs. That lookup is what fails with "Login Failed — Something
+            // went wrong", and it is a convenience we do not need: every
+            // payment here is a one-off, nothing is ever charged again.
+            remember_customer: false,
             modal: {
               // Closing the window is NOT proof that nothing was paid. With
               // UPI the money often moves after this fires, so the old

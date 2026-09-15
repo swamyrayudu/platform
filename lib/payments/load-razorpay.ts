@@ -37,6 +37,8 @@ export interface RazorpayCheckoutOptions {
   prefill?: { name?: string; email?: string; contact?: string }
   notes?: Record<string, string>
   theme?: { color?: string }
+  /** Razorpay's saved-instrument login. Off: see PremiumContext for why. */
+  remember_customer?: boolean
   modal?: {
     ondismiss?: () => void
     escape?: boolean

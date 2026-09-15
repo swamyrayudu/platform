@@ -139,6 +139,18 @@ export default function PremiumModal() {
   } = usePremium()
 
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('pro_full')
+  // Candidates sign in with Google, so we never learn a phone number — and
+  // Razorpay needs one. Asking here means its own "Enter payer's number"
+  // screen is skipped, which is where the "Login Failed" error appeared.
+  // Kept in this browser only; there is no phone column in the database.
+  const [contact, setContact] = useState<string>(() => {
+    if (typeof window === 'undefined') return ''
+    try {
+      return localStorage.getItem('dsc_pay_contact') ?? ''
+    } catch {
+      return ''
+    }
+  })
   const [couponCode, setCouponCode] = useState('')
   const [coupon, setCoupon] = useState<AppliedCoupon | null>(null)
   const [isCheckingCoupon, setIsCheckingCoupon] = useState(false)
@@ -218,8 +230,16 @@ export default function PremiumModal() {
     }
   }
 
+  const digits = contact.replace(/\D/g, '').slice(-10)
+  const contactValid = /^[6-9]\d{9}$/.test(digits)
+
   const handleSubscribe = async () => {
-    await startCheckout(selectedPlan, coupon?.code)
+    if (contactValid) {
+      try {
+        localStorage.setItem('dsc_pay_contact', digits)
+      } catch {}
+    }
+    await startCheckout(selectedPlan, coupon?.code, contactValid ? digits : undefined)
   }
 
   const activePlanName = isPlanId(currentPlan) ? getPlan(currentPlan).name : 'Pro'
@@ -441,6 +461,36 @@ export default function PremiumModal() {
                     })
                   )}
                 </div>
+              </div>
+
+              {/* Mobile number for the payment */}
+              <div className="space-y-2">
+                <label
+                  htmlFor="pay-contact"
+                  className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide"
+                >
+                  Mobile number for payment
+                </label>
+                <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30">
+                  <span className="text-xs font-semibold text-muted-foreground">+91</span>
+                  <input
+                    id="pay-contact"
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel"
+                    value={contact}
+                    onChange={(e) => setContact(e.target.value)}
+                    placeholder="10-digit mobile number"
+                    disabled={isCheckingOut}
+                    maxLength={14}
+                    className="h-9 flex-1 bg-transparent text-xs placeholder:text-muted-foreground focus:outline-none disabled:opacity-60"
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  {contact && !contactValid
+                    ? 'Enter a valid 10-digit Indian mobile number.'
+                    : 'Used only to open your UPI app. You can also leave this blank and enter it in the payment window.'}
+                </p>
               </div>
 
               {/* Promo code */}
