@@ -10,12 +10,15 @@
 // ============================================================
 
 import React, { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import {
   AlertTriangle,
   Activity,
   CreditCard,
   IndianRupee,
+  FileClock,
+  RefreshCw,
   TrendingUp,
   XCircle,
 } from 'lucide-react'
@@ -23,13 +26,90 @@ import { type PlanId } from '@/lib/payments/plans'
 import {
   PlanEditor,
   StatCard,
-  STATUS_STYLES,
   formatDateTime,
   formatPaise,
   type AdminPlanView,
   type RecentPayment,
   type RevenueStats,
 } from '@/app/components/admin/shared'
+
+/** One transaction list. Cards on a phone, a table once there is width for
+ *  one — a table on a 375px screen is a horizontal scroll nobody wins.
+ *
+ *  There is no status column: the section heading above the list says what
+ *  these rows are, so repeating CREATED / PAID on every row added nothing. */
+function PaymentList({
+  payments,
+  loading,
+  emptyText,
+  tone,
+}: {
+  payments: RecentPayment[]
+  loading: boolean
+  emptyText: string
+  tone: 'paid' | 'cancelled'
+}) {
+  const amountTone = tone === 'paid' ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'
+
+  if (payments.length === 0) {
+    return (
+      <div className="rounded-2xl border border-border bg-card p-6 text-[13px] text-muted-foreground">
+        {loading ? 'Loading…' : emptyText}
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <div className="grid gap-2.5 sm:hidden">
+        {payments.map((p) => (
+          <article key={p.id} className="rounded-2xl border border-border bg-card p-4">
+            <p className="truncate text-[13px] font-semibold text-foreground">
+              {p.userName ?? p.userEmail ?? 'Unknown'}
+            </p>
+            <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{p.userEmail}</p>
+            <div className="mt-3 flex items-baseline justify-between gap-3">
+              <span className={`text-base font-bold ${amountTone}`}>{formatPaise(p.amount)}</span>
+              <span className="text-[11px] text-muted-foreground">
+                {p.planId} · {formatDateTime(p.paidAt ?? p.createdAt)}
+              </span>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div className="hidden overflow-hidden rounded-2xl border border-border bg-card sm:block">
+        <table className="w-full text-left">
+          <thead className="border-b border-border bg-muted/40">
+            <tr className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+              <th className="px-4 py-3">Candidate</th>
+              <th className="px-4 py-3">Plan</th>
+              <th className="px-4 py-3">Amount</th>
+              <th className="px-4 py-3">When</th>
+            </tr>
+          </thead>
+          <tbody>
+            {payments.map((p) => (
+              <tr key={p.id} className="border-b border-border/60 last:border-0">
+                <td className="px-4 py-3">
+                  <p className="text-[13px] font-semibold text-foreground">{p.userName ?? '—'}</p>
+                  <p className="text-[11px] text-muted-foreground">{p.userEmail}</p>
+                </td>
+                <td className="px-4 py-3 text-[13px] text-muted-foreground">{p.planId}</td>
+                <td className={`px-4 py-3 text-[13px] font-bold ${amountTone}`}>
+                  {formatPaise(p.amount)}
+                </td>
+                <td className="px-4 py-3 text-[11px] text-muted-foreground">
+                  {formatDateTime(p.paidAt ?? p.createdAt)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  )
+}
 
 export default function AdminPaymentsPage() {
   const [revenue, setRevenue] = useState<RevenueStats | null>(null)
@@ -38,6 +118,13 @@ export default function AdminPaymentsPage() {
   const [loadingData, setLoadingData] = useState(true)
   const [savingPlanId, setSavingPlanId] = useState<PlanId | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [reconciling, setReconciling] = useState(false)
+
+  // PAID is the only status that means money moved. CREATED (opened checkout,
+  // walked away) and FAILED (bank declined) are the same thing to us — no
+  // money was taken — so they share one list.
+  const paid = payments.filter((p) => p.status === 'PAID')
+  const cancelled = payments.filter((p) => p.status !== 'PAID')
 
   const fetchAll = useCallback(async () => {
     setLoadingData(true)
@@ -71,6 +158,66 @@ export default function AdminPaymentsPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchAll()
   }, [fetchAll])
+
+  /** Ask Razorpay, order by order, whether money actually arrived — and
+   *  activate anyone it says paid. This is the answer to "the candidate says
+   *  they were charged but they are still on Free": stop trusting the
+   *  browser and the webhook, and go straight to the source. */
+  const handleReconcile = async () => {
+    setReconciling(true)
+    try {
+      const res = await fetch('/api/admin/payments/reconcile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ sinceDays: 30 }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.success) {
+        toast.error('Could not check with Razorpay', { description: json.error })
+        return
+      }
+
+      const { scanned, activated, rows } = json as {
+        scanned: number
+        activated: number
+        rows: { outcome: string; userEmail: string | null }[]
+      }
+      const failed = rows.filter((r) => r.outcome === 'failed').length
+      const problems = rows.filter((r) => r.outcome === 'mismatch' || r.outcome === 'error').length
+
+      if (activated > 0) {
+        toast.success(`${activated} payment${activated > 1 ? 's' : ''} recovered`, {
+          description: `${rows
+            .filter((r) => r.outcome === 'activated')
+            .map((r) => r.userEmail ?? 'unknown')
+            .join(', ')} — now Pro.`,
+          duration: 10000,
+        })
+      } else {
+        toast.success('Nothing to recover', {
+          description: `Checked ${scanned} unpaid order${scanned === 1 ? '' : 's'}. Razorpay has no money against any of them.`,
+        })
+      }
+      if (failed > 0) {
+        toast.info(`${failed} marked as declined`, {
+          description: 'The bank refused these — no money was taken.',
+        })
+      }
+      if (problems > 0) {
+        toast.warning(`${problems} need a manual look`, {
+          description: 'Amount mismatch or Razorpay lookup failure. Check the server logs.',
+          duration: 10000,
+        })
+      }
+
+      await fetchAll()
+    } catch {
+      toast.error('Network error while checking with Razorpay')
+    } finally {
+      setReconciling(false)
+    }
+  }
 
   const handlePlanSave = async (
     planId: PlanId,
@@ -137,14 +284,32 @@ export default function AdminPaymentsPage() {
             Revenue, plan pricing and recent transactions.
           </p>
         </div>
-        <button
-          onClick={fetchAll}
-          disabled={loadingData}
-          className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border bg-card px-3.5 text-[13px] font-semibold text-muted-foreground transition hover:bg-accent hover:text-foreground disabled:opacity-50"
-        >
-          <Activity className={`h-3.5 w-3.5 ${loadingData ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleReconcile}
+            disabled={reconciling}
+            title="Ask Razorpay whether any unpaid order actually has money against it, and activate those candidates"
+            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 text-[13px] font-semibold text-emerald-700 transition hover:bg-emerald-500/20 disabled:opacity-50 dark:text-emerald-400"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${reconciling ? 'animate-spin' : ''}`} />
+            {reconciling ? 'Checking…' : 'Check with Razorpay'}
+          </button>
+          <Link
+            href="/admin/payments/logs"
+            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border bg-card px-3.5 text-[13px] font-semibold text-muted-foreground transition hover:bg-accent hover:text-foreground"
+          >
+            <FileClock className="h-3.5 w-3.5" />
+            Payment log
+          </Link>
+          <button
+            onClick={fetchAll}
+            disabled={loadingData}
+            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border bg-card px-3.5 text-[13px] font-semibold text-muted-foreground transition hover:bg-accent hover:text-foreground disabled:opacity-50"
+          >
+            <Activity className={`h-3.5 w-3.5 ${loadingData ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -216,96 +381,41 @@ export default function AdminPaymentsPage() {
         )}
       </section>
 
-      {/* ── Recent transactions ── */}
+      {/* ── Transactions ──
+          Two lists, not one. The old single list showed every order with its
+          raw status, and CREATED — an order the candidate opened and never
+          paid — outnumbered everything else, so the payments that actually
+          went through were buried. ── */}
       <section>
         <h3 className="mb-3 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-          Recent transactions
+          Paid
         </h3>
-
-        {payments.length === 0 ? (
-          <div className="rounded-2xl border border-border bg-card p-6 text-[13px] text-muted-foreground">
-            {loadingData ? 'Loading…' : 'No payments yet.'}
-          </div>
-        ) : (
-          <>
-            {/* Cards on a phone, a table once there is width for one. A
-                six-column table on a 375px screen is a horizontal scroll
-                nobody wins. */}
-            <div className="grid gap-2.5 sm:hidden">
-              {payments.map((p) => (
-                <article key={p.id} className="rounded-2xl border border-border bg-card p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-[13px] font-semibold text-foreground">
-                        {p.userName ?? p.userEmail ?? 'Unknown'}
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-muted-foreground">{p.planId}</p>
-                    </div>
-                    <span
-                      className={`shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-bold ${
-                        STATUS_STYLES[p.status] ?? 'border-border bg-muted text-muted-foreground'
-                      }`}
-                    >
-                      {p.status}
-                    </span>
-                  </div>
-                  <div className="mt-3 flex items-baseline justify-between gap-3">
-                    <span className="text-base font-bold text-foreground">
-                      {formatPaise(p.amount)}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground">
-                      {formatDateTime(p.createdAt)}
-                    </span>
-                  </div>
-                </article>
-              ))}
-            </div>
-
-            <div className="hidden overflow-hidden rounded-2xl border border-border bg-card sm:block">
-              <table className="w-full text-left">
-                <thead className="border-b border-border bg-muted/40">
-                  <tr className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                    <th className="px-4 py-3">Candidate</th>
-                    <th className="px-4 py-3">Plan</th>
-                    <th className="px-4 py-3">Amount</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">When</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payments.map((p) => (
-                    <tr key={p.id} className="border-b border-border/60 last:border-0">
-                      <td className="px-4 py-3">
-                        <p className="text-[13px] font-semibold text-foreground">
-                          {p.userName ?? '—'}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground">{p.userEmail}</p>
-                      </td>
-                      <td className="px-4 py-3 text-[13px] text-muted-foreground">{p.planId}</td>
-                      <td className="px-4 py-3 text-[13px] font-bold text-foreground">
-                        {formatPaise(p.amount)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`rounded-md border px-2 py-0.5 text-[11px] font-bold ${
-                            STATUS_STYLES[p.status] ??
-                            'border-border bg-muted text-muted-foreground'
-                          }`}
-                        >
-                          {p.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-[11px] text-muted-foreground">
-                        {formatDateTime(p.createdAt)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
+        <PaymentList
+          payments={paid}
+          loading={loadingData}
+          emptyText="No completed payments yet."
+          tone="paid"
+        />
       </section>
+
+      <section className="mt-9">
+        <h3 className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          Cancelled
+        </h3>
+        <p className="mb-3 text-[13px] text-muted-foreground">
+          Checkout was opened but no money was taken — the candidate closed the
+          window, or the bank declined. If somebody here says they <em>were</em>{' '}
+          charged, hit <strong>Check with Razorpay</strong> above: it asks
+          Razorpay directly and activates anyone who really paid.
+        </p>
+        <PaymentList
+          payments={cancelled}
+          loading={loadingData}
+          emptyText="No cancelled checkouts."
+          tone="cancelled"
+        />
+      </section>
+
     </main>
   )
 }

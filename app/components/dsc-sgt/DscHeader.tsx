@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { ModeToggle } from '@/components/mode-toggle'
 import { useAuth } from '@/app/contexts/AuthContext'
-import { usePremium, type DevTierOverride } from './PremiumContext'
+import { usePremium } from './PremiumContext'
 import { Avatar } from '@/components/ui/avatar'
 import { toast } from 'sonner'
 
@@ -36,7 +36,7 @@ function isItemActive(pathname: string, href: string) {
 export default function DscHeader() {
   const pathname = usePathname()
   const { user, logout } = useAuth()
-  const { isPremium, openModal, devTierOverride, setDevTierOverride } = usePremium()
+  const { isPremium, openModal } = usePremium()
   const [profileOpen, setProfileOpen] = useState(false)
   const profileRef = useRef<HTMLDivElement>(null)
 
@@ -156,8 +156,6 @@ export default function DscHeader() {
                 user={user}
                 isPremium={isPremium}
                 openModal={openModal}
-                devTierOverride={devTierOverride}
-                setDevTierOverride={setDevTierOverride}
                 onClose={() => setProfileOpen(false)}
                 logout={logout}
               />
@@ -177,16 +175,12 @@ function ProfileMenu({
   user,
   isPremium,
   openModal,
-  devTierOverride,
-  setDevTierOverride,
   onClose,
   logout,
 }: {
   user: ReturnType<typeof useAuth>['user']
   isPremium: boolean
   openModal: (source?: string) => void
-  devTierOverride: DevTierOverride
-  setDevTierOverride: (tier: DevTierOverride) => void
   onClose: () => void
   logout: () => void
 }) {
@@ -239,32 +233,6 @@ function ProfileMenu({
             <ShieldAlert className="h-4 w-4 shrink-0" strokeWidth={1.7} />
             <span>Admin Dashboard</span>
           </Link>
-        )}
-
-        {/* Admin-only: test Free vs Pro without touching the database */}
-        {user?.role === 'admin' && (
-          <div className="mx-1 my-1.5 rounded-xl border border-border bg-muted/40 p-2">
-            <div className="mb-1.5 flex items-center justify-between text-[11px] font-medium text-muted-foreground">
-              <span>Subscription testing</span>
-              <span className="uppercase text-foreground">{devTierOverride}</span>
-            </div>
-            <div className="grid grid-cols-3 gap-1">
-              {(['auto', 'free', 'pro'] as const).map((tier) => (
-                <button
-                  key={tier}
-                  type="button"
-                  onClick={() => setDevTierOverride(tier)}
-                  className={`rounded-lg px-1.5 py-1 text-[11px] font-medium capitalize transition ${
-                    devTierOverride === tier
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-card text-foreground hover:bg-accent'
-                  }`}
-                >
-                  {tier}
-                </button>
-              ))}
-            </div>
-          </div>
         )}
       </div>
 

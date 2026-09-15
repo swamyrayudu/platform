@@ -10,7 +10,7 @@
 // of truth, and payments go through Razorpay.
 // ============================================================
 
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useAuth } from '@/app/contexts/AuthContext'
 import type { PublicUser } from '@/lib/auth/types'
@@ -25,8 +25,6 @@ export type PremiumPlan = PlanId | 'free'
 
 export type CheckoutOutcome = 'success' | 'cancelled' | 'failed' | 'error'
 
-export type DevTierOverride = 'auto' | 'free' | 'pro'
-
 interface PremiumContextType {
   isPremium: boolean
   currentPlan: PremiumPlan
@@ -39,8 +37,6 @@ interface PremiumContextType {
   /** Opens Razorpay Checkout for a plan and resolves when the flow ends. */
   startCheckout: (planId: PlanId, couponCode?: string) => Promise<CheckoutOutcome>
   isCheckingOut: boolean
-  devTierOverride: DevTierOverride
-  setDevTierOverride: (tier: DevTierOverride) => void
 }
 
 const PremiumContext = createContext<PremiumContextType | undefined>(undefined)
@@ -75,45 +71,111 @@ const ORDER_ERROR_MESSAGES: Record<string, string> = {
   SESSION_EXPIRED: 'Your session expired. Please sign in again.',
 }
 
+// ---- Surviving a dead tab ----------------------------------------
+//
+// A candidate paying by UPI leaves the browser entirely: we hand them to
+// PhonePe or GPay, and the OS is free to kill the tab while they are gone.
+// When that happens Razorpay has their money but our handler never runs,
+// so nothing tells us to activate.
+//
+// So before opening checkout we write the order id down. On the next app
+// start we ask the server to settle it against Razorpay's own records.
+// The candidate reopens the site and is simply Pro — usually before they
+// have noticed anything was wrong.
+
+const PENDING_ORDER_KEY = 'dsc_pending_order'
+/** Razorpay orders do not stay payable forever; neither should we keep asking. */
+const PENDING_ORDER_TTL_MS = 24 * 60 * 60 * 1000
+
+interface PendingOrder {
+  orderId: string
+  at: number
+}
+
+function rememberPendingOrder(orderId: string) {
+  try {
+    localStorage.setItem(PENDING_ORDER_KEY, JSON.stringify({ orderId, at: Date.now() }))
+  } catch {}
+}
+
+function forgetPendingOrder() {
+  try {
+    localStorage.removeItem(PENDING_ORDER_KEY)
+  } catch {}
+}
+
+function readPendingOrder(): PendingOrder | null {
+  try {
+    const raw = localStorage.getItem(PENDING_ORDER_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as PendingOrder
+    if (typeof parsed?.orderId !== 'string' || typeof parsed?.at !== 'number') return null
+    if (Date.now() - parsed.at > PENDING_ORDER_TTL_MS) {
+      forgetPendingOrder()
+      return null
+    }
+    return parsed
+  } catch {
+    return null
+  }
+}
+
 export function PremiumProvider({ children }: { children: React.ReactNode }) {
   const { user, updateUser, refreshUser } = useAuth()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [modalSource, setModalSource] = useState('header')
   const [isCheckingOut, setIsCheckingOut] = useState(false)
 
-  const [devTierOverride, setDevTierOverrideState] = useState<DevTierOverride>(() => {
-    if (typeof window !== 'undefined') {
+  // The account's own subscription is the only thing that decides this. The
+  // admin Free/Pro test switch that used to override it is gone — it lived in
+  // localStorage, so a stale 'pro' left there would have kept unlocking Pro
+  // with nothing left in the UI to turn it off.
+  // On every app start, settle anything left hanging from a checkout the
+  // browser did not live long enough to finish. Costs nothing for the
+  // overwhelming majority of loads: without a remembered order id this
+  // does not touch the network at all.
+  const recovering = useRef(false)
+  useEffect(() => {
+    if (!user || recovering.current) return
+    const pending = readPendingOrder()
+    if (!pending) return
+
+    recovering.current = true
+    void (async () => {
       try {
-        const saved = localStorage.getItem('dsc_dev_tier_override')
-        if (saved === 'free' || saved === 'pro') return saved
-      } catch {}
-    }
-    return 'auto'
-  })
+        const res = await fetch('/api/payments/recover', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ orderId: pending.orderId }),
+        })
+        const data = await res.json().catch(() => ({}))
 
-  const setDevTierOverride = useCallback((tier: DevTierOverride) => {
-    setDevTierOverrideState(tier)
-    try {
-      if (tier === 'auto') {
-        localStorage.removeItem('dsc_dev_tier_override')
-      } else {
-        localStorage.setItem('dsc_dev_tier_override', tier)
+        // 404 means the order is not ours (a different account signed in on
+        // this browser) — nothing to recover, and nothing to retry.
+        if (res.status === 404 || data.settled) forgetPendingOrder()
+
+        if (res.ok && data.outcome === 'activated') {
+          if (data.user) updateUser(data.user as PublicUser)
+          toast.success('🎉 Payment confirmed — Pro is active', {
+            description:
+              'Your payment went through while the app was closed. Everything is unlocked now.',
+            duration: 8000,
+          })
+        } else if (res.ok && data.outcome === 'already_paid' && data.user) {
+          updateUser(data.user as PublicUser)
+        }
+      } catch {
+        // Offline or a flaky network: keep the order id and try again on the
+        // next start. Being wrong here costs the candidate their money, so
+        // this retries rather than gives up.
+      } finally {
+        recovering.current = false
       }
-    } catch {}
-    toast.success(
-      tier === 'auto'
-        ? 'Switched to live account subscription status'
-        : tier === 'free'
-        ? 'Testing as Free User (locks & limits active)'
-        : 'Testing as Pro User (all features unlocked)'
-    )
-  }, [])
+    })()
+  }, [user, updateUser])
 
-  const isPremium = useMemo(() => {
-    if (devTierOverride === 'free') return false
-    if (devTierOverride === 'pro') return true
-    return computeIsPremium(user)
-  }, [user, devTierOverride])
+  const isPremium = useMemo(() => computeIsPremium(user), [user])
 
   const currentPlan: PremiumPlan = useMemo(() => {
     if (!isPremium) return 'free'
@@ -135,6 +197,9 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     async (planId: PlanId, couponCode?: string): Promise<CheckoutOutcome> => {
       if (isCheckingOut) return 'error'
       setIsCheckingOut(true)
+      // Read before anything updates the user: it decides whether this is a
+      // first purchase or a renewal, and the wording differs.
+      const wasPremium = computeIsPremium(user)
 
       try {
         // 1. Load the checkout script (no-op after first load)
@@ -166,6 +231,10 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
 
         const order: OrderResponse = await res.json()
         const plan = getPlan(order.plan.id)
+
+        // Written down BEFORE the window opens: once Razorpay has the screen
+        // we may never get another chance to run any code at all.
+        rememberPendingOrder(order.orderId)
 
         // 3. Open Razorpay Checkout and wait for it to finish
         return await new Promise<CheckoutOutcome>((resolve) => {
@@ -215,13 +284,30 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
                 const data = await verifyRes.json().catch(() => ({}))
 
                 if (verifyRes.ok && data.success) {
+                  forgetPendingOrder()
                   if (data.user) updateUser(data.user as PublicUser)
                   else await refreshUser()
                   setIsModalOpen(false)
-                  toast.success('🎉 Welcome to DSC / SGT Pro!', {
-                    description: `${plan.name} is active. All Mock Tests, Grand Exams and AI Explanations are unlocked.`,
-                    duration: 6000,
-                  })
+                  // The server tells us the resulting expiry. Show it: for a
+                  // renewal the useful news is not "you are Pro" — they already
+                  // were — it is the new date their days now run to.
+                  const until =
+                    typeof data.expiresAt === 'string'
+                      ? new Date(data.expiresAt).toLocaleDateString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })
+                      : null
+                  toast.success(
+                    wasPremium ? '✅ Access extended' : '🎉 Welcome to DSC / SGT Pro!',
+                    {
+                      description: until
+                        ? `${plan.name} added. Your Pro access now runs until ${until}.`
+                        : `${plan.name} is active. All Mock Tests, Grand Exams and AI Explanations are unlocked.`,
+                      duration: 7000,
+                    }
+                  )
                   settle('success')
                   return
                 }
@@ -263,7 +349,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
         setIsCheckingOut(false)
       }
     },
-    [isCheckingOut, refreshUser, updateUser]
+    [isCheckingOut, refreshUser, updateUser, user]
   )
 
   return (
@@ -278,8 +364,6 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
         modalSource,
         startCheckout,
         isCheckingOut,
-        devTierOverride,
-        setDevTierOverride,
       }}
     >
       {children}

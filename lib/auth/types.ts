@@ -30,6 +30,7 @@ export type SecurityEventType =
   | 'PAYMENT_FAILED'
   | 'PAYMENT_WEBHOOK_INVALID'
   | 'SUBSCRIPTION_ACTIVATED'
+  | 'PAYMENT_RECONCILE_RUN'
 
 // ---- Database row shapes ----------------------------------------
 

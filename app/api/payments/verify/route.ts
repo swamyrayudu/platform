@@ -173,7 +173,7 @@ export const POST = requireAuth(async (request, _ctx, { user, session }) => {
       eventType: 'SUBSCRIPTION_ACTIVATED',
       deviceId: session.device_id,
       ipHash,
-      metadata: { planId: plan.id, expiresAt: result.expiresAt, via: 'checkout' },
+      metadata: { planId: plan.id, expiresAt: result.expiresAt, via: 'checkout', orderId, paymentId },
     })
   }
 

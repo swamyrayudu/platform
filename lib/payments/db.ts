@@ -146,7 +146,9 @@ export async function activateSubscription(input: {
   razorpayOrderId: string
   razorpayPaymentId: string
   durationDays: number
-  confirmedVia: 'checkout' | 'webhook'
+  /** Which messenger settled this order. 'reconcile' = we asked Razorpay
+   *  directly, because neither the browser nor the webhook came back. */
+  confirmedVia: 'checkout' | 'webhook' | 'reconcile'
 }): Promise<ActivationResult> {
   const { data, error } = await supabaseAdmin.rpc('activate_subscription', {
     p_razorpay_order_id: input.razorpayOrderId,

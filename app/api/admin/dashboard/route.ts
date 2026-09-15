@@ -164,7 +164,9 @@ export const GET = requireAdmin(async (_request, _ctx, { user }) => {
   const [userStats, revenueStats, recentPayments] = await Promise.all([
     getUserStats(),
     getRevenueStats(),
-    getRecentPayments(20),
+    // Split into Paid / Cancelled on the page, so one bucket does not
+    // starve the other — 20 mixed rows could be 20 abandoned checkouts.
+    getRecentPayments(50),
   ])
 
   return NextResponse.json({

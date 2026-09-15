@@ -98,7 +98,14 @@ export async function POST(request: Request) {
           await logSecurityEvent({
             userId: order.user_id,
             eventType: 'SUBSCRIPTION_ACTIVATED',
-            metadata: { planId: plan.id, expiresAt: result.expiresAt, via: 'webhook', event },
+            metadata: {
+              planId: plan.id,
+              expiresAt: result.expiresAt,
+              via: 'webhook',
+              event,
+              orderId: payment.order_id,
+              paymentId: payment.id,
+            },
           })
         }
         break

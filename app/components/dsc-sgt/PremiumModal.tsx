@@ -150,6 +150,7 @@ export default function PremiumModal() {
   useEffect(() => {
     if (!isModalOpen) return
     let cancelled = false
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadingPlans(true)
 
     fetch('/api/payments/plans', { credentials: 'include' })
@@ -225,6 +226,21 @@ export default function PremiumModal() {
   const selectedPlanData = displayPlans.find(p => p.id === selectedPlan)
   const payAmount = formatPaise(priceFor(selectedPlan))
 
+  // What the candidate actually gets, worked out the same way the database
+  // does it: days are added on top of an active subscription, and start from
+  // today if it has already lapsed. Saying "extends your access" without a
+  // date asks them to take our word for it; a date they can check does not.
+  // Only ever shown to someone who is already Pro, and `expiresAt` is non-null
+  // exactly then — so the new days always start from their current expiry.
+  // (A lapsed subscription restarts from today, but that person is not Pro and
+  // never sees this line.) No clock read, so nothing shifts between renders.
+  const extendedUntil =
+    selectedPlanData && expiresAt
+      ? new Date(
+          new Date(expiresAt).getTime() + selectedPlanData.durationDays * 86_400_000
+        ).toISOString()
+      : null
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200 p-0 sm:p-4">
       <div className="relative w-full sm:max-w-5xl max-h-[95dvh] overflow-hidden sm:rounded-3xl rounded-t-3xl border border-white/10 bg-background text-foreground shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300 flex flex-col">
@@ -287,7 +303,9 @@ export default function PremiumModal() {
                     {expiresAt && (
                       <span className="text-muted-foreground"> · valid until <strong className="text-foreground">{formatDate(expiresAt)}</strong></span>
                     )}
-                    <span className="block text-muted-foreground/70 mt-0.5">Buying another plan extends your access.</span>
+                    <span className="block text-muted-foreground/70 mt-0.5">
+                      Your remaining days are never lost — a new plan is added on top of them.
+                    </span>
                   </div>
                 </div>
               )}
@@ -458,6 +476,17 @@ export default function PremiumModal() {
 
               {/* CTA */}
               <div className="flex flex-col gap-2 mt-auto">
+                {isPremium && extendedUntil && selectedPlanData && (
+                  <div className="mb-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-3 text-center text-xs">
+                    <span className="text-muted-foreground">
+                      {formatDate(expiresAt)} + {selectedPlanData.durationDays} days →{' '}
+                    </span>
+                    <strong className="text-emerald-600 dark:text-emerald-400">
+                      Pro until {formatDate(extendedUntil)}
+                    </strong>
+                  </div>
+                )}
+
                 <button
                   onClick={handleSubscribe}
                   disabled={isCheckingOut || loadingPlans}
