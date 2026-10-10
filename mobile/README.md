@@ -162,6 +162,18 @@ server session, then clears tokens, encrypted local drafts and query cache.
 
 ## Student features
 
+The mobile controls use the website's Bloom colours and subject styling. Practice
+follows four numbered steps, with topic search and a fixed Start button. Subjects,
+topics, counts, access rules and explanations come from the existing APIs.
+
+Mock papers load 20 at a time as you scroll, with separate feeds for medium,
+category and search. A failed next page keeps the loaded papers visible and offers
+retry. History and results APIs return full responses; their lists reveal 12
+attempts or 8 review cards at a time and virtualize the visible rows. Topic search
+reveals 12 choices at a time. Review cards retain original question numbers and
+expand the server's explanation on demand. Google authentication, offline exam
+storage and server grading are unchanged by this UI update.
+
 - Dashboard with live study streak, accuracy, module progress and syllabus.
 - Onboarding/preferences: English or Telugu and existing study goals.
 - All server-provided subjects, class levels, topics, subtopics and difficulty

@@ -1,0 +1,22 @@
+import type { MockTestListResponse } from '../types/mock-tests';
+import { infiniteQueryOptions } from '@tanstack/react-query';
+
+export type MockLibraryFilters = {medium:string;category:string;search:string};
+export function mockLibraryOptions(filters:MockLibraryFilters, loadPage:(params:MockLibraryFilters & {page:number})=>Promise<MockTestListResponse>) {
+  return infiniteQueryOptions({
+    queryKey:['mocks',filters.medium,filters.category,filters.search],
+    initialPageParam:1,
+    queryFn:({pageParam})=>loadPage({...filters,page:pageParam}),
+    getNextPageParam:nextMockPage,
+  });
+}
+
+export function nextMockPage(last: MockTestListResponse) {
+  return last.tests.length > 0 && last.page < last.total_pages ? last.page + 1 : undefined;
+}
+
+export function mergeMockPages(pages: MockTestListResponse[]) {
+  // A paper moved by a server-side update can occur at a page boundary twice.
+  // Keep one row per paper, with the latest progress/access state.
+  return [...new Map(pages.flatMap(page => page.tests.map(test => [test.id,test] as const))).values()];
+}
