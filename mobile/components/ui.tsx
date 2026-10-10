@@ -23,15 +23,16 @@ export function Screen({children, refreshing, onRefresh, footer, footerSafeArea=
   </SafeAreaView>;
 }
 // Long feeds use one native virtualized list, never a list nested in ScrollView.
-export function ListScreen<T>({data, renderItem, keyExtractor, header, footer, empty, onEndReached, refreshing, onRefresh, extraData, ...page}: PageProps & {
+export function ListScreen<T>({data, renderItem, keyExtractor, header, footer, empty, onEndReached, refreshing, onRefresh, extraData, topBar, pageHeader, ...page}: PageProps & {
   data: T[]; renderItem: ListRenderItem<T>; keyExtractor: (item:T,index:number)=>string;
   header?: ReactNode; footer?: ReactNode; empty?: ReactNode; onEndReached?: ()=>void;
-  refreshing?: boolean; onRefresh?: ()=>void; extraData?: unknown;
+  refreshing?: boolean; onRefresh?: ()=>void; extraData?: unknown; topBar?:ReactNode; pageHeader?:ReactNode;
 }) {
   return <SafeAreaView edges={['top','left','right']} style={s.screen}>
+    {topBar}
     <FlatList data={data} renderItem={renderItem} keyExtractor={keyExtractor} extraData={extraData}
       keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={s.content}
-      ListHeaderComponent={<View style={{gap:20}}><PageHeading {...page}/>{header}</View>}
+      ListHeaderComponent={<View style={{gap:20}}>{pageHeader??<PageHeading {...page}/>}{header}</View>}
       ListFooterComponent={footer ? <View style={{gap:16}}>{footer}</View> : null}
       ListEmptyComponent={empty ? <View>{empty}</View> : null}
       initialNumToRender={6} maxToRenderPerBatch={6} windowSize={7} removeClippedSubviews={false}

@@ -1,6 +1,6 @@
 import type { SelectedOption } from '@/types/mock-tests';
 export type ExamKind = 'practice' | 'mock';
-export interface ExamQuestion { key: string; uid?: string; number: number; question: string; option_a: string; option_b: string; option_c: string; option_d: string; subject: string; topic: string; section?: string }
+export interface ExamQuestion { key: string; uid?: string; number: number; question: string; option_a: string; option_b: string; option_c: string; option_d: string; subject: string; topic: string; section?: string; sectionId?: string }
 export interface DraftAnswer { option: SelectedOption; marked: boolean; seconds: number; revision: number }
 export interface ExamDraft {
   userId: string; kind: ExamKind; id: string; testId?: string; title: string;

@@ -176,6 +176,31 @@ process in this Windows environment. The supported Webpack production build
 completed successfully. Its existing lint failures are recorded in
 `website-lint-report.json`; new mobile code is checked independently.
 
+## Mock-test design update — 10 October 2026
+
+The mock library now uses compact website-style module cards. Exam navigation
+opens a sectioned right-side question palette from the top grid button, instead
+of rendering all question numbers below the question. Header and footer controls
+adapt to narrow screens and large system text.
+
+- TypeScript and mobile ESLint passed; all 30 mobile tests passed. New tests cover
+  original jump indices after filtering, distinct source identities, all 160
+  questions, older saved drafts and 24 width/text-size geometry combinations.
+- The final Android production JavaScript/Hermes export passed.
+- Native Android emulator previews were inspected at 411 and 320 logical pixels
+  wide. At 320 pixels, 200% system text was also checked; header controls wrap,
+  footer labels remain readable and palette cells change to three columns.
+- With isolated sample data, opening the palette, the Flagged filter, jumping to
+  question 2 and question 160, closing after selection, and Android Back dismissal
+  were checked. The last question offers Submit; no real exam was submitted.
+
+The preview used copied UI source with fixture-only auth/API/exam state and no
+production requests. Saved-answer, timer and submission behavior is covered by
+the existing regression tests. This is not an authenticated production exam or
+a physical-device/iOS acceptance run. Website/backend, Expo configuration and
+dependencies were not changed by this design update. Screenshots are saved in
+`../dist/mock-design-*.png` and show sample data.
+
 ## Authenticated acceptance run still required
 
 Deploy the prepared `/mobile-auth` adapter and practice persistence correction

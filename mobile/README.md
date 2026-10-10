@@ -9,6 +9,20 @@ The repository contains an outer workspace and an inner website root. Run the
 commands below **inside the inner `platform/mobile/` directory**. Install the
 mobile packages separately; do not add them to the website's package.json.
 
+## Mock tests and question navigation
+
+The mock library uses the website's compact module cards, medium tabs, search,
+completion status and sequential unlocking. Existing pagination still loads
+modules in batches as you scroll.
+
+During an exam, tap the grid icon beside the timer to open the question palette
+on the right. Questions are grouped using the paper's actual sections, with
+All, Not done, Flagged and Done filters. Selecting a number closes the palette
+and opens that question; the close button, backdrop and Android Back button
+also close it. Previous/Next remain at the bottom. The panel adapts its columns
+to screen width and system text size, and the exam header wraps for large text.
+Answer saving, timers, resume and server grading use the existing exam logic.
+
 ## Open in Expo Go on Android
 
 Use Node 22.13+ or a supported newer release (validation used Node 24.19).

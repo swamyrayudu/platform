@@ -35,7 +35,7 @@ export function useExam(kind: ExamKind, id: string) {
             const {attempt}=await examService.get(id);
             if(attempt.status==='submitted'){router.replace({pathname:'/result',params:{kind,id}});return;}
             const [{test},questions]=await Promise.all([examService.metadata(attempt.mock_test_id),examService.questions(attempt.mock_test_id)]);
-            next={userId:user!.id,kind,id,testId:attempt.mock_test_id,title:test.title,duration:attempt.duration_seconds,elapsed:attempt.time_spent_seconds,index:0,feedbackMode:'end',questions:questions.map(q=>({key:q.question_uid,uid:q.question_uid,number:q.question_number,question:q.question,option_a:q.option_a,option_b:q.option_b,option_c:q.option_c,option_d:q.option_d,subject:q.subject,topic:q.topic,section:q.section_name})),answers:Object.fromEntries(Object.entries(attempt.existing_answers).map(([key,a])=>[key,{option:a.selected_option,marked:a.marked_for_review,seconds:0,revision:0}])),pending:{},feedback:{},submitIntent:false,updatedAt:Date.now()};
+            next={userId:user!.id,kind,id,testId:attempt.mock_test_id,title:test.title,duration:attempt.duration_seconds,elapsed:attempt.time_spent_seconds,index:0,feedbackMode:'end',questions:questions.map(q=>({key:q.question_uid,uid:q.question_uid,number:q.question_number,question:q.question,option_a:q.option_a,option_b:q.option_b,option_c:q.option_c,option_d:q.option_d,subject:q.subject,topic:q.topic,section:q.section_name,sectionId:q.section_id})),answers:Object.fromEntries(Object.entries(attempt.existing_answers).map(([key,a])=>[key,{option:a.selected_option,marked:a.marked_for_review,seconds:0,revision:0}])),pending:{},feedback:{},submitIntent:false,updatedAt:Date.now()};
           }
         }
         if(cancelled)return;
