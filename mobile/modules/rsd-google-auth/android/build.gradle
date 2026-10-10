@@ -1,0 +1,24 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.rsdgoogleauth'
+version = '1.0.0'
+
+android {
+  namespace 'expo.modules.rsdgoogleauth'
+  defaultConfig {
+    versionCode 1
+    versionName '1.0.0'
+  }
+}
+
+dependencies {
+  // Stable releases verified in Google's AndroidX and Google ID release notes.
+  implementation 'androidx.credentials:credentials:1.6.0'
+  implementation 'androidx.credentials:credentials-play-services-auth:1.6.0'
+  // 1.2.1 requires Kotlin metadata 2.4; SDK 57's template uses Kotlin 2.1.
+  // 1.1.1 supplies GetSignInWithGoogleOption.setNonce without upgrading Expo.
+  implementation 'com.google.android.libraries.identity.googleid:googleid:1.1.1'
+}

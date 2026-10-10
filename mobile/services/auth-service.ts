@@ -8,18 +8,26 @@ import { API_BASE_URL, validateApiUrl } from '@/utils/config';
 import { api } from './api-client';
 import { tokenStore, getDeviceId } from './vault';
 import { AUTH_CALLBACK, checkGoogleAuthBackend } from './auth-readiness';
+import { signInWithNativeGoogle, clearNativeGoogleSession } from './native-google-auth';
 import type { PublicUser, LearningGoal, EducationMedium } from '@/types/auth';
 let signing = false;
 export const authService = {
   me: () => api.request<PublicUser>('/api/auth/me'),
   async signIn() {
-    if (isRunningInExpoGo()) throw new Error('Google sign-in needs the RSD Education development build. Expo Go cannot open this app’s sign-in callback.');
+    if (isRunningInExpoGo()) throw new Error('Google sign-in needs the updated RSD Education development build. Expo Go does not include this app’s Google sign-in integration.');
     if (signing) throw new Error('Sign-in is already in progress.');
     signing = true;
     let privateKey: Uint8Array | undefined;
     try {
       validateApiUrl(API_BASE_URL);
       if (new URL(API_BASE_URL).protocol !== 'https:') throw new Error('Google sign-in requires an HTTPS backend.');
+      if(Platform.OS==='android') {
+        const tokens=await signInWithNativeGoogle();
+        if(!tokens)return null;
+        await tokenStore.write(tokens);
+        try{return await authService.me();}
+        catch(err){await tokenStore.clear();throw err;}
+      }
       await checkGoogleAuthBackend(API_BASE_URL);
       // Explicit entropy works on native, where crypto.getRandomValues may be absent.
       do { privateKey = Crypto.getRandomBytes(32); } while (!p256.utils.isValidSecretKey(privateKey));
@@ -45,6 +53,10 @@ export const authService = {
       throw new Error(all
         ? 'Signed out on this device. Other sessions could not be revoked; reconnect to complete that action.'
         : 'Signed out on this device. The server could not be reached to revoke the session.', {cause:error});
-    } finally { await api.invalidate(); }
+    } finally {
+      await api.invalidate();
+      // Backend logout/token cleanup must succeed even if Play services is offline.
+      if(Platform.OS==='android')await clearNativeGoogleSession().catch(()=>undefined);
+    }
   },
 };

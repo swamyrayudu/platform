@@ -1,4 +1,7 @@
 export const API_BASE_URL = (process.env.EXPO_PUBLIC_API_BASE_URL || 'https://rsdeducation.vercel.app').replace(/\/$/, '');
+// Public OAuth identifier verified from the existing deployed RSD backend.
+// Different backend deployments can override it; never put a client secret here.
+export const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '37964450681-qjr64dq42neav1q5jbpbeo0pcgtgpfi0.apps.googleusercontent.com';
 export function validateApiUrl(url: string) {
   const parsed = new URL(url);
   if (parsed.pathname !== '/' || parsed.search || parsed.hash || parsed.username || parsed.password) {

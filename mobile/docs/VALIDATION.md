@@ -201,6 +201,39 @@ a physical-device/iOS acceptance run. Website/backend, Expo configuration and
 dependencies were not changed by this design update. Screenshots are saved in
 `../dist/mock-design-*.png` and show sample data.
 
+## Native Android Google sign-in update — 10 October 2026
+
+Android now uses a local Expo module with Google's Credential Manager account
+chooser. It passes the existing server-issued nonce to Google and exchanges the
+result at the unchanged `/api/auth/google` endpoint. Sessions still use SecureStore
+and the existing bearer API client. iOS retains the encrypted browser handoff.
+
+- All 33 mobile tests passed, including nonce forwarding, cookie-enabled transport,
+  cancellation without creating a session, and rejected/missing sessions.
+- Mobile TypeScript/ESLint and the Android production Hermes export passed.
+- Expo install reported aligned dependencies; Expo Doctor passed all 21 checks.
+- Expo autolinking found the local native module, and its Kotlin compilation passed
+  with AndroidX Credentials 1.6.0 and Google ID 1.1.1. Newer Google ID 1.2.1 required
+  Kotlin 2.4 metadata unsupported by the SDK 57 template's Kotlin 2.1 compiler.
+- The complete arm64 Android debug APK built successfully in an isolated short
+  ASCII folder. Android's APK tools verified its signature, package
+  `com.rsdeducation.student` and `arm64-v8a` ABI. The copied artifact's SHA-256
+  matches the original build. It is saved as
+  `../dist/android/rsd-education-native-google-development-arm64-v8a.apk` and needs
+  Metro. An earlier build in a longer temporary path hit a Windows Ninja/CMake
+  manifest loop; the existing short-folder build approach succeeded.
+- Live `/mobile-auth?check=1` reported ready. Browser inspection of its Google button
+  recorded an origin rejection; the usual website page uses the same client ID.
+  The mobile adapter's restrictive referrer policy was changed to Google's
+  recommended policy locally. This browser correction has not been deployed.
+
+The native module requires a newly installed development APK and a Google Cloud
+Android OAuth client matching its package and signing SHA-1. No physical phone
+was connected, so the Google token exchange, native nonce-cookie persistence and
+authenticated screen remain unverified. Follow `GOOGLE_SIGN_IN.md` for setup and
+real-account acceptance. No Google account was selected in the browser inspection,
+and no backend login session or live deployment was created by this task.
+
 ## Authenticated acceptance run still required
 
 Deploy the prepared `/mobile-auth` adapter and practice persistence correction

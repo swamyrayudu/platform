@@ -50,9 +50,9 @@ if prompted. If Expo Go asks you to log in, use the same Expo account in Expo Go
 and `npx expo login`.
 
 Expo Go can open the app and login screen. SQLite, SecureStore and the other Expo
-modules are available in Expo Go. The existing Google login callback uses
-`rsdeducation://auth/callback`, which Expo Go cannot register; sign-in shows a
-clear message to use a development build. Razorpay is loaded only when checkout
+modules are available in Expo Go. Google login requires the updated development
+build: Android uses the local native Credential Manager module, and iOS uses
+`rsdeducation://auth/callback`, which Expo Go cannot register. Razorpay is loaded only when checkout
 is available in a direct Android native build. Full authenticated student flows
 and native checkout therefore require the development build described below.
 The SDK upgrade preserves those flows and does not change the backend.
@@ -82,8 +82,9 @@ After the development build is installed:
 npm start
 ```
 
-Use the development client on your phone for Google sign-in and Razorpay checkout.
-The Google redirect needs the app's registered custom scheme.
+Use the updated development client on your phone for Google sign-in and Razorpay
+checkout. Android Google sign-in needs the OAuth Android client and the build's
+SHA-1 fingerprint; iOS uses the app's registered custom scheme.
 
 If Windows's Gradle batch file corrupts the Japanese workspace path, run the
 wrapper through Java directly from `mobile/android/`:
@@ -122,15 +123,16 @@ EXPO_PUBLIC_API_BASE_URL=https://rsdeducation.vercel.app
 
 This production origin is documented in the website's
 `docs/PAYMENTS_LOCAL_TESTING.md`. No guessed replacement backend is used.
-Only this public origin is needed. Never copy the website's `.env` into mobile:
+The public origin and public Web OAuth client ID configure mobile Google login.
+Never copy the website's `.env` into mobile:
 JWT, Supabase service-role, Google client secrets, Upstash and Razorpay secrets
 must remain on the server. The Razorpay *public* key ID comes from the order API.
 
-For local API development use a computer LAN IP or an HTTPS tunnel. Native fetch
-uses bearer authentication, not browser cookies or Supabase authentication. A
-phone's localhost points to itself. Google sign-in's WebCrypto adapter requires
-**HTTPS** and an origin authorized for the existing Google web OAuth client.
-An HTTP LAN backend can test API calls but cannot complete the browser login.
+For local API development use a computer LAN IP or an HTTPS tunnel. Protected
+native API calls use bearer authentication. Only Google login preserves the
+backend's short-lived nonce cookie between nonce issuance and token verification.
+A phone's localhost points to itself. Google login requires **HTTPS**; the iOS
+browser adapter also requires an authorized Google Web OAuth origin.
 
 ## Google-only login
 
@@ -139,8 +141,16 @@ causes, required backend deployment/Google settings, exact Windows phone build
 commands and the real-account acceptance steps. Expo Go cannot complete this flow.
 
 The existing server requires `/api/auth/nonce`'s HttpOnly cookie and the same
-nonce in the verified Google ID token. Its old native-reference snippet omits
-that requirement. This app preserves it using an Expo system-browser session:
+nonce in the verified Google ID token. On Android, the native Google Credential
+Manager chooser receives this exact nonce and the existing public Web client ID.
+The app exchanges the resulting Google ID token at `/api/auth/google` with the
+same nonce cookie, device UUID and `ANDROID` platform. Returned app sessions are
+stored in SecureStore; protected requests still use bearer tokens. The local
+module in `modules/rsd-google-auth` is automatically included by Expo prebuild.
+Register `com.rsdeducation.student` and the installed build's SHA-1 as an Android
+OAuth client in the same Google Cloud project. A new native build is required.
+
+iOS retains the system-browser flow:
 
 1. App creates a fresh P-256 key pair and random state in memory.
 2. Opens `${API_BASE_URL}/mobile-auth` in the system authentication browser.
@@ -154,17 +164,16 @@ that requirement. This app preserves it using an Expo system-browser session:
    state and a 60-second response age, stores tokens in OS SecureStore and calls
    `/api/auth/me`. Cold-start links cannot sign a user in.
 
-**Deploy `app/mobile-auth/route.ts` and the small practice persistence fix to
-the existing Next.js deployment before testing production login.** These changes
-are prepared locally; this task does not automatically redeploy your live site.
-Existing website pages, cookies, Google verification and payment handlers remain
-in place. `/mobile-auth` is the only added public compatibility route.
+The live mobile bridge is deployed. The latest origin-referrer correction to
+`app/mobile-auth/route.ts` still needs the website's normal deployment process
+for the iOS/browser flow. Existing website pages, Google verification, nonce
+and login API handlers are unchanged. This task does not automatically deploy.
 
 Google Cloud Console: retain the current web OAuth client and authorize the exact
 backend origin (production `https://rsdeducation.vercel.app`; your HTTPS tunnel
 if used for development). Google Identity Services popup mode requires no new
 Google OAuth redirect URI. `rsdeducation://auth/callback` is an **app handoff**,
-not a redirect URI to register on Google's web client. No Android/iOS client ID,
+not a redirect URI to register on Google's web client. No iOS client ID,
 client secret or new Google provider is required for this browser flow. The Expo
 scheme is registered when building the native app. Choose final bundle IDs before
 store publication.

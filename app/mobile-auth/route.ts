@@ -43,7 +43,7 @@ async function initialize(){
     google.accounts.id.initialize({client_id:config.clientId,nonce:body.nonce,ux_mode:'popup',callback:finish});
     document.getElementById('google').replaceChildren();
     google.accounts.id.renderButton(document.getElementById('google'),{theme:'outline',size:'large',text:'continue_with'});
-    document.getElementById('message').textContent='Your Google identity is verified by RSD Education.';
+    document.getElementById('message').textContent='Choose your Google account to sign in to RSD Education.';
   }catch(e){document.getElementById('message').textContent=e.message;document.getElementById('retry').hidden=false;}
 }
 async function finish(credential){
@@ -73,7 +73,9 @@ const script=document.createElement('script');script.src='https://accounts.googl
 </script></body></html>`
   return new Response(html, { headers: {
     'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store',
-    'Referrer-Policy': 'no-referrer', 'X-Content-Type-Options': 'nosniff',
+    // Follow GIS's recommended policy so Google can receive our origin.
+    // Cross-origin requests still exclude this page's state/key query string.
+    'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-Content-Type-Options': 'nosniff',
     'Content-Security-Policy': `default-src 'none'; script-src 'nonce-${scriptNonce}' https://accounts.google.com/gsi/client; frame-src https://accounts.google.com; connect-src 'self' https://accounts.google.com; style-src 'unsafe-inline' https://accounts.google.com/gsi/style; img-src https://*.googleusercontent.com https://accounts.google.com; base-uri 'none'; frame-ancestors 'none'`,
     'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
   } })

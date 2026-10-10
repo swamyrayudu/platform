@@ -13,7 +13,7 @@ test('browser adapter preserves existing nonce endpoints and encrypts credential
   process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID=process.env.GOOGLE_CLIENT_ID='test.apps.googleusercontent.com';
   try{
     const q=new URLSearchParams({state:'a'.repeat(64),publicKey:'04'+'b'.repeat(128),deviceId:'12345678-1234-1234-1234-123456789abc',platform:'ANDROID'});
-    const response=await GET(new Request(`https://rsd.example/mobile-auth?${q}`));assert.equal(response.status,200);assert.equal(response.headers.get('Referrer-Policy'),'no-referrer');assert.equal(response.headers.get('Cache-Control'),'no-store');
+    const response=await GET(new Request(`https://rsd.example/mobile-auth?${q}`));assert.equal(response.status,200);assert.equal(response.headers.get('Referrer-Policy'),'strict-origin-when-cross-origin');assert.equal(response.headers.get('Cross-Origin-Opener-Policy'),'same-origin-allow-popups');assert.equal(response.headers.get('Cache-Control'),'no-store');
     const html=await response.text();assert.ok(html.includes('/api/auth/nonce'));assert.ok(html.includes('/api/auth/google'));assert.ok(html.includes('AES-GCM'));assert.ok(!html.includes('client_secret'));assert.ok(html.includes('rsdeducation://auth/callback'));
     const inline=html.match(/<script nonce="[^"]+">([\s\S]*?)<\/script>/);assert.ok(inline);assert.doesNotThrow(()=>new Script(inline![1]));
   }finally{if(previous===undefined)delete process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;else process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID=previous;if(previousServer===undefined)delete process.env.GOOGLE_CLIENT_ID;else process.env.GOOGLE_CLIENT_ID=previousServer;}

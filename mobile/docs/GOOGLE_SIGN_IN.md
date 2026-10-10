@@ -1,183 +1,169 @@
 # Google sign-in setup and validation
 
-Update after the latest Vercel deployment on 10 October 2026: the existing
-production backend now passes `/mobile-auth?check=1` with `ready: true`. Its
-matching Web OAuth client IDs, mobile login page and nonce API were verified.
-The missing-deployment condition described below has been resolved. Actual
-Google account login still requires the development-app acceptance steps below.
+## Android: Google chooser inside the app
 
-The phone screenshot is the Expo Go guard in `services/auth-service.ts`, before
-any Google request. Expo Go cannot register `rsdeducation://auth/callback`.
-The configured live backend `https://rsdeducation.vercel.app/mobile-auth` also
-returned **404** during this investigation on 10 October 2026. Both conditions
-must be resolved: install a development build and deploy the mobile bridge on
-the existing website. Upgrading the Expo SDK alone cannot resolve either.
+Android now uses Google's Credential Manager rather than a browser popup. The
+local Expo module `modules/rsd-google-auth` requests only a Google ID token, using
+`GetSignInWithGoogleOption` with the existing backend's exact nonce.
 
-## Authentication method
+1. The app obtains `/api/auth/nonce` with `credentials: include`.
+2. The native account chooser receives that nonce and the existing Web OAuth ID.
+3. The app posts the Google token, persistent device UUID and `ANDROID` platform
+   to `/api/auth/google`, preserving the nonce cookie with `credentials: include`.
+4. The existing backend verifies the signature, audience, expiry and nonce,
+   creates its usual session, and applies its existing single-active-device rule.
+5. The app stores the returned session in Expo SecureStore and loads `/api/auth/me`
+   using bearer authentication. Normal API calls do not use cookie authentication.
 
-This app uses Expo WebBrowser's system-browser authentication session, not an
-embedded WebView. That browser runs the existing website's Google Identity
-Services flow with its existing **Web application** OAuth client ID.
+Cancellation creates no app session. Logout revokes the existing backend session,
+clears local app tokens and asks Credential Manager to clear its credential state.
+No new backend, database, provider, client secret or email/password login is added.
 
-1. The app checks `/mobile-auth?check=1` for deployment and matching OAuth config.
-2. It creates fresh in-memory P-256 keys and a random state, then opens the bridge.
-3. The browser obtains `/api/auth/nonce`, preserving its HttpOnly nonce cookie,
-   and supplies that nonce to Google Identity Services.
-4. The browser posts the Google credential to the existing `/api/auth/google`
-   with the same cookie, device UUID and `ANDROID` platform. The existing backend
-   verifies Google signature, audience, expiry and nonce, then creates its usual
-   session. No authentication/database system is replaced.
-5. The browser encrypts the returned app tokens for the app's ephemeral public
-   key and returns to `rsdeducation://auth/callback`. If automatic return is
-   blocked, the browser offers an explicit Return to RSD Education link.
-6. The initiating app checks state and response age, decrypts the tokens, writes
-   them to Expo SecureStore, and loads the existing `/api/auth/me` with a bearer
-   token. Cold-start callback links cannot establish a session.
+The native module is automatically linked by Expo. No Google config plugin,
+Firebase project or `google-services.json` is needed for this implementation.
+Its Gradle dependencies are AndroidX Credentials/Play Services Auth **1.6.0** and
+Google ID **1.1.1**. Google's newer 1.2.1 failed compilation because its Kotlin
+metadata is 2.4, while the SDK 57 template uses Kotlin 2.1. The released 1.1.1
+supports the required nonce/button APIs and compiled successfully with SDK 57.
 
-The nonce requirement is enforced by the existing backend on **every platform**.
-Simply installing a native Google SDK and posting an arbitrary ID token would
-not satisfy that requirement. The existing Expo WebBrowser, SecureStore and
-development-client plugins already supply everything this method needs; an
-additional Google native SDK/plugin is unnecessary.
+**An older installed APK cannot gain this module through a JavaScript reload.**
+Install a new development build. Expo Go does not contain this local module.
 
-The existing single-active-device policy remains: mobile login can revoke an
-older website/device session, as designed by the backend. Refresh, session
-revocation, onboarding and Google-only sign-in continue to use the existing APIs.
+## Required Google Cloud settings
 
-## Required environment and Google Cloud settings
+Use the same Google Cloud project as the existing website's Web OAuth client.
 
-| Location | Setting | Required value |
-| --- | --- | --- |
-| `mobile/.env` | `EXPO_PUBLIC_API_BASE_URL` | `https://rsdeducation.vercel.app` or the exact HTTPS origin of your existing backend deployment |
-| Existing backend deployment | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Existing website **Web application** OAuth client ID |
-| Existing backend deployment | `GOOGLE_CLIENT_ID` | The same Web client ID, used for server verification |
-| Expo app configuration | Android package | `com.rsdeducation.student` |
-| Expo app configuration | App scheme | `rsdeducation` |
-| Mobile callback | App return URL | `rsdeducation://auth/callback` |
+| Setting | Value |
+| --- | --- |
+| Android OAuth application type | Android |
+| Android package | `com.rsdeducation.student` |
+| Android SHA-1 | Signing certificate of the APK actually installed on the phone |
+| Web OAuth client ID | `37964450681-qjr64dq42neav1q5jbpbeo0pcgtgpfi0.apps.googleusercontent.com` |
+| Mobile public override | `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (Web ID above, never the Android client ID) |
+| Existing backend | Keep `GOOGLE_CLIENT_ID` and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` matched to that Web ID |
+| Mobile API origin | `EXPO_PUBLIC_API_BASE_URL=https://rsdeducation.vercel.app` |
 
-Do not put backend credentials or a Google client secret into mobile environment
-variables. The app needs only the public API origin. It obtains app sessions from
-the existing backend; it never connects directly to a database/auth provider.
+The Web ID above was read from the existing deployed RSD login page. It is a
+public identifier, not a secret. The mobile default uses it; deployments with a
+different Web client must set the public override before building/starting Metro.
 
-In Google Cloud Console, select the **existing** project and Web OAuth client.
-Keep the website's current authorized origins and redirect settings. Ensure
-`https://rsdeducation.vercel.app` appears under **Authorized JavaScript origins**.
-If testing another backend origin, add that exact HTTPS origin without a path.
-If the consent configuration restricts users (testing/internal organization),
-make sure your test Google account is allowed.
+Create an Android OAuth client for each package/signing-certificate combination
+that you use. A locally generated debug APK, an EAS-signed APK, and a Play Store
+app can have different fingerprints. Use EAS credentials for EAS builds and the
+Play app-signing certificate (not merely the upload key) for Play distribution.
+Ensure a Google test account is permitted by any consent-screen audience limits.
+Android native sign-in does not require a Google redirect URI or a browser return
+link. Preserve the website's existing origins/redirects and consent configuration.
 
-This flow uses GIS popup mode with a JavaScript callback. There is **no additional
-Google Authorized redirect URI** to register. The custom scheme is the app's
-encrypted handoff, not Google's OAuth redirect URI. Do not add it to a Web OAuth
-client's redirect list. A separate Android OAuth client, Firebase configuration,
-`google-services.json`, Android Google client ID and SHA-1 registration are **not
-required for this browser method**. The Android package is configured for app
-installation/linking. SHA-1/Android OAuth clients would apply if a future change
-adopts a Google native SDK; that is a different integration.
+The completed `dist/android/rsd-education-native-google-development-arm64-v8a.apk`
+was verified with Android's APK signing tool. Its package is
+`com.rsdeducation.student`, its ABI is `arm64-v8a` and its minimum Android SDK is 24.
+The APK's signing SHA-1 is:
 
-Deploy the prepared `app/mobile-auth/route.ts` through the website's normal
-deployment process after checking its two client ID settings. Existing website
-login pages, nonce cookies, Google token verification and auth API handlers are
-unchanged by this fix. Rebuild/redeploy if backend environment settings change.
-
-Confirm readiness from PowerShell before testing on a phone:
-
-```powershell
-Invoke-RestMethod 'https://rsdeducation.vercel.app/mobile-auth?check=1'
+```text
+5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25
 ```
 
-Expect `ready: true`, `protocol: 1`, and callback `rsdeducation://auth/callback`.
-A 404 means the bridge is not deployed. A 503 means the backend Web client IDs
-are absent or differ. This check creates no account/session and returns no tokens.
-
-## Windows PowerShell: build and install on your phone
-
-Prerequisites: Android Studio's Android SDK and SDK tools, JDK 17, and a supported
-Node runtime. This workstation already has JDK 17, Android SDK and bundled Node
-24.19; the helper selects them without changing system settings. If using another
-machine, set `JAVA_HOME`/`ANDROID_HOME` or pass `-JavaPath`, `-SdkPath`, `-NodePath`.
-
-On the Android phone, enable Developer options and USB debugging. Connect it by
-USB with a data cable and accept the debugging authorization prompt. This helper
-selects a single authorized physical phone (not an emulator), detects its ABI,
-builds a development APK and installs it using `adb install -r`.
+This is **not** a claim about the signing fingerprint of your existing EAS APK.
+Inspect EAS credentials for the development profile before registering its SHA-1:
 
 ```powershell
 cd 'C:\Users\swamy\OneDrive\ドキュメント\platform\platform\mobile'
+$env:PATH = 'C:\Users\swamy\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;' + $env:PATH
+npx eas-cli credentials --platform android
+```
 
-# Preserve an existing mobile .env; create it only if absent.
-if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+## Build and install on Windows
 
-# Verify your authorized phone appears with status "device".
-& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" devices
+### Install the APK already built in this task
 
-# Build SDK 57 and install it on the connected phone.
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\android-device.ps1
+Enable USB debugging on an arm64 Android phone, connect it and authorize this
+computer. Then run:
 
-# Start the maintained source for the RSD development app, rather than Expo Go.
-$env:RSD_DISTRIBUTION = 'direct'
+```powershell
+cd 'C:\Users\swamy\OneDrive\ドキュメント\platform\platform\mobile'
+$adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+& $adb devices
+& $adb install -r .\dist\android\rsd-education-native-google-development-arm64-v8a.apk
 & 'C:\Users\swamy\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe' .\node_modules\expo\bin\cli start --dev-client --clear --lan
 ```
 
-Use `-DeviceId YOUR_ADB_SERIAL` if more than one phone is connected. The helper
-copies **only mobile source** into a unique ASCII temporary folder because
-Android's native compiler previously failed on this Japanese workspace path.
-It leaves the website and maintained app source in place. It retains that build
-folder and saves the APK at `mobile/dist/android/rsd-education-sdk57-development-<ABI>.apk`.
-The default phone ABI is detected; build-only defaults to `arm64-v8a`.
+Use the SHA-1 above for this APK. Open the installed RSD app and scan Metro's QR
+on the same Wi-Fi network. The APK is a development client and requires Metro;
+it is not a standalone release. The relative APK path also avoids Windows tools
+misreading the Japanese characters in this workspace's absolute path.
+If installation reports incompatible signatures, rebuild with the existing EAS
+credentials below rather than uninstalling and discarding existing app data.
 
-Open the installed **RSD Education** development app, and scan/connect to Metro's
-QR using that app. Keep the phone and PC on the same Wi-Fi. Do not open Expo Go.
-For a USB-only Metro connection, run in another PowerShell window:
+### Build with your existing EAS signing credentials
 
-```powershell
-& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" -s YOUR_ADB_SERIAL reverse tcp:8081 tcp:8081
-```
-
-Then enter `http://127.0.0.1:8081` in the RSD development client's server launcher.
-Keep Metro in LAN mode; on this Windows machine localhost-only mode listened
-only on IPv6 and could not be reached through adb's IPv4 port forwarding.
-
-If local Android tooling is unavailable, use the existing EAS profile instead
-(Expo account/project setup and signing credentials must be completed manually):
+Use the existing EAS project and signing configuration:
 
 ```powershell
-npx eas-cli login
-npx eas-cli build:configure
+cd 'C:\Users\swamy\OneDrive\ドキュメント\platform\platform\mobile'
+$env:PATH = 'C:\Users\swamy\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;' + $env:PATH
 npx eas-cli build --platform android --profile development
 ```
 
-Download/install the resulting development APK on your phone, then start Metro
-with the command above. `app.config.ts` preserves EAS's project ID in `extra`.
-No production deployment or EAS build is triggered automatically by this fix.
+Install the resulting development APK on your phone, then start Metro:
 
-## Actual end-to-end acceptance
+```powershell
+& 'C:\Users\swamy\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe' .\node_modules\expo\bin\cli start --dev-client --clear --lan
+```
 
-After readiness succeeds and the development app is installed:
+Open the RSD development app and scan the QR code; use the same Wi-Fi network.
+The EAS project remains `e277917c-28a9-463f-91ec-2f6cace259ae`.
 
-1. Tap Continue with Google. Confirm the system browser opens the configured
-   backend's RSD login page rather than a 404.
-2. Tap the Google button, choose an authorized Google account, and complete any
-   consent prompts. If needed, tap Return to RSD Education on the browser page.
-3. Confirm the app returns and displays onboarding (new user) or the authenticated
-   home screen (returning user). This verifies `/api/auth/me`, not just a Google
-   popup or browser message.
-4. Close/reopen the app and confirm the SecureStore-backed session persists.
-5. Cancel a new login and retry; confirm no session is created by cancellation.
-6. Sign out, relaunch, and confirm protected screens require Google login again.
-7. Confirm website Google login still works. Expect the backend's intentional
-   one-active-device policy to apply when switching between website and phone.
+For a local USB build using this workstation's installed JDK/SDK/Node, enable USB
+debugging on the phone and authorize the computer, then run:
 
-Do not share ID tokens, callback URLs, access/refresh tokens or SecureStore dumps
-while reporting results. A screenshot of the authenticated screen or the exact
-non-sensitive error is sufficient.
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\android-device.ps1
+```
 
-Real Google sign-in has **not been successfully tested** by this task. The live
-bridge is now deployed, but no authorized physical phone/Google account has been
-provided for a real login. Automated browser-bridge tests use fixture credentials
-and are not evidence of real Google authentication. See validation results for
-the native build/test checks actually completed.
+The helper selects a single authorized physical phone, builds in an isolated
+ASCII path and installs with `adb install -r`. It copies local native modules too.
+If the installed APK has a different signature, use an EAS build signed like the
+existing app; do not uninstall the app just to bypass a signature mismatch.
 
-Sources: [Expo browser sessions](https://docs.expo.dev/versions/v57.0.0/sdk/webbrowser/),
-[Expo authentication limitations](https://docs.expo.dev/guides/authentication/),
-[Google GIS setup](https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid).
+## iOS/browser flow and the blank-page investigation
+
+The live `/mobile-auth?check=1` returned `ready: true`, and both Google client IDs
+match. The live bridge uses the correct `same-origin-allow-popups` opener policy.
+Browser inspection nevertheless recorded Google's error:
+`[GSI_LOGGER]: The given origin is not allowed for the given client ID.`
+The website page uses the same client ID without that error. The mobile bridge
+set `Referrer-Policy: no-referrer`, a likely contributor to this rejection. The local
+adapter now uses Google's recommended `strict-origin-when-cross-origin`; query
+parameters are still excluded from cross-origin referrers. Deploy this small
+mobile-adapter correction through the existing website's deployment process.
+It has not been deployed by this task, nor does it prove the precise cause of
+every blank page on the user's phone.
+
+iOS retains the encrypted browser handoff through `rsdeducation://auth/callback`.
+The initiating app verifies state/age and decrypts with its in-memory private key;
+a cold-start callback cannot create a session. If a browser blocks automatic app
+return, tap its Return to RSD Education link. Keep the backend HTTPS origin in the
+Web client's Authorized JavaScript origins. The custom app scheme is not a Google
+Web OAuth redirect URI. The existing website's authentication behavior is unchanged.
+
+## Real-account acceptance still required
+
+1. Configure the Android client with the installed APK's SHA-1 and install the new build.
+2. Tap Continue with Google: Android should show the native Google account chooser.
+3. Choose an allowed account and confirm the app displays onboarding or the signed-in
+   home screen. Verify session restoration after closing/reopening the app.
+4. Cancel and retry; then test logout and Google sign-in with another account.
+5. Confirm the website retains its intentional single-active-device behavior.
+
+No authorized physical phone was connected during this task. Automated tests use
+fixture credentials; native compilation is not proof of successful Google login.
+A real Google token exchange, nonce-cookie round trip on the phone and authenticated
+home screen must still be checked. Never share tokens, complete callback URLs,
+keystores, credentials or SecureStore dumps when reporting results.
+
+Sources: [Google native button flow](https://developer.android.com/identity/sign-in/credential-manager-siwg-implementation),
+[Google ID releases](https://developers.google.com/identity/android-credential-manager/releases),
+[AndroidX Credentials releases](https://developer.android.com/jetpack/androidx/releases/credentials),
+[Google GIS browser setup](https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid),
+[Expo local modules](https://docs.expo.dev/modules/get-started/).
