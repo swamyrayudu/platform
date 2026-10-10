@@ -1,5 +1,28 @@
 # Google sign-in investigation — 10 October 2026
 
+## Live Vercel verification — subsequent deployment
+
+The existing `swamyrayudus-projects/rsdeducation` production deployment is now
+READY at `https://rsdeducation.vercel.app`. The Vercel account and exact project
+were inspected using the authenticated CLI. No account settings needed changing
+and no additional deployment was created by this verification.
+
+- `/mobile-auth?check=1` returns 200 with `ready: true`, protocol 1 and the correct
+  app callback. This confirms the two backend Web OAuth client IDs are configured
+  and match.
+- A valid app handshake request returns the mobile Google page with status 200,
+  the existing Google API integration, encrypted return link, `no-store` and
+  `same-origin-allow-popups` headers.
+- `/api/auth/nonce` returns 200 and sets an HttpOnly nonce cookie.
+- The website homepage returns 200.
+
+These public checks create no account or authenticated session. Real Google
+account login and return to the Android app remain unverified and must be tested
+using the installed RSD development app. The 404 findings below describe the
+earlier deployment, before this update became live.
+
+## Earlier investigation and local validation
+
 The supplied phone screenshot is the Expo Go guard, before a Google request.
 The app's custom callback cannot be registered by Expo Go. The live configured
 backend's `/mobile-auth` returned 404. A development build and deployment of the

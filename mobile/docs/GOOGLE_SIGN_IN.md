@@ -1,5 +1,11 @@
 # Google sign-in setup and validation
 
+Update after the latest Vercel deployment on 10 October 2026: the existing
+production backend now passes `/mobile-auth?check=1` with `ready: true`. Its
+matching Web OAuth client IDs, mobile login page and nonce API were verified.
+The missing-deployment condition described below has been resolved. Actual
+Google account login still requires the development-app acceptance steps below.
+
 The phone screenshot is the Expo Go guard in `services/auth-service.ts`, before
 any Google request. Expo Go cannot register `rsdeducation://auth/callback`.
 The configured live backend `https://rsdeducation.vercel.app/mobile-auth` also
@@ -166,8 +172,8 @@ Do not share ID tokens, callback URLs, access/refresh tokens or SecureStore dump
 while reporting results. A screenshot of the authenticated screen or the exact
 non-sensitive error is sufficient.
 
-Real Google sign-in has **not been successfully tested** by this task: the live
-bridge is not deployed, and no authorized physical phone/Google account has been
+Real Google sign-in has **not been successfully tested** by this task. The live
+bridge is now deployed, but no authorized physical phone/Google account has been
 provided for a real login. Automated browser-bridge tests use fixture credentials
 and are not evidence of real Google authentication. See validation results for
 the native build/test checks actually completed.
