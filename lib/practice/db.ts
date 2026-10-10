@@ -54,6 +54,13 @@ export function maskSessionAnswers(session: PracticeSession): PracticeSession {
 
   return {
     ...session,
+    user_answers: Object.fromEntries(Object.entries(session.user_answers).map(([id, answer]) => {
+      if (session.feedback_mode === 'instant') return [id, answer]
+      const { correct_answer, explanation, ...safe } = answer
+      void correct_answer
+      void explanation
+      return [id, safe]
+    })),
     questions: session.questions.map((q) => {
       const { correct_answer, explanation, ...rest } = q
       void correct_answer
@@ -263,7 +270,7 @@ export async function createPracticeSession(
   // Persist session record into Supabase immediately so free trial attempt is registered
   if (userId) {
     try {
-      await supabaseAdmin.from('practice_sessions').insert({
+      const { error } = await supabaseAdmin.from('practice_sessions').insert({
         id: session.id,
         user_id: session.user_id,
         medium: session.medium,
@@ -285,8 +292,10 @@ export async function createPracticeSession(
         status: 'in_progress',
         started_at: session.started_at,
       })
+      if (error) throw error
     } catch (err) {
-      console.warn('[Practice DB] Error inserting initial practice_session:', err)
+      activeSessionsCache.delete(sessionId)
+      throw new Error('Could not save practice session. Please try again.', { cause: err })
     }
   }
 
@@ -401,7 +410,8 @@ export async function getPracticeSessionById(
   maskAnswers = true
 ): Promise<PracticeSession | null> {
   // Cache hits must be ownership-checked too — see ownedOrNull.
-  let session = ownedOrNull(activeSessionsCache.get(sessionId), userId) ?? undefined
+  // Durable state is authoritative across serverless instances and mobile retries.
+  let session: PracticeSession | undefined
 
   if (!session) {
     try {
@@ -414,7 +424,8 @@ export async function getPracticeSessionById(
 
       if (!error && data) {
         // Re-attach questions
-        const allQuestions = await getAllPracticeQuestions()
+        const cached = ownedOrNull(activeSessionsCache.get(sessionId), userId)
+        const allQuestions = cached?.questions ?? await getAllPracticeQuestions(data.medium, data.subject)
         const questionMap = new Map(allQuestions.map((q) => [q.question_id || q.id, q]))
         const loadedQuestions = (data.question_ids || [])
           .map((id: string) => questionMap.get(id))
@@ -439,7 +450,7 @@ export async function getPracticeSessionById(
 }
 
 /**
- * Record user's answer for a question in a practice session (in-memory only while active)
+ * Record an answer durably before acknowledging it to web/mobile clients.
  */
 export async function recordQuestionAnswer(
   sessionId: string,
@@ -454,11 +465,13 @@ export async function recordQuestionAnswer(
   explanation: string | null
   session: PracticeSession
 }> {
-  const session =
-    ownedOrNull(activeSessionsCache.get(sessionId), userId) ||
-    (await getPracticeSessionById(sessionId, userId, false))
+  const session = await getPracticeSessionById(sessionId, userId, false)
   if (!session) {
     throw new Error('Practice session not found')
+  }
+  if (session.status !== 'in_progress') throw new Error('Practice session is no longer active')
+  if (selectedAnswer !== null && !['A', 'B', 'C', 'D'].includes(selectedAnswer)) {
+    throw new Error('Invalid selected answer')
   }
 
   const question = session.questions.find((q) => (q.question_id || q.id) === questionId)
@@ -483,7 +496,8 @@ export async function recordQuestionAnswer(
     }
   }
 
-  // Update user answers map in memory only
+  const previousTime = session.user_answers[questionId]?.time_taken_seconds ?? 0
+  // Replacing the same answer is a retry, not another period of study time.
   session.user_answers[questionId] = {
     question_id: questionId,
     selected_answer: selectedAnswer,
@@ -507,7 +521,15 @@ export async function recordQuestionAnswer(
 
   session.score = correctCount
   session.accuracy_pct = attemptedCount > 0 ? Math.round((correctCount / attemptedCount) * 100) : 0
-  session.time_spent_seconds += timeTakenSeconds
+  session.time_spent_seconds = Math.max(0, session.time_spent_seconds - previousTime + timeTakenSeconds)
+
+  const { data: saved, error: saveError } = await supabaseAdmin
+    .from('practice_sessions')
+    .update({ user_answers: session.user_answers, score: session.score,
+      accuracy_pct: session.accuracy_pct, time_spent_seconds: session.time_spent_seconds })
+    .eq('id', sessionId).eq('user_id', userId).eq('status', 'in_progress')
+    .select('id')
+  if (saveError || !saved?.length) throw new Error('Could not save answer. Please try again.')
 
   activeSessionsCache.set(sessionId, session)
 
@@ -527,16 +549,15 @@ export async function submitPracticeSession(
   totalTimeSpentSeconds: number,
   userId: string
 ): Promise<PracticeResultSummary> {
-  const session =
-    ownedOrNull(activeSessionsCache.get(sessionId), userId) ||
-    (await getPracticeSessionById(sessionId, userId, false))
+  const session = await getPracticeSessionById(sessionId, userId, false)
   if (!session) {
     throw new Error('Session not found')
   }
 
-  session.status = 'completed'
-  session.completed_at = new Date().toISOString()
-  session.time_spent_seconds = totalTimeSpentSeconds || session.time_spent_seconds
+  const wasCompleted = session.status === 'completed'
+  if (!wasCompleted && session.status !== 'in_progress') throw new Error('Session is no longer active')
+  session.completed_at = session.completed_at || new Date().toISOString()
+  if (!wasCompleted) session.time_spent_seconds = totalTimeSpentSeconds || session.time_spent_seconds
 
   const totalQuestions = session.questions.length
   let correctCount = 0
@@ -621,11 +642,12 @@ export async function submitPracticeSession(
     }
   })
 
-  // 1. Persist completed session record into Supabase
-  try {
-    await supabaseAdmin
+  // Claim completion once; repeated results reads must not create new attempts.
+  let newlyCompleted = false
+  if (!wasCompleted) {
+    const { data: claimed, error: completionError } = await supabaseAdmin
       .from('practice_sessions')
-      .upsert({
+      .update({
         id: session.id,
         user_id: session.user_id,
         medium: session.medium,
@@ -648,12 +670,15 @@ export async function submitPracticeSession(
         started_at: session.started_at,
         completed_at: session.completed_at,
       })
-  } catch (err) {
-    console.warn('[Practice DB] Error saving completed practice_session:', err)
+      .eq('id', session.id).eq('user_id', userId).eq('status', 'in_progress')
+      .select('id')
+    if (completionError) throw new Error('Could not submit practice session. Retry safely.')
+    newlyCompleted = Boolean(claimed?.length)
   }
+  session.status = 'completed'
 
   // 2. Persist individual question attempts and update mastery progress for user
-  if (session.user_id) {
+  if (session.user_id && newlyCompleted) {
     const answeredEntries = Object.values(session.user_answers).filter((a) => a.selected_answer)
     for (const ans of answeredEntries) {
       const q = session.questions.find((item) => (item.question_id || item.id) === ans.question_id)

@@ -1,0 +1,8 @@
+{
+  "cli": { "version": ">= 16.0.0", "appVersionSource": "local" },
+  "build": {
+    "development": { "node": "24.19.0", "developmentClient": true, "distribution": "internal", "env": { "RSD_DISTRIBUTION": "direct" } },
+    "preview": { "node": "24.19.0", "distribution": "internal", "android": { "buildType": "apk" }, "env": { "RSD_DISTRIBUTION": "direct" } },
+    "production": { "node": "24.19.0", "env": { "RSD_DISTRIBUTION": "store" } }
+  }
+}

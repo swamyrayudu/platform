@@ -19,7 +19,7 @@ export interface TableConfig {
   medium: 'english' | 'telugu'
 }
 
-export const TABLE_CONFIGS: TableConfig[] = [
+const TABLE_CONFIGS: TableConfig[] = [
   {
     table: 'english_subject_questions',
     subjectKey: 'english',
@@ -106,7 +106,7 @@ export const TABLE_CONFIGS: TableConfig[] = [
   },
 ]
 
-export const SUBJECT_METADATA_LIST = [
+const SUBJECT_METADATA_LIST = [
   { key: 'english', name: 'English', teluguName: 'ఇంగ్లీష్ (భాష II)', icon: 'Languages' },
   { key: 'telugu', name: 'Telugu', teluguName: 'తెలుగు (భాష I)', icon: 'BookOpen' },
   { key: 'mathematics', name: 'Mathematics', teluguName: 'గణితం', icon: 'Calculator' },
