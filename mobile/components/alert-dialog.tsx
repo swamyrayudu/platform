@@ -5,20 +5,21 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors } from '@/utils/theme';
 import { Button } from './ui';
 
-type Props={title:string;description:string;notice?:string;cancelLabel:string;confirmLabel:string;icon:ComponentProps<typeof Ionicons>['name'];onCancel:()=>void;onConfirm:()=>void};
-export function AlertDialog({title,description,notice,cancelLabel,confirmLabel,icon,onCancel,onConfirm}:Props) {
+type Props={title:string;description:string;notice?:string;cancelLabel:string;confirmLabel:string;busy?:boolean;icon:ComponentProps<typeof Ionicons>['name'];onCancel:()=>void;onConfirm:()=>void};
+export function AlertDialog({title,description,notice,cancelLabel,confirmLabel,busy=false,icon,onCancel,onConfirm}:Props) {
   const {width,fontScale}=useWindowDimensions();
   const stacked=Math.min(440,width-32)-40<280*Math.max(1,fontScale);
-  return <Modal visible transparent animationType="fade" statusBarTranslucent navigationBarTranslucent onRequestClose={onCancel}>
+  const cancel=()=>{if(!busy)onCancel();};
+  return <Modal visible transparent animationType="fade" statusBarTranslucent navigationBarTranslucent onRequestClose={cancel}>
     <SafeAreaView style={styles.overlay}>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false} bounces={false}>
-        <View accessibilityViewIsModal onAccessibilityEscape={onCancel} style={styles.panel}>
+        <View accessibilityViewIsModal onAccessibilityEscape={cancel} style={styles.panel}>
           <View style={styles.intro}><View style={styles.icon}><Ionicons name={icon} size={24} color={colors.primary}/></View>{notice?<Text style={styles.notice}>{notice}</Text>:null}</View>
           <Text accessibilityRole="header" style={styles.title}>{title}</Text>
           <Text style={styles.description}>{description}</Text>
           <View style={[styles.actions,{flexDirection:stacked?'column':'row'}]}>
-            <View style={[styles.action,stacked&&styles.stackedAction]}><Button secondary label={cancelLabel} onPress={onCancel}/></View>
-            <View style={[styles.action,stacked&&styles.stackedAction]}><Button label={confirmLabel} onPress={onConfirm}/></View>
+            <View style={[styles.action,stacked&&styles.stackedAction]}><Button secondary label={cancelLabel} disabled={busy} onPress={cancel}/></View>
+            <View style={[styles.action,stacked&&styles.stackedAction]}><Button label={confirmLabel} busy={busy} onPress={onConfirm}/></View>
           </View>
         </View>
       </ScrollView>

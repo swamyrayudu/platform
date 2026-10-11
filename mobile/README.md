@@ -471,6 +471,64 @@ macOS/Xcode. Windows can export iOS JavaScript but cannot produce an iOS binary.
 All EAS profiles pin the compatible Node runtime. The old SDK 56 template override
 has been removed so Expo generates native projects using its SDK 57 template.
 
+## In-app updates
+
+The replacement APK is version **1.0.1**, Android version code **2**, and uses
+the existing EAS project `e277917c-28a9-463f-91ec-2f6cace259ae`. The direct APK
+profile receives the `preview` update channel; store builds use `production`.
+No update is published and no cloud build is started merely by adding this code.
+
+Build and install the replacement APK once:
+
+```powershell
+npx eas-cli build --platform android --profile preview
+```
+
+Upload that new APK as a **new** GitHub release and share it. The previously
+published 1.0.0 APK does not contain `expo-updates` and cannot acquire this feature
+remotely. Keep the same EAS signing key, package name and user data when upgrading.
+Cloud builds regenerate the ignored `android/` directory from Expo configuration.
+If building locally, regenerate native configuration with `npx expo prebuild
+--platform android` before compiling; do not compile the old native project as-is.
+
+After testing compatible JavaScript/UI changes, publish them from `mobile/`:
+
+```powershell
+$env:RSD_DISTRIBUTION = 'direct'
+npx eas-cli update --platform android --channel preview --environment preview --message "App improvements"
+```
+
+Use the same public API URL and Google web client ID for the EAS **preview**
+environment in builds and updates. If that environment defines
+`RSD_DISTRIBUTION`, its value must be `direct`. For production store updates, use
+the production channel/environment and `RSD_DISTRIBUTION=store` instead.
+Use a Node version supported by SDK 57 (the cloud build pins Node 24.19.0).
+
+On a configured release APK, checks run after the user reaches the main tabs and
+when returning to the foreground, at most once every five minutes. Compatible
+updates download in the background and show **Update available → Update now /
+Later**. Update now restarts into the downloaded version; Later hides that same
+popup for the current run, and the downloaded version can load on the next cold
+start. Offline/check errors do not block the app. Development mode does not call
+the new native module, so an existing development APK can still load local code.
+
+The popup and restart are deferred on login/onboarding, auth callbacks, payments,
+mock start, active exams and results/submission routes. Returning to a main tab
+after saving or completing an exam allows the pending update prompt to appear.
+This is an in-app prompt, not a push notification while the app is closed.
+
+Runtime compatibility uses Expo's `appVersion` policy. Keep version 1.0.1 for
+compatible UI/JavaScript updates to this APK. Changes to native modules, plugins,
+permissions, SDK or native authentication code require a version/versionCode
+bump and another APK. Do not send those changes to the old runtime.
+
+Device verification: install the new APK, sign in, publish a harmless tested UI
+change to `preview`, foreground the app and confirm the popup and restart. Start
+a practice/mock exam before another update arrives and confirm that it offers no
+restart until you save/leave or complete submission. Also test Later and offline
+launch. These checks require a real configured release APK; JavaScript export
+and automated tests alone cannot verify native update delivery.
+
 ## Checks
 
 ```powershell

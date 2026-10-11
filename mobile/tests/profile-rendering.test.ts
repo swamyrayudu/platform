@@ -23,6 +23,7 @@ for (const [name, path] of [
   ['Exam', '../components/exam-screen.tsx'],
   ['Question report', '../components/report-question.tsx'],
   ['Alert dialog', '../components/alert-dialog.tsx'],
+  ['Update popup', '../components/app-update.tsx'],
   ['Results', '../app/result.tsx'],
   ['Result summary', '../components/result-summary.tsx'],
   ['Answer review', '../components/question-review-card.tsx'],

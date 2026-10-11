@@ -3,13 +3,13 @@
     "name": "RSD Education",
     "slug": "rsd-education",
     "scheme": "rsdeducation",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "icon": "./assets/icon.png",
     "platforms": ["android", "ios"],
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "ios": { "bundleIdentifier": "com.rsdeducation.student", "supportsTablet": true },
-    "android": { "package": "com.rsdeducation.student", "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#FFFEFB" } },
+    "android": { "package": "com.rsdeducation.student", "versionCode": 2, "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#FFFEFB" } },
     "plugins": ["expo-router", "expo-secure-store", "expo-web-browser", "expo-sqlite", "expo-status-bar", "expo-font"],
     "experiments": { "typedRoutes": true }
   }

@@ -1,5 +1,35 @@
 # Google sign-in investigation — 10 October 2026
 
+## In-app updates — 11 October 2026
+
+- Installed `expo-updates ~57.0.25` using Expo's SDK 57 dependency installer.
+- Public Expo config resolves correctly: existing project
+  `e277917c-28a9-463f-91ec-2f6cace259ae`, package
+  `com.rsdeducation.student`, scheme `rsdeducation`, version 1.0.1/code 2,
+  `appVersion` runtime policy, EAS Update URL, manual checks, direct distribution.
+- Preview/production retain their distribution settings and now have separate
+  matching update channels and environments. Website/backend files are unchanged.
+- On Node 24.19.0, TypeScript and full ESLint passed; all **143 tests passed**.
+  New cases cover unsafe routes/background state, development mode, download
+  deferral during exams, duplicate taps, Later, offline retries, restart failure,
+  changed downloaded manifests and rollback. JSX native-container checks include
+  the update popup.
+- Online Expo Doctor: **18/18 passed**. Online `expo install --check`: supported
+  dependencies up to date.
+- Android release JavaScript/Hermes export passed: 1,455 modules; output
+  `dist/update-popup-export`, bundle
+  `entry-7e4214c8dde9dac959a7912a5b0808a2.hbc` (3.6 MB).
+- React review: one update controller/subscription per app root; timer and
+  AppState listener cleanup; no native update calls in development; foreground,
+  authenticated main-tab and mutation guards; generic retry errors and no secret
+  logging. Existing exam dialogs keep their original behavior by default.
+- A replacement APK has **not** been built/published by this change, and an OTA
+  update has **not** been published. The existing GitHub 1.0.0 APK has no configured
+  EAS Update support. It must be replaced once using the same signing credentials.
+  Actual native delivery, popup appearance, restart, Later/offline behavior and
+  exam deferral still need a configured release APK/device test. See README's
+  in-app update instructions. This is not an out-of-app push notification.
+
 ## Live Vercel verification — subsequent deployment
 
 The existing `swamyrayudus-projects/rsdeducation` production deployment is now
