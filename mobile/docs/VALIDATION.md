@@ -338,3 +338,245 @@ compatible upstream patches as available.
   OAuth registration and a real Google account sign-in remain unverified. No
   website/backend changes, keystore upload, Expo project creation, deployment or
   successful end-to-end login is claimed.
+
+## October 11, 2026 — authorized browser Google sign-in switch
+
+- The user confirmed the updated native module reads the EAS certificate but
+  reported a Google account reauthentication error, and explicitly authorized
+  using web Google login. Android now uses the existing encrypted browser adapter,
+  the same backend and SecureStore session storage. No website/backend files,
+  dependencies, Expo package/scheme or EAS configuration were changed.
+- Shared sign-in state keeps the app callback screen pending until profile
+  verification finishes, then redirects to onboarding or signed-in tabs. Shared
+  sign-in errors remain visible after the callback remounts the login screen.
+- Live readiness returned `ready:true`, protocol 1 and the expected callback.
+  The bridge HTML returned 200 with the corrected referrer and popup policies.
+  Its Google sign-in button rendered in the browser; captured warning/error
+  logs were empty. No Google account was selected or real backend session created.
+- TypeScript, ESLint and 43 tests passed. Added real WebCrypto fixture round trips
+  for Android/iOS, mismatched callback rejection, cancellation/no-session checks,
+  failed backend readiness, and private-key wiping on every completion path.
+- Expo Doctor passed 21/21 checks. Android Hermes export succeeded at
+  `dist/browser-login-export`. The sandbox initially denied the compiler's
+  temporary output write; the same export succeeded outside that sandbox.
+- A real-account browser login and return to overview on the phone remain
+  unverified. Restart Metro to test these JavaScript changes on the installed
+  EAS development client; a native rebuild is unnecessary for this switch.
+
+## October 11, 2026 — Chrome browser return correction
+
+- User reported a blank Chrome page after Google account selection; no exact
+  failed URL was available. Replaced the mobile adapter's popup message handoff
+  with Google Identity Services redirect mode, posting to the fixed production
+  `/mobile-auth` URI. Website pages and existing auth API handlers are unchanged.
+- Signed, HttpOnly, five-minute request context and Google's double-submit CSRF
+  check protect the POST. The adapter delegates nonce/token/session verification
+  to the existing Google handler and encrypts the result to the initiating app.
+  The visible **Open RSD Education** button uses a package-targeted Android intent.
+- Mobile TypeScript and ESLint checks passed. All 46 tests passed, including
+  encrypted Android/iOS round trips, context/CSRF tampering and expiry, backend
+  rejection, and a visible app-return button from a fixture login response.
+  Root TypeScript and the production Next.js build passed. Expo Doctor passed
+  all 18 checks in the installed doctor version (1.18.19).
+- Published and promoted the existing Vercel project's production deployment
+  `dpl_Bd5hSYryZi1gzwkyaXr1Risa3Ak5` to `https://rsdeducation.vercel.app`.
+  Public readiness returned 200 with `browserMode:redirect`. A valid start page
+  returned 200, the fixed production callback and the signed context cookie.
+  An invalid POST returned 400 with a visible error and no app-return link.
+  The existing website homepage returned 200.
+- The production Google account button rendered with no captured warnings/errors.
+  No Google account was selected, no real session was created in these checks,
+  and real-account login/return to overview on Android remains unverified.
+- The existing Web OAuth client must authorize the exact redirect URI
+  `https://rsdeducation.vercel.app/mobile-auth` as well as the existing JavaScript
+  origin. Restart Metro and open the installed development client to test.
+  These changes are still local Git changes; include the new bridge helper when
+  committing/pushing so a later Git deployment retains the correction.
+
+## October 11, 2026 — mock drawer scrolling and back navigation
+
+- Replaced the question drawer's eager ScrollView with a virtualized FlatList
+  of section headings and small grid rows. It starts with ten data rows, renders
+  six rows initially, and adds ten more near the end until the full paper is
+  available. Removed All/Not done/Flagged/Done filter buttons and the legend;
+  a single All questions count remains. Original question numbers, subject
+  grouping, answer/review indicators and jump indices are preserved.
+- Timer checkpoints now update only elapsed time. Memoized drawer props and
+  callbacks remain stable across timer ticks, avoiding rebuilding all buttons.
+- System back, screen back and navigation gestures use the same Stay / Save &
+  leave confirmation. Back first closes the drawer when it is open. The exam
+  remains protected while saving; the guard is released only after persistence,
+  mock answer sync and pause complete. Save & leave returns to Mock Tests or
+  Practice. Submission still opens the existing results screen.
+- TypeScript, targeted ESLint with zero warnings and all 50 tests passed.
+  Added coverage for progressive access to all 160 questions at narrow/wide
+  widths and large text, durable save/pause ordering, failed-exit protection and
+  clearing an ended draft only after server acknowledgement.
+- Android Hermes export passed at `dist/mock-drawer-export`. The first sandbox
+  attempt could not write Hermes' temporary output; the same export succeeded
+  outside that sandbox. No dependencies or Expo native settings changed.
+- Physical-device gestures and opening/scroll timing have not been measured.
+  Restart Metro, reload the installed development client, scroll to question
+  160, jump to it, close the drawer with Back, and test Stay / Save & leave.
+  Resume the mock to verify the saved answer. Current changes are local and
+  require inclusion in a later Git commit/push.
+
+## October 11, 2026 — mock start/resume across papers and medium
+
+- Removed the mobile-only global draft lock from mock instructions and exam
+  loading. Mock start/resume uses the same existing API as the website, retaining
+  premium checks and module sequence gates. No website or backend code changed
+  for this correction.
+- Encrypted drafts now have separate user/kind/attempt keys. The original
+  `active-exam` record is preserved and migrated; it is a Home resume shortcut,
+  not an exam lock. Switching papers preserves pending answers, flags, position,
+  elapsed time and submission intent. A failed shortcut write cannot overwrite
+  a newer scoped save. Submission/abandonment clears only its own draft.
+- Opening a cached exam checks server status, routes completed/submitted exams
+  to results, and rejects expired/abandoned exams. Home hides confirmed ended
+  exams. Only network failures allow cached offline resume; authorization and
+  server errors remain errors.
+- TypeScript and targeted ESLint passed with zero warnings. All 59 tests passed;
+  the nine draft regressions were rerun after final edits. Coverage includes
+  legacy migration, switching medium, pending-answer delivery after returning,
+  practice preservation, account isolation, submitted/ended attempts, offline
+  resume and partial storage failures. `git diff --check` passed.
+- Physical Android testing remains pending. Restart Metro and reload the
+  installed development app. Save & leave a Telugu mock, start an unlocked
+  English paper, then return to the Telugu paper and confirm the saved answer
+  and position. Also submit a paper on the website and open its mobile resume
+  link: it should show results rather than stale questions. These are JavaScript
+  changes; no native dependencies or EAS build configuration changed.
+
+## October 11, 2026 — mock exit controls
+
+- Removed the two standalone leave/end buttons from mock exams. The top Back
+  button and system back gesture offer exactly Stay and Stop timer & save.
+  Practice controls remain available under the existing practice rules.
+- Choosing Stop timer & save freezes the mock clock before asynchronous
+  persistence, answer synchronization and server pause. Navigation waits for
+  successful saving, then replaces the exam with `/(tabs)/mocks`. A failed save
+  keeps the exam open and restarts the clock from the frozen elapsed time.
+- TypeScript, targeted ESLint with zero warnings, the 19 exam/draft regression
+  tests and targeted whitespace checks passed. No new native settings or
+  dependencies were introduced. Physical Android confirmation remains pending:
+  tap Back, test Stay, then Stop timer & save; confirm the mock library opens
+  and Continue restores the saved position, answers and remaining time.
+
+## October 11, 2026 — website practice layout and responsive app navigation
+
+- Compared the native practice setup with the existing website's PracticeSetup,
+  subject/medium/count/mode selectors, setup footer and four-item DscBottomNav.
+  Native setup now uses DSC Practice Zone, English/Telugu segments, numbered
+  cards, subject tiles, the Instant Answer & Explanation switch and the matching
+  Start Practice question-count label. Existing topic search, progressive topic
+  loading, advanced filters, quota, medium and API selection remain available.
+- Four bottom tabs match the website. Profile/Pro access is in a shared header
+  on every tab screen. The tab shell owns top/side safe areas; each page no longer
+  adds them again. Tab height includes the actual bottom inset and larger labels,
+  labels stay below icons in landscape, and navigation hides for the keyboard.
+- Shared pages use responsive padding, wrapping headers/chips/badges and
+  single-column stats for large text. Subject tiles switch to one column when
+  space/text size requires it. On short viewports or large system text, sticky
+  action bars move into scrollable content. Exam headers and answer letters
+  also adapt instead of forcing a width/height smaller than their text.
+- The user explicitly chose practice Stay / Stop timer & save. Both exam types
+  remove the standalone leave/end buttons. Practice freezes its clock, saves and
+  synchronizes pending answers without submitting/abandoning, returns to Practice
+  and offers Resume practice there. Practice timing is saved locally because the
+  existing API has no practice pause endpoint. Failed saving retains the exam.
+- Instant practice answers automatically use the existing answer API to release
+  feedback/explanations, show correct/incorrect option colors and prevent rapid
+  duplicate selections while checking. End feedback remains withheld until
+  submission. Pending network failures retain a retry control.
+- TypeScript, full mobile ESLint with zero warnings and all 63 tests passed.
+  New cases cover practice pause without abandonment, pending explanation saves,
+  four-tab widths/bottom insets (280–1024 widths, system text scale 1–3), responsive
+  subject columns and scrollable actions for short/large-text layouts. Final
+  Android Hermes export passed at `dist/practice-responsive-export` (3.5 MB).
+  No Expo dependencies, SDK settings, EAS configuration, website or backend code
+  changed for this update.
+- Physical Android appearance and gestures remain unverified. Restart Metro and
+  reload the installed development app. Check all four tabs in portrait and
+  landscape; increase Android font size; enter a practice question count with
+  the keyboard open; verify Start/Previous/Next are reachable; select an answer
+  with Instant Feedback, then Back → Stay and Back → Stop timer & save → Resume
+  practice. Confirm position, answers and remaining time survive. Changes are
+  local and have not been committed/pushed or published as an EAS update.
+
+## October 11, 2026 — header subscription management and renewal
+
+- Header now labels the subscription entry Plans or Manage, with an active
+  indicator. The management screen shows the current plan, status and expiry,
+  all API-provided prices/durations, optional coupon prices, expandable features,
+  Pay/Renew actions and payment history. No app-side prices are invented.
+- Existing website order, verify, history and recover endpoints are reused.
+  Inspected the existing renewal SQL: paid days extend from a future expiry, or
+  from payment activation when access has expired. Website/backend/configuration
+  code was not changed for this update. Direct Android checkout gating remains.
+- Native success never grants access by itself. Verified server profiles refresh
+  the shared auth state, subscription summary and cached practice/mock data.
+  Refresh no longer calls auth.reload(), which would replace the root navigation
+  with its loading screen. Initial status failures prevent checkout until retried.
+- Payment flow retains the encrypted pending order/receipt through cancellation,
+  verification failure and pending/error recovery. Settled server recovery clears
+  it before another purchase. Synchronous UI and service guards prevent concurrent
+  purchases/recovery; mismatched order receipts are not sent for verification.
+- Full mobile ESLint (zero warnings), TypeScript and all 71 tests passed. Eight
+  new payment cases use fake storage/gateway/backend responses, covering server
+  pricing, verified renewal expiry, cancellation, failed verification, unsettled
+  recovery, duplicate taps, user isolation, distribution gating and mismatched
+  receipts; status/price/date formatting is also covered. React hook dependencies,
+  accessible controls, conditional native imports and responsive wrapping checked.
+- Final Android Hermes export passed at dist/subscription-management-export
+  (1426 modules, 3.5 MB). The first sandboxed compiler run hit temporary-file
+  permission restrictions; the authorized retry succeeded. No dependencies added.
+- Physical phone payment and real server renewal remain unverified. In a payment
+  test environment, verify free purchase, active renewal, expired renewal, coupon,
+  checkout cancellation, interrupted confirmation and Check payment status.
+  Compare the displayed expiry with the verified backend profile. No real charge
+  was made, and these mobile changes have not been pushed or published.
+
+## October 11, 2026 — practice subjects match the website
+
+- Found that mobile rendered the API's raw available_subjects list, whereas the
+  website SubjectSelector displays seven canonical subject groups. Mobile now
+  uses exactly that website list, order and Telugu labels in both mediums.
+  Topics, question availability, question loading and grading retain the APIs.
+- Known backend registry aliases in practice links and weak recommendations map
+  to the matching website group. Unknown subjects cannot become a selection via
+  a link/recommendation. No question records or existing sessions were removed.
+- TypeScript, lint of all changed code and all 73 mobile tests passed. The new
+  contract check compares the native catalog against the actual website source;
+  alias/link checks cover canonical names, Telugu labels and unrelated subjects.
+  Website/backend/configuration code was not edited. Physical phone appearance
+  is unverified; reload the development app and check both practice mediums.
+
+## October 11, 2026 — consistent practice choices and compact loading
+
+- Subjects, topic mode, question presets, practice modes, advanced choices and
+  weak recommendations use a shared native choice grid. Items within a group
+  use equal widths and the tallest measured text height; reserved check space
+  keeps selection from changing text wrapping. Odd final grid items retain their
+  width. Geometry resets for viewport/font changes and avoids truncating labels.
+- Removed the large loading component from subject selection. Website subject
+  choices remain usable during metadata requests, with one compact status row.
+  Unknown/stale counts no longer appear as zero or produce false shortage notices.
+  Duplicate practice history and access controls were removed; their header
+  controls remain. Selected topic rows are expanded on demand, in batches of 12.
+- Added 180 ms grouping for rapid filter changes and canonical multi-select
+  cache keys. Counts/modes/timers/feedback are excluded from metadata keys.
+  Topic catalogs are retained only within the same medium, subject and classes;
+  changed filters never enable Start using a placeholder/previous count. Active
+  subject/medium taps do nothing instead of clearing topic selections. Server
+  quota, session creation, grading and existing website/backend are preserved.
+- TypeScript, full mobile ESLint (zero warnings) and all 76 tests passed. Three
+  cache contract tests check reused requests, subject/medium/class isolation and
+  distinct confirmed topic/difficulty counts. Android Hermes export passed at
+  dist/practice-consistent-export. No dependencies or native configuration changed.
+- Native appearance still needs physical phone verification. Reload the installed
+  development app; check both mediums, all seven subjects, topic search/selection,
+  question presets and modes. Increase system font size and rotate the phone.
+  Confirm equal group boxes, readable long labels, the unchanged odd final item,
+  stable choices while checking, batched selected topics and disabled Start until
+  the requested selection is ready. These changes remain local and unpublished.

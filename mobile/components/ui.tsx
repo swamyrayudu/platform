@@ -1,24 +1,32 @@
 import type { ReactNode, ComponentProps } from 'react';
+import { useContext } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, type ListRenderItem } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions, type ListRenderItem } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@/utils/theme';
+import { pageLayout } from '@/utils/layout';
+import { TabShellContext } from './tab-shell-context';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 type PageProps = { title: string; subtitle?: string; action?: ReactNode };
 function PageHeading({title, subtitle, action}: PageProps) {
+  const inTabs=useContext(TabShellContext);
   return <View style={{gap:20}}>
-    <View style={s.between}><View style={s.inline}><View style={s.brandMark}><Ionicons name="school-outline" size={21} color="#fff"/></View><View><Text style={s.brand}>RSD Education</Text><Text style={s.eyebrow}>AP DSC / SGT</Text></View></View>{action}</View>
-    <View style={{gap:7}}><Text accessibilityRole="header" style={s.title}>{title}</Text>{subtitle ? <Text style={s.subtitle}>{subtitle}</Text> : null}</View>
+    {!inTabs ? <View style={s.between}><View style={[s.inline,{flexShrink:1}]}><View style={s.brandMark}><Ionicons name="school-outline" size={21} color="#fff"/></View><View style={{flexShrink:1,minWidth:0}}><Text style={s.brand}>RSD Education</Text><Text style={s.eyebrow}>AP DSC / SGT</Text></View></View>{action}</View> : null}
+    <View style={[s.between,{alignItems:'flex-start'}]}><View style={{flex:1,minWidth:0,gap:7}}><Text accessibilityRole="header" style={s.title}>{title}</Text>{subtitle ? <Text style={s.subtitle}>{subtitle}</Text> : null}</View>{inTabs? action:null}</View>
   </View>;
 }
-export function Screen({children, refreshing, onRefresh, footer, footerSafeArea=true, ...page}: PageProps & {children: ReactNode; refreshing?: boolean; onRefresh?: () => void; footer?: ReactNode; footerSafeArea?:boolean}) {
-  return <SafeAreaView edges={['top','left','right']} style={s.screen}>
+export function Screen({children, refreshing, onRefresh, footer, footerSafeArea=true, pageHeader, ...page}: PageProps & {children: ReactNode; refreshing?: boolean; onRefresh?: () => void; footer?: ReactNode; footerSafeArea?:boolean;pageHeader?:ReactNode}) {
+  const inTabs=useContext(TabShellContext);const {width,height,fontScale}=useWindowDimensions();const insets=useSafeAreaInsets();
+  const layout=pageLayout(width-insets.left-insets.right,height-insets.top-insets.bottom,fontScale);
+  const footerContent=<View style={[s.footerInner,{padding:layout.padding}]}>{footer}</View>;
+  return <SafeAreaView edges={inTabs?[]:footer?['top','left','right']:['top','left','right','bottom']} style={s.screen}>
     <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={s.content} refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={colors.primary}/> : undefined}>
-        <PageHeading {...page}/>{children}
+      <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={[s.content,{padding:layout.padding,paddingBottom:24}]} refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={colors.primary}/> : undefined}>
+        {pageHeader!==undefined?pageHeader:<PageHeading {...page}/>}{children}
+        {footer&&layout.inlineFooter ? <View style={s.stickyFooter}>{footerContent}</View> : null}
       </ScrollView>
-      {footer ? <SafeAreaView edges={footerSafeArea?['bottom']:[]} style={s.stickyFooter}><View style={s.footerInner}>{footer}</View></SafeAreaView> : null}
+      {footer&&!layout.inlineFooter ? <SafeAreaView edges={footerSafeArea&&!inTabs?['bottom']:[]} style={s.stickyFooter}>{footerContent}</SafeAreaView> : null}
     </KeyboardAvoidingView>
   </SafeAreaView>;
 }
@@ -28,10 +36,12 @@ export function ListScreen<T>({data, renderItem, keyExtractor, header, footer, e
   header?: ReactNode; footer?: ReactNode; empty?: ReactNode; onEndReached?: ()=>void;
   refreshing?: boolean; onRefresh?: ()=>void; extraData?: unknown; topBar?:ReactNode; pageHeader?:ReactNode;
 }) {
-  return <SafeAreaView edges={['top','left','right']} style={s.screen}>
+  const inTabs=useContext(TabShellContext);const {width}=useWindowDimensions();const insets=useSafeAreaInsets();
+  const layout=pageLayout(width-insets.left-insets.right,800);
+  return <SafeAreaView edges={inTabs?[]:['top','left','right','bottom']} style={s.screen}>
     {topBar}
     <FlatList data={data} renderItem={renderItem} keyExtractor={keyExtractor} extraData={extraData}
-      keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={s.content}
+      keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={[s.content,{padding:layout.padding,paddingBottom:24}]}
       ListHeaderComponent={<View style={{gap:20}}>{pageHeader??<PageHeading {...page}/>}{header}</View>}
       ListFooterComponent={footer ? <View style={{gap:16}}>{footer}</View> : null}
       ListEmptyComponent={empty ? <View>{empty}</View> : null}
@@ -50,7 +60,7 @@ export function SectionHeading({title, detail, step}: {title:string; detail?:str
 export function Button({label, onPress, disabled, busy, secondary, danger, icon}: {label: string; onPress: () => void; disabled?: boolean; busy?: boolean; secondary?: boolean; danger?: boolean; icon?:IconName}) {
   const foreground = danger || !secondary ? '#fff' : colors.primary;
   return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{disabled: !!disabled || !!busy, busy:!!busy}} onPress={onPress} disabled={disabled || busy} style={({pressed}) => [s.button, secondary && s.secondary, danger && {backgroundColor: colors.red}, (disabled || busy) && {opacity:.45}, pressed && {opacity:.75}]}>
-    {busy ? <ActivityIndicator color={foreground}/> : <View style={[s.inline,{justifyContent:'center'}]}>{icon ? <Ionicons name={icon} size={18} color={foreground}/> : null}<Text style={[s.buttonText,{color:foreground}]}>{label}</Text></View>}
+    {busy ? <ActivityIndicator color={foreground}/> : <View style={[s.inline,{justifyContent:'center',maxWidth:'100%',minWidth:0}]}>{icon ? <Ionicons name={icon} size={18} color={foreground}/> : null}<Text style={[s.buttonText,{color:foreground}]}>{label}</Text></View>}
   </Pressable>;
 }
 export function Chips<T extends string>({items, selected, onSelect}: {items: {value: T; label: string}[]; selected: T | T[]; onSelect: (value: T) => void}) {
@@ -69,19 +79,22 @@ export function Input({label, value, onChangeText, numeric, multiline, placehold
 export function EmptyState({title, detail, icon = 'book-outline'}: {title:string;detail:string;icon?:IconName}) { return <Card><View style={s.iconBox}><Ionicons name={icon} size={26} color={colors.primary}/></View><Heading>{title}</Heading><Body>{detail}</Body></Card>; }
 export function ErrorState({error, retry}: {error: unknown; retry?: () => void}) { return <Card><Body color={colors.red}>{error instanceof Error ? error.message : 'Something went wrong. Please try again.'}</Body>{retry && <Button secondary label="Try again" onPress={retry}/>}</Card>; }
 export function Loading() { return <View accessibilityLabel="Loading" style={{padding:24}}><ActivityIndicator color={colors.primary} size="large"/></View>; }
-export function Stats({items}: {items: {label: string; value: string | number}[]}) { return <View style={s.row}>{items.map((item,index) => <View key={item.label} style={[s.stat,index%2===1 && {backgroundColor:colors.soft}]}><Text style={s.statValue}>{item.value}</Text><Text style={{fontSize:12,lineHeight:18,color:colors.muted}}>{item.label}</Text></View>)}</View>; }
+export function Stats({items}: {items: {label: string; value: string | number}[]}) {
+  const {width,fontScale}=useWindowDimensions();
+  return <View style={s.row}>{items.map((item,index) => <View key={item.label} style={[s.stat,width/fontScale<300&&{flexBasis:'100%'},index%2===1 && {backgroundColor:colors.soft}]}><Text style={s.statValue}>{item.value}</Text><Text style={{fontSize:12,lineHeight:18,color:colors.muted}}>{item.label}</Text></View>)}</View>;
+}
 export function Bar({value, color = colors.primary}: {value: number; color?:string}) { return <View accessibilityRole="progressbar" accessibilityValue={{min:0,max:100,now:Math.round(Math.max(0,Math.min(100,value)))}} style={{height:6, backgroundColor:colors.border, borderRadius:4, overflow:'hidden'}}><View style={{height:6, width:`${Math.max(0,Math.min(100,value))}%`,backgroundColor:color}}/></View>; }
 export const s = StyleSheet.create({
   screen:{flex:1,backgroundColor:colors.background},content:{padding:20,paddingBottom:32,gap:18,maxWidth:760,width:'100%',alignSelf:'center'},
   brandMark:{width:40,height:40,borderRadius:13,backgroundColor:colors.primary,alignItems:'center',justifyContent:'center'},brand:{fontSize:16,fontWeight:'800',color:colors.ink},eyebrow:{fontSize:10,fontWeight:'600',letterSpacing:1.5,color:colors.muted,marginTop:3},
   title:{fontSize:27,lineHeight:35,fontWeight:'800',letterSpacing:-.5,color:colors.ink},subtitle:{fontSize:14,lineHeight:22,color:colors.muted},
-  card:{padding:18,borderRadius:24,borderWidth:1,borderColor:colors.border,backgroundColor:colors.card,gap:14},heading:{fontSize:17,lineHeight:25,fontWeight:'700',color:colors.ink},body:{fontSize:14,lineHeight:22,color:colors.muted},
+  card:{maxWidth:'100%',padding:18,borderRadius:24,borderWidth:1,borderColor:colors.border,backgroundColor:colors.card,gap:14},heading:{minWidth:0,maxWidth:'100%',flexShrink:1,fontSize:17,lineHeight:25,fontWeight:'700',color:colors.ink},body:{maxWidth:'100%',fontSize:14,lineHeight:22,color:colors.muted},
   button:{minHeight:50,padding:14,borderRadius:16,backgroundColor:colors.primary,alignItems:'center',justifyContent:'center'},secondary:{backgroundColor:colors.card,borderWidth:1,borderColor:colors.border},buttonText:{fontSize:14,lineHeight:20,fontWeight:'700',textAlign:'center',flexShrink:1},
-  row:{flexDirection:'row',flexWrap:'wrap',gap:8},inline:{flexDirection:'row',alignItems:'center',gap:10},between:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:12},
-  chip:{minHeight:44,paddingHorizontal:14,paddingVertical:12,borderRadius:14,borderWidth:1,borderColor:colors.border,backgroundColor:colors.card},chipActive:{backgroundColor:colors.primarySoft,borderColor:colors.primary},
+  row:{flexDirection:'row',flexWrap:'wrap',gap:8},inline:{flexDirection:'row',alignItems:'center',gap:10},between:{flexDirection:'row',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:12},
+  chip:{maxWidth:'100%',minHeight:44,paddingHorizontal:14,paddingVertical:12,borderRadius:14,borderWidth:1,borderColor:colors.border,backgroundColor:colors.card},chipActive:{backgroundColor:colors.primarySoft,borderColor:colors.primary},
   input:{borderWidth:1,borderColor:colors.border,borderRadius:14,minHeight:50,padding:13,fontSize:16,color:colors.ink,backgroundColor:colors.card},
   stat:{flexGrow:1,flexBasis:'43%',backgroundColor:colors.primarySoft,borderRadius:20,padding:16,gap:5},statValue:{fontSize:25,fontWeight:'800',color:colors.ink},
-  badge:{alignSelf:'flex-start',borderRadius:30,paddingHorizontal:10,paddingVertical:6},step:{width:27,height:27,borderRadius:14,backgroundColor:colors.primary,alignItems:'center',justifyContent:'center'},
+  badge:{alignSelf:'flex-start',maxWidth:'100%',flexShrink:1,borderRadius:30,paddingHorizontal:10,paddingVertical:6},step:{minWidth:27,minHeight:27,padding:3,borderRadius:14,backgroundColor:colors.primary,alignItems:'center',justifyContent:'center'},
   choice:{flexDirection:'row',alignItems:'center',gap:12,padding:14,borderRadius:18,borderWidth:1,borderColor:colors.border,backgroundColor:colors.card,minHeight:76},iconBox:{width:44,height:44,borderRadius:14,backgroundColor:colors.primarySoft,alignItems:'center',justifyContent:'center'},
   stickyFooter:{borderTopWidth:1,borderTopColor:colors.border,backgroundColor:colors.card},footerInner:{padding:16,gap:8,maxWidth:760,width:'100%',alignSelf:'center'},
 });

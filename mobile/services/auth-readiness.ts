@@ -2,7 +2,7 @@ export const AUTH_CALLBACK = 'rsdeducation://auth/callback';
 
 // Separate from the authenticated API client: this request must not rotate an
 // old session or send its bearer token just to check a public login page.
-export async function checkGoogleAuthBackend(origin: string, transport: typeof fetch = fetch) {
+export async function checkGoogleAuthBackend(origin: string, transport: typeof fetch = fetch, requireRedirect = false) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 15000);
   try {
@@ -18,6 +18,7 @@ export async function checkGoogleAuthBackend(origin: string, transport: typeof f
     if (!response.ok || body?.ready !== true || body?.protocol !== 1 || body?.callback !== AUTH_CALLBACK) {
       throw new Error('This backend does not have the compatible mobile Google sign-in route. Check the app’s API address and deploy the mobile-auth update.');
     }
+    if(requireRedirect&&body.browserMode!=='redirect')throw new Error('The browser-return fix is not deployed yet. Update the existing RSD website’s mobile-auth route, then try again.');
   } catch (error) {
     if (error instanceof Error && ['TypeError', 'AbortError'].includes(error.name)) {
       throw new Error('Could not reach Google sign-in on RSD Education. Check your connection and try again.');

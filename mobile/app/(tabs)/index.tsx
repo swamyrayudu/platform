@@ -9,6 +9,8 @@ import { useAuth } from '@/store/auth';
 import { vault } from '@/services/vault';
 import type { ExamDraft } from '@/store/exam';
 import { practiceService } from '@/services/question-service';
+import { examService } from '@/services/exam-service';
+import { examDrafts } from '@/services/exam-drafts';
 import { colors, subjectStyle } from '@/utils/theme';
 const sectionSubjects: Record<string,string>={gk:'GK & Current Affairs',perspectives:'Educational Psychology + Perspectives in Education',psychology:'Educational Psychology + Perspectives in Education',telugu:'Telugu',english:'English',mathematics:'Mathematics',science:'Science',social:'Social Studies'};
 export default function Home() {
@@ -18,7 +20,10 @@ export default function Home() {
     let alive=true;
     void (async()=>{
       const active=await vault.read<ExamDraft>('active-exam');
-      if(active?.userId===user?.id){if(alive)setDraft(active);return;}
+      if(active&&active.userId===user?.id){
+        const {state}=await examDrafts.load(active.userId,active.kind,active.id,async()=>({status:active.kind==='mock'?(await examService.get(active.id)).attempt.status:(await practiceService.get(active.id)).session.status}));
+        if(!state||state.status==='in_progress'){if(alive)setDraft(active);return;}
+      }
       const created=await vault.read<{id:string;userId:string}>('created-practice');
       if(created?.userId===user?.id){const result=await practiceService.get(created!.id);if(alive)setDraft(result.session.status==='in_progress'?{id:created!.id,kind:'practice'}:null);}
       else if(alive)setDraft(null);
@@ -36,7 +41,7 @@ export default function Home() {
       <Button icon="book-outline" label="Continue practice" onPress={()=>router.push('/practice')}/>
       <Button secondary icon="timer-outline" label="Explore mock tests" onPress={()=>router.push('/mocks')}/>
     </View>
-    {draft ? <Card gold><Badge label="PICK UP WHERE YOU LEFT OFF" color={colors.gold}/><Heading>Continue your {draft.kind==='mock'?'mock exam':'practice'}</Heading><Body>Your answers are saved on this device.</Body><Button icon="play-outline" label="Resume session" onPress={()=>router.push({pathname:'/exam',params:{kind:draft.kind,id:draft.id}})}/></Card> : null}
+    {draft ? <Card gold><Badge label="PICK UP WHERE YOU LEFT OFF" color={colors.gold}/><Heading>Continue your {draft.kind==='mock'?'mock exam':'practice'}</Heading><Body>Your answers are saved on this device.</Body><Button icon="play-outline" label={draft.kind==='mock'?'Resume paper':'Resume practice'} onPress={()=>router.push({pathname:'/exam',params:{kind:draft.kind,id:draft.id}})}/></Card> : null}
     {data.isLoading ? <Loading/> : data.error ? <ErrorState error={data.error} retry={()=>void data.refetch()}/> : summary ? <>
       <SectionHeading title="Your preparation at a glance"/>
       <Stats items={[{label:'Questions solved',value:summary.questions_solved},{label:'Average accuracy',value:`${summary.avg_accuracy_pct}%`},{label:'Study streak',value:`${summary.study_streak_days} days`},{label:'Modules done',value:`${summary.modules_completed}/${summary.modules_total}`}]}/>

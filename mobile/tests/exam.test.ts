@@ -25,6 +25,39 @@ test('state-check failure never submits or discards answers',async()=>{
 test('timer uses elapsed wall time, handles background gaps, and clamps expiry',()=>{
   assert.equal(elapsedSeconds(10,1000,16000,100),25);assert.equal(elapsedSeconds(10,1000,999999,100),100);assert.equal(elapsedSeconds(10,1000,0,100),10);assert.equal(elapsedSeconds(10,1000,999999,0),1008);
 });
+test('save and leave waits for durable answers, sync and pause before allowing navigation',async()=>{
+  const events:string[]=[];let releasePause:()=>void=()=>{};let pauseStarted:()=>void=()=>{};
+  const paused=new Promise<void>(resolve=>{releasePause=resolve;});const started=new Promise<void>(resolve=>{pauseStarted=resolve;});
+  const j=new ExamJournal(draft(),{persist:async()=>{events.push('persist');},save:async()=>{events.push('answer');},state:async()=>'in_progress',submit:async()=>assert.fail()});
+  await j.select('table:Q1','C',true,7);events.length=0;let mayNavigate=false;
+  const leaving=j.prepareLeave(false,{abandon:async()=>assert.fail(),clear:async()=>assert.fail(),pause:async elapsed=>{assert.equal(elapsed,20);events.push('pause');pauseStarted();await paused;}}).then(()=>{mayNavigate=true;});
+  await started;assert.equal(mayNavigate,false);assert.ok(events.indexOf('persist')<events.indexOf('answer'));assert.ok(events.indexOf('answer')<events.indexOf('pause'));
+  releasePause();await leaving;assert.equal(mayNavigate,true);assert.equal(j.draft.answers['table:Q1'].option,'C');
+});
+test('failed saves or pauses keep the exam available and never approve an exit',async()=>{
+  for(const failure of ['persist','answer','pause']){
+    const j=new ExamJournal(draft(),{persist:async()=>{if(failure==='persist')throw new Error('storage failure');},save:async()=>{if(failure==='answer')throw new Error('offline');},state:async()=>'in_progress',submit:async()=>assert.fail()});
+    j.draft.answers['table:Q1']={option:'B',marked:false,seconds:3,revision:1};j.draft.pending['table:Q1']=1;
+    let mayNavigate=false;
+    await assert.rejects(j.prepareLeave(false,{abandon:async()=>assert.fail(),clear:async()=>assert.fail(),pause:async()=>{if(failure==='pause')throw new Error('offline');}}).then(()=>{mayNavigate=true;}));
+    assert.equal(mayNavigate,false);assert.equal(j.draft.answers['table:Q1'].option,'B');
+  }
+});
+test('practice pause saves and sends answers and checked explanations without ending the session or calling the mock pause API',async()=>{
+  const events:string[]=[];const d=draft();d.kind='practice';d.feedbackMode='instant';
+  const j=new ExamJournal(d,{persist:async()=>{events.push('persist');},save:async()=>{events.push('answer');return {correct_answer:'B',explanation:'Backend explanation',is_correct:true};},state:async()=>'in_progress',submit:async()=>assert.fail()});
+  await j.select('table:Q1','B',false,4);
+  await j.prepareLeave(false,{abandon:async()=>assert.fail(),clear:async()=>assert.fail(),pause:async()=>assert.fail()});
+  assert.ok(events.includes('answer'));assert.equal(j.draft.pending['table:Q1'],undefined);
+  assert.equal(j.draft.feedback['table:Q1'].explanation,'Backend explanation');assert.equal(j.draft.elapsed,20);
+  assert.equal(j.draft.submitIntent,false);
+});
+test('ending an exam clears the local draft only after the server accepts it',async()=>{
+  const j=new ExamJournal(draft(),{persist:async()=>{},save:async()=>assert.fail(),state:async()=>'in_progress',submit:async()=>assert.fail()});let cleared=false;
+  await assert.rejects(j.prepareLeave(true,{abandon:async()=>{throw new Error('offline');},clear:async()=>{cleared=true;},pause:async()=>assert.fail()}));
+  assert.equal(cleared,false);
+  await j.prepareLeave(true,{abandon:async()=>{},clear:async()=>{cleared=true;},pause:async()=>assert.fail()});assert.equal(cleared,true);
+});
 test('checked instant-feedback answers stay locked while review flags remain editable',async()=>{
   const d=draft();d.kind='practice';d.feedbackMode='instant';
   const checked={correct_answer:'B',explanation:'Server explanation',is_correct:true};

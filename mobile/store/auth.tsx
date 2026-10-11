@@ -5,10 +5,11 @@ import { onSessionExpired, ApiError } from '@/services/api-client';
 import { tokenStore, vault } from '@/services/vault';
 import type { PublicUser } from '@/types/auth';
 import type { SignInStage } from '@/services/native-google-flow';
-interface Auth { user: PublicUser | null; loading: boolean; error: unknown; reload: () => Promise<void>; signIn: (onProgress?:(stage:SignInStage)=>void) => Promise<boolean>; logout: (all?: boolean) => Promise<void>; update: (user: PublicUser) => void }
+interface Auth { user: PublicUser | null; loading: boolean; error: unknown; signingIn:boolean;signInError:unknown; reload: () => Promise<void>; signIn: (onProgress?:(stage:SignInStage)=>void) => Promise<boolean>; logout: (all?: boolean) => Promise<void>; update: (user: PublicUser) => void }
 const Context = createContext<Auth | null>(null);
 export function AuthProvider({children}: {children: ReactNode}) {
   const [user,setUser] = useState<PublicUser|null>(null); const [loading,setLoading] = useState(true); const [error,setError] = useState<unknown>(null);
+  const [signingIn,setSigningIn]=useState(false);const [signInError,setSignInError]=useState<unknown>(null);
   const cache = useQueryClient();
   const generation=useRef(0);
   const reload = useCallback(async () => {
@@ -20,18 +21,23 @@ export function AuthProvider({children}: {children: ReactNode}) {
   },[]);
   useEffect(() => { void Promise.resolve().then(reload); return onSessionExpired(() => { generation.current++;setUser(null);setLoading(false);setError(null);cache.clear(); }); },[reload,cache]);
   const signIn = async (onProgress?:(stage:SignInStage)=>void) => {
+    if(signingIn)throw new Error('Sign-in is already in progress.');
     const current=++generation.current;
-    const next=await authService.signIn(onProgress);
-    if(!next)return false;
-    if(current!==generation.current)throw new Error('Sign-in was interrupted. Please try again.');
-    cache.clear();setUser(next);setError(null);
-    return true;
+    setSigningIn(true);setSignInError(null);
+    try {
+      const next=await authService.signIn(onProgress);
+      if(!next)return false;
+      if(current!==generation.current)throw new Error('Sign-in was interrupted. Please try again.');
+      cache.clear();setUser(next);setError(null);
+      return true;
+    } catch(err) { setSignInError(err);throw err; }
+    finally { setSigningIn(false); }
   };
   const logout = async (all = false) => {
     try { await authService.logout(all); }
     finally { try { await vault.clear(); } finally { cache.clear(); setUser(null); } }
   };
-  const update=(next:PublicUser)=>setUser(current=>current?.id===next.id?next:current);
-  return <Context.Provider value={{user,loading,error,reload,signIn,logout,update}}>{children}</Context.Provider>;
+  const update=useCallback((next:PublicUser)=>setUser(current=>current?.id===next.id?next:current),[]);
+  return <Context.Provider value={{user,loading,error,signingIn,signInError,reload,signIn,logout,update}}>{children}</Context.Provider>;
 }
 export function useAuth() { const value = useContext(Context); if (!value) throw new Error('Missing auth provider'); return value; }

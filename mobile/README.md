@@ -16,12 +16,51 @@ completion status and sequential unlocking. Existing pagination still loads
 modules in batches as you scroll.
 
 During an exam, tap the grid icon beside the timer to open the question palette
-on the right. Questions are grouped using the paper's actual sections, with
-All, Not done, Flagged and Done filters. Selecting a number closes the palette
+on the right. It shows only **All questions**, grouped using the paper's actual
+sections. Rows load progressively as you scroll and off-screen rows are
+virtualized; timer ticks do not rebuild the drawer. Selecting a number closes it
 and opens that question; the close button, backdrop and Android Back button
-also close it. Previous/Next remain at the bottom. The panel adapts its columns
+also close it. Previous/Next remain at the bottom on normal portrait screens;
+on short screens or with large text they move into the scrollable content. The panel adapts its columns
 to screen width and system text size, and the exam header wraps for large text.
-Answer saving, timers, resume and server grading use the existing exam logic.
+Mock exams and practice have no Save & leave or End and leave buttons below the question.
+The top Back button/system back gesture offers Stay or Stop timer & save. The
+second option freezes elapsed time immediately, saves and syncs answers, pauses
+the paper, then returns directly to Mock Tests or Practice. Failed saves keep the exam open
+and resume its timer. By user preference, practice is saved for resume instead of
+being ended on exit. Practice's timer and position are retained in the encrypted
+local draft; its existing answer endpoint saves pending answers. No new backend
+pause endpoint is introduced. The practice setup offers Resume practice.
+Answer saving, resume and server grading retain the existing backend rules.
+
+## Responsive navigation and practice
+
+The app uses the website's four bottom tabs: Home, Practice, Mock Tests and
+Progress. Profile and subscription access remain in the shared DSC / SGT header.
+The tab bar reserves the device's bottom safe area, adapts its height to larger
+text, keeps labels below icons in landscape and hides while the keyboard is open.
+Header/side safe areas are applied once by the tab shell. Sticky action bars sit
+above navigation; short screens and large-text layouts use scrollable actions.
+
+Practice uses the website's DSC Practice Zone header, medium switch and four
+numbered setup cards. Subjects use one or two columns according to available
+space and system text size. Only the website's seven subject groups are offered,
+with matching names, Telugu labels and order; raw bank aliases do not add tiles.
+Topics retain search and progressive loading, and topic/class/difficulty options
+and question counts come from the existing API. Instant feedback checks answers
+automatically through that API and shows its explanation; failed saves remain
+queued with a retry control. Answer checking locks only after server feedback.
+Page padding, headings, chips, badges and statistic cards adapt to narrower
+screens and larger text without hiding the content.
+
+Practice choices use equal widths and the measured tallest text height within
+each group. The final box in an odd grid stays the same size as its neighbours,
+and long labels remain visible at larger system text sizes. Subjects stay visible
+while one compact indicator checks question availability. Filter requests are
+grouped across rapid changes and share cached responses for equivalent selections;
+changing question count, mode or timer does not fetch metadata again. Start stays
+disabled until the current selection is confirmed. Selected topics are expandable
+and revealed in batches, rather than duplicating a long list by default.
 
 ## Open in Expo Go on Android
 
@@ -131,8 +170,8 @@ must remain on the server. The Razorpay *public* key ID comes from the order API
 For local API development use a computer LAN IP or an HTTPS tunnel. Protected
 native API calls use bearer authentication. Only Google login preserves the
 backend's short-lived nonce cookie between nonce issuance and token verification.
-A phone's localhost points to itself. Google login requires **HTTPS**; the iOS
-browser adapter also requires an authorized Google Web OAuth origin.
+A phone's localhost points to itself. Google login requires **HTTPS** and the
+browser adapter requires an authorized Google Web OAuth origin and redirect URI.
 
 ## Google-only login
 
@@ -140,39 +179,31 @@ See [Google sign-in setup](docs/GOOGLE_SIGN_IN.md) for the confirmed failure
 causes, required backend deployment/Google settings, exact Windows phone build
 commands and the real-account acceptance steps. Expo Go cannot complete this flow.
 
-The existing server requires `/api/auth/nonce`'s HttpOnly cookie and the same
-nonce in the verified Google ID token. On Android, the native Google Credential
-Manager chooser receives this exact nonce and the existing public Web client ID.
-The app exchanges the resulting Google ID token at `/api/auth/google` with the
-same nonce cookie, device UUID and `ANDROID` platform. Returned app sessions are
-stored in SecureStore; protected requests still use bearer tokens. The local
-module in `modules/rsd-google-auth` is automatically included by Expo prebuild.
-Register `com.rsdeducation.student` and the installed build's SHA-1 as an Android
-OAuth client in the same Google Cloud project. A new native build is required.
-
-iOS retains the system-browser flow:
+Android and iOS use the system-browser flow with the existing backend:
 
 1. App creates a fresh P-256 key pair and random state in memory.
 2. Opens `${API_BASE_URL}/mobile-auth` in the system authentication browser.
-3. That tiny added route fetches `/api/auth/nonce`, renders Google Identity
-   Services using the existing public **web** client ID, then calls the existing
-   `/api/auth/google` with `ANDROID` or `IOS` and the persisted device UUID.
+3. The route renders Google Identity Services using the existing **Web** client
+   in redirect mode. Google POSTs to `/mobile-auth`; it checks CSRF and signed
+   request context, then calls the existing Google handler with its original
+   nonce, `ANDROID` or `IOS`, and the persisted device UUID.
 4. Tokens returned by the existing handler are encrypted with ephemeral ECDH,
    SHA-256 and AES-GCM, bound to the app state. The fixed redirect is
    `rsdeducation://auth/callback`; it contains ciphertext, never plain tokens.
+   Tap **Open RSD Education** on the browser return page. Android targets the
+   installed `com.rsdeducation.student` package using an intent link.
 5. The app decrypts only within the initiating in-memory auth session, checks
    state and a 60-second response age, stores tokens in OS SecureStore and calls
    `/api/auth/me`. Cold-start links cannot sign a user in.
 
-The live mobile bridge is deployed. The latest origin-referrer correction to
-`app/mobile-auth/route.ts` still needs the website's normal deployment process
-for the iOS/browser flow. Existing website pages, Google verification, nonce
-and login API handlers are unchanged. This task does not automatically deploy.
+Changes to the mobile-only `/mobile-auth` adapter require deployment to the
+existing website project. The app checks for the new redirect capability before
+opening Google. Website pages and the existing auth API handlers are unchanged.
 
 Google Cloud Console: retain the current web OAuth client and authorize the exact
 backend origin (production `https://rsdeducation.vercel.app`; your HTTPS tunnel
-if used for development). Google Identity Services popup mode requires no new
-Google OAuth redirect URI. `rsdeducation://auth/callback` is an **app handoff**,
+if used for development). Authorize the exact Web redirect URI
+`https://rsdeducation.vercel.app/mobile-auth`. `rsdeducation://auth/callback` is an **app handoff**,
 not a redirect URI to register on Google's web client. No iOS client ID,
 client secret or new Google provider is required for this browser flow. The Expo
 scheme is registered when building the native app. Choose final bundle IDs before
@@ -186,7 +217,7 @@ server session, then clears tokens, encrypted local drafts and query cache.
 ## Student features
 
 The mobile controls use the website's Bloom colours and subject styling. Practice
-follows four numbered steps, with topic search and a fixed Start button. Subjects,
+follows four numbered steps, with topic search and a responsive Start button. Subjects,
 topics, counts, access rules and explanations come from the existing APIs.
 
 Mock papers load 20 at a time as you scroll, with separate feeds for medium,
@@ -222,6 +253,15 @@ Answers, question cache, current position, elapsed time, review flags and pendin
 submission are journaled in AES-GCM-encrypted SQLite. The encryption key stays in
 OS SecureStore. A storage failure is shown; failed network writes retain pending
 answers. Saved drafts belong to a user ID and cannot appear for another account.
+
+Mock papers use the website's existing start/resume endpoint. A paused paper does
+not block another module or the other medium: encrypted drafts are kept per
+user, exam kind and server attempt ID. The installed app's old single draft is
+migrated without discarding queued answers. Home offers the most recently opened
+exam; earlier mock attempts remain available through their library cards.
+Opening a saved exam checks server status first, so submitted papers open results
+and ended attempts cannot be resumed. A network-only failure can still resume a
+cached draft; authentication failures do not bypass the server check.
 
 Mock answer IDs use `question_uid` (`table:id`), not colliding bare question IDs.
 Practice uses the server's subject-scoped IDs. Writes are serialized and versioned
@@ -275,6 +315,24 @@ submission; no additional provider is introduced without your instruction.
 Interrupted orders are retained encrypted. Use Check payment status; pending/error
 outcomes remain recoverable. A successful backend verify/recover refreshes the
 user's entitlements. No live payments are made by automated tests.
+
+The header's **Plans** button opens all prices from the existing authenticated
+plans API. Active subscribers see **Manage**, their current plan and expiry,
+and **Renew** buttons. Renewal uses the same server payment flow as the website;
+paid days extend an unexpired subscription, or restart access after expiry.
+Prices are not hardcoded in the app. A coupon changes only the display and code
+sent with the order; the server determines the actual charge. Repeated taps
+cannot open concurrent checkouts, and an interrupted order must be checked
+before a new payment. Paid confirmation refreshes the profile, history and
+practice/mock access without restarting the app.
+
+For the installed Android development app, restart Metro with the same direct
+distribution setting as its EAS build so the payment buttons are available:
+
+```powershell
+$env:RSD_DISTRIBUTION = 'direct'
+npx expo start --dev-client --clear --lan
+```
 
 ## Builds
 

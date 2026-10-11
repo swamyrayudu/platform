@@ -28,6 +28,11 @@ export class ExamJournal {
     this.persistTail = next;
     return next;
   }
+  async prepareLeave(abandon:boolean,ports:{abandon:()=>Promise<unknown>;clear:()=>Promise<void>;pause:(elapsed:number)=>Promise<unknown>}) {
+    await this.persist();
+    if(abandon){await ports.abandon();await ports.clear();}
+    else {await this.flush();if(this.draft.kind==='mock')await ports.pause(this.draft.elapsed);}
+  }
   async select(key: string, option: SelectedOption, marked: boolean, seconds: number) {
     if (this.draft.submitIntent) throw new Error('Submission is pending. Retry it before editing answers.');
     const previous = this.draft.answers[key];

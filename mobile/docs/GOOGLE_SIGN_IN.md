@@ -1,8 +1,70 @@
 # Google sign-in setup and validation
 
-## Android: Google chooser inside the app
+## Current Android and iOS login: browser Google sign-in
 
-Android now uses Google's Credential Manager rather than a browser popup. The
+The user authorized browser sign-in after the rebuilt native module reported
+Google account reauthentication failure. Android now uses the existing browser
+flow, just like iOS, through `expo-web-browser.openAuthSessionAsync`.
+
+1. The app checks the existing `/mobile-auth?check=1` readiness contract.
+2. It generates a temporary P-256 key and request state, then opens the existing
+   HTTPS `/mobile-auth` page with the public key, device ID and app platform.
+3. The page uses the website's Web OAuth client in Google Identity Services
+   redirect mode. Google POSTs its credential to the fixed `/mobile-auth` URI.
+   The server checks Google's CSRF cookie/body pair and a signed, HttpOnly,
+   five-minute context cookie, then calls the existing Google login handler.
+   The existing handler verifies the server-issued nonce and creates the session.
+4. The server encrypts that session to the initiating app's temporary public key.
+   After account selection, tap **Open RSD Education** on the return page. On
+   Android this uses an intent targeting `com.rsdeducation.student` with the
+   `rsdeducation://auth/callback` scheme. The fresh tap avoids relying on an
+   automatic external-app navigation from Google's browser redirect.
+5. The initiating app verifies the callback host/path, state, encryption and age,
+   stores only session tokens in SecureStore, then verifies `/api/auth/me`.
+   The callback screen waits for that verification before opening onboarding or
+   the signed-in tabs. Browser errors survive the login screen being remounted.
+6. Cancellation creates no local session; the temporary private key is wiped on
+   success, failure and cancellation. Cold-start callbacks cannot authenticate.
+
+No account chooser is automatically retried. Google sign-in no longer invokes
+the native module or emits its `RSD_GOOGLE_AUTH_SETUP` warning. The unused native
+module remains in the app for compatibility with existing APKs and logout cleanup.
+No dependency, package, scheme, EAS project or native plugin changes were needed.
+
+The earlier popup bridge rendered Google's button but the user reported a blank
+Chrome page after account selection. That observation does not identify the
+phone's exact failing URL. The updated bridge removes the popup message handoff
+and automatic app navigation; provider/server failures now have a visible page.
+A real account selection and return to overview still require phone testing.
+
+Keep `https://rsdeducation.vercel.app` in the existing Web OAuth client's
+Authorized JavaScript origins. In that same **Web application** client, add/retain
+the exact Authorized redirect URI `https://rsdeducation.vercel.app/mobile-auth`.
+Keep both backend client IDs matched and retain the existing server `JWT_SECRET`.
+No new client secret or environment secret is required. Android
+package/SHA-1 registration is required for the previous native flow, not this
+browser flow. The custom scheme is the app-return URL, not a Google Web OAuth
+redirect URI. Preserve the other existing website redirect settings.
+
+For the installed EAS development client, restart Metro in this maintained mobile
+folder and scan its new QR. These changes are JavaScript only; the installed app
+already includes the browser module and scheme. A new APK is unnecessary for this
+JavaScript change. The mobile-only website adapter must be deployed before
+testing; the app readiness check rejects the earlier popup adapter:
+
+```powershell
+cd 'C:\Users\swamy\OneDrive\ドキュメント\platform\platform\mobile'
+$env:PATH = 'C:\Users\swamy\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;' + $env:PATH
+npx expo start --dev-client --clear --lan
+```
+
+Real-account login and navigation on the phone still require acceptance testing.
+If building a standalone APK later, use `npx eas-cli build --platform android
+--profile preview`; development clients need Metro.
+
+## Previous native Android flow and certificate diagnostics
+
+The previous Android implementation uses Google's Credential Manager. The
 local Expo module `modules/rsd-google-auth` requests only a Google ID token, using
 `GetSignInWithGoogleOption` with the existing backend's exact nonce.
 
@@ -181,21 +243,20 @@ ASCII path and installs with `adb install -r`. It copies local native modules to
 If the installed APK has a different signature, use an EAS build signed like the
 existing app; do not uninstall the app just to bypass a signature mismatch.
 
-## iOS/browser flow and the blank-page investigation
+## Earlier browser blank-page investigation
 
 The live `/mobile-auth?check=1` returned `ready: true`, and both Google client IDs
 match. The live bridge uses the correct `same-origin-allow-popups` opener policy.
 Browser inspection nevertheless recorded Google's error:
 `[GSI_LOGGER]: The given origin is not allowed for the given client ID.`
 The website page uses the same client ID without that error. The mobile bridge
-set `Referrer-Policy: no-referrer`, a likely contributor to this rejection. The local
-adapter now uses Google's recommended `strict-origin-when-cross-origin`; query
-parameters are still excluded from cross-origin referrers. Deploy this small
-mobile-adapter correction through the existing website's deployment process.
-It has not been deployed by this task, nor does it prove the precise cause of
-every blank page on the user's phone.
+set `Referrer-Policy: no-referrer`, a likely contributor to this rejection. On
+October 11 the deployed adapter was verified using Google's recommended
+`strict-origin-when-cross-origin`; query parameters are excluded from cross-origin
+referrers. Its Google button rendered without the earlier origin error. This
+does not prove the precise cause of every blank page on the user's phone.
 
-iOS retains the encrypted browser handoff through `rsdeducation://auth/callback`.
+Both Android and iOS now use the encrypted browser handoff through `rsdeducation://auth/callback`.
 The initiating app verifies state/age and decrypts with its in-memory private key;
 a cold-start callback cannot create a session. If a browser blocks automatic app
 return, tap its Return to RSD Education link. Keep the backend HTTPS origin in the
@@ -204,8 +265,8 @@ Web OAuth redirect URI. The existing website's authentication behavior is unchan
 
 ## Real-account acceptance still required
 
-1. Configure the Android client with the installed APK's SHA-1 and install the new build.
-2. Tap Continue with Google: Android should show the native Google account chooser.
+1. Restart Metro and load the updated code in the installed development app.
+2. Tap Continue with Google: the app should open the RSD browser sign-in page.
 3. Choose an allowed account and confirm the app displays onboarding or the signed-in
    home screen. Verify session restoration after closing/reopening the app.
 4. Cancel and retry; then test logout and Google sign-in with another account.

@@ -7,6 +7,7 @@ test('login preflight recognizes missing deployment, config mismatch, and incomp
   await assert.rejects(checkGoogleAuthBackend('https://rsd.example',async()=>Response.json({error:'GOOGLE_CONFIG_REQUIRED'},{status:503})),/two Google client ID/);
   await assert.rejects(checkGoogleAuthBackend('https://rsd.example',async()=>Response.json({ready:true,protocol:1,callback:'evil://callback'})),/compatible mobile/);
   await assert.rejects(checkGoogleAuthBackend('https://rsd.example',async()=>{throw new TypeError('offline');}),/Check your connection/);
+  await assert.rejects(checkGoogleAuthBackend('https://rsd.example',async()=>Response.json({ready:true,protocol:1,callback:AUTH_CALLBACK}),true),/not deployed yet/);
 });
 
 test('login preflight sends no previous session and accepts only the expected bridge',async()=>{

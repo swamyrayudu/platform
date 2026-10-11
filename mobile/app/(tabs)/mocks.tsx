@@ -4,7 +4,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
 import { ListScreen, Body, Button, Chips, Loading, ErrorState, EmptyState } from '@/components/ui';
 import { MockPaperCard } from '@/components/mock-paper-card';
-import { StudentHeader } from '@/components/student-header';
 import { useMockLibrary } from '@/hooks/use-mock-library';
 import { mergeMockPages } from '@/utils/mock-pagination';
 import { useAuth } from '@/store/auth';
@@ -23,7 +22,7 @@ export default function Mocks() {
   const sample=first?.tests[0];
   const quota=useQuery({queryKey:['quota'],queryFn:practiceService.quota});
   const loadMore=()=>{if(tests.hasNextPage&&!tests.isFetching&&!tests.isFetchNextPageError)void tests.fetchNextPage({cancelRefetch:false});};
-  return <ListScreen key={`${medium}:${category}:${term}`} title="SGT Mock Tests" topBar={<StudentHeader/>}
+  return <ListScreen key={`${medium}:${category}:${term}`} title="SGT Mock Tests"
     pageHeader={<View style={{gap:5}}><View style={styles.titleRow}><View style={styles.titleMark}/><Text accessibilityRole="header" style={styles.title}>SGT Mock Tests</Text></View><Text style={styles.subtitle}>Predefined full-length exam modules{sample?` · ${sample.total_questions} Questions · ${sample.total_marks} Marks · ${sample.duration_minutes} Minutes`:''}</Text></View>}
     data={papers} keyExtractor={test=>test.id} renderItem={({item})=><MockPaperCard test={item} premium={quota.data?.isPremium}/>} onEndReached={loadMore}
     refreshing={tests.isRefetching&&!tests.isFetchingNextPage} onRefresh={()=>void tests.refetch()}

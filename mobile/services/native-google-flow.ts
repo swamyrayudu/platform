@@ -1,6 +1,6 @@
 import type { PublicUser } from '@/types/auth';
 type GooglePicker = (webClientId:string,nonce:string)=>Promise<string|null>;
-export type SignInStage = 'preparing' | 'choosing' | 'exchanging' | 'profile';
+export type SignInStage = 'preparing' | 'choosing' | 'browser' | 'exchanging' | 'profile';
 
 async function signInRequest(url:string,options:RequestInit,transport:typeof fetch) {
   const controller=new AbortController();
