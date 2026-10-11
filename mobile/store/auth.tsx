@@ -4,7 +4,8 @@ import { authService } from '@/services/auth-service';
 import { onSessionExpired, ApiError } from '@/services/api-client';
 import { tokenStore, vault } from '@/services/vault';
 import type { PublicUser } from '@/types/auth';
-interface Auth { user: PublicUser | null; loading: boolean; error: unknown; reload: () => Promise<void>; signIn: () => Promise<void>; logout: (all?: boolean) => Promise<void>; update: (user: PublicUser) => void }
+import type { SignInStage } from '@/services/native-google-flow';
+interface Auth { user: PublicUser | null; loading: boolean; error: unknown; reload: () => Promise<void>; signIn: (onProgress?:(stage:SignInStage)=>void) => Promise<boolean>; logout: (all?: boolean) => Promise<void>; update: (user: PublicUser) => void }
 const Context = createContext<Auth | null>(null);
 export function AuthProvider({children}: {children: ReactNode}) {
   const [user,setUser] = useState<PublicUser|null>(null); const [loading,setLoading] = useState(true); const [error,setError] = useState<unknown>(null);
@@ -18,7 +19,14 @@ export function AuthProvider({children}: {children: ReactNode}) {
     finally { if(current===generation.current)setLoading(false); }
   },[]);
   useEffect(() => { void Promise.resolve().then(reload); return onSessionExpired(() => { generation.current++;setUser(null);setLoading(false);setError(null);cache.clear(); }); },[reload,cache]);
-  const signIn = async () => { const current=++generation.current;const next = await authService.signIn(); if (next&&current===generation.current) {cache.clear();setUser(next);setError(null);} };
+  const signIn = async (onProgress?:(stage:SignInStage)=>void) => {
+    const current=++generation.current;
+    const next=await authService.signIn(onProgress);
+    if(!next)return false;
+    if(current!==generation.current)throw new Error('Sign-in was interrupted. Please try again.');
+    cache.clear();setUser(next);setError(null);
+    return true;
+  };
   const logout = async (all = false) => {
     try { await authService.logout(all); }
     finally { try { await vault.clear(); } finally { cache.clear(); setUser(null); } }

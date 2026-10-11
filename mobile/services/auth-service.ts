@@ -9,11 +9,12 @@ import { api } from './api-client';
 import { tokenStore, getDeviceId } from './vault';
 import { AUTH_CALLBACK, checkGoogleAuthBackend } from './auth-readiness';
 import { signInWithNativeGoogle, clearNativeGoogleSession } from './native-google-auth';
+import type { SignInStage } from './native-google-flow';
 import type { PublicUser, LearningGoal, EducationMedium } from '@/types/auth';
 let signing = false;
 export const authService = {
   me: () => api.request<PublicUser>('/api/auth/me'),
-  async signIn() {
+  async signIn(onProgress?:(stage:SignInStage)=>void) {
     if (isRunningInExpoGo()) throw new Error('Google sign-in needs the updated RSD Education development build. Expo Go does not include this app’s Google sign-in integration.');
     if (signing) throw new Error('Sign-in is already in progress.');
     signing = true;
@@ -22,9 +23,11 @@ export const authService = {
       validateApiUrl(API_BASE_URL);
       if (new URL(API_BASE_URL).protocol !== 'https:') throw new Error('Google sign-in requires an HTTPS backend.');
       if(Platform.OS==='android') {
-        const tokens=await signInWithNativeGoogle();
+        const tokens=await signInWithNativeGoogle(onProgress);
         if(!tokens)return null;
-        await tokenStore.write(tokens);
+        await tokenStore.write({accessToken:tokens.accessToken,refreshToken:tokens.refreshToken});
+        onProgress?.('profile');
+        if(tokens.user)return tokens.user;
         try{return await authService.me();}
         catch(err){await tokenStore.clear();throw err;}
       }

@@ -6,18 +6,44 @@ Android now uses Google's Credential Manager rather than a browser popup. The
 local Expo module `modules/rsd-google-auth` requests only a Google ID token, using
 `GetSignInWithGoogleOption` with the existing backend's exact nonce.
 
-1. The app obtains `/api/auth/nonce` with `credentials: include`.
+1. The app obtains `/api/auth/nonce` and reads the server-issued `dsc_auth_nonce`
+   cookie from its response header. A missing or mismatched cookie stops sign-in.
 2. The native account chooser receives that nonce and the existing Web OAuth ID.
 3. The app posts the Google token, persistent device UUID and `ANDROID` platform
-   to `/api/auth/google`, preserving the nonce cookie with `credentials: include`.
+   to `/api/auth/google`, forwarding only this attempt's nonce in a Cookie header.
+   Both requests use `credentials: omit` so the native cookie jar cannot override
+   that header with an older cookie. No nonce is synthesized from the JSON body.
 4. The existing backend verifies the signature, audience, expiry and nonce,
    creates its usual session, and applies its existing single-active-device rule.
-5. The app stores the returned session in Expo SecureStore and loads `/api/auth/me`
-   using bearer authentication. Normal API calls do not use cookie authentication.
+5. The app stores only the returned session tokens in Expo SecureStore and uses
+   the verified RSD profile returned by that same login response. It falls back
+   to `/api/auth/me` for older backends that omit the profile. Startup session
+   restoration still verifies `/api/auth/me` using bearer authentication.
+   Normal API calls do not use cookie authentication.
 
-Cancellation creates no app session. Logout revokes the existing backend session,
+An incomplete Google authorization creates no app session. Logout revokes the existing backend session,
 clears local app tokens and asks Credential Manager to clear its credential state.
 No new backend, database, provider, client secret or email/password login is added.
+
+After account selection the login screen shows whether the session is being
+exchanged or the profile is being loaded. Network requests time out after 25
+seconds and return a retryable error rather than leaving login pending. A root
+screen error boundary offers a reload button if rendering fails. These JavaScript
+changes can be loaded by restarting Metro in the installed development app.
+The subsequent native cancellation/error diagnostic changes require a new APK.
+Changing the Google Cloud Android client's fingerprint alone does not require
+rebuilding the existing app.
+
+The screenshot reporting cancellation identifies a failure before Google returns
+an ID token, before `/api/auth/google` or overview navigation. Google can report
+`GetCredentialCancellationException` for failed authorization as well as an actual
+user cancellation. The native module now reports incomplete authorization without
+claiming that the user pressed Back. Account reauthentication and interrupted
+requests get distinct safe messages. It never retries the chooser automatically.
+In development, Metro prints `RSD_GOOGLE_AUTH_SETUP` after a native failure, with
+only the installed package, public signing SHA-1 and Web client ID. A rebuilt
+module reads the actual installed APK certificate, including EAS signatures;
+older modules explicitly report that the certificate is unavailable.
 
 The native module is automatically linked by Expo. No Google config plugin,
 Firebase project or `google-services.json` is needed for this implementation.
@@ -55,6 +81,35 @@ Ensure a Google test account is permitted by any consent-screen audience limits.
 Android native sign-in does not require a Google redirect URI or a browser return
 link. Preserve the website's existing origins/redirects and consent configuration.
 
+### Existing EAS development APK: use this certificate for your EAS installation
+
+On October 11, 2026, the existing project returned one Android build:
+`4dd69586-ed20-4635-84f0-c7928b3d9b91`, development profile, completed October 10.
+Its downloaded APK was verified using Android's `apksigner`; its package is
+`com.rsdeducation.student`. Its signing SHA-1 is:
+
+```text
+40:E4:CE:B0:D8:2B:5D:23:67:51:8E:72:5C:76:2A:58:C8:9F:91:9A
+```
+
+The user confirmed an Expo/EAS APK is installed. In Google Cloud **Google Auth
+Platform → Clients**, verify an **Android** OAuth client exists in the same project
+as the Web ID in the table above. Use `com.rsdeducation.student` and this EAS
+SHA-1. If a client exists only for the local debug certificate below, keep it and
+create another Android client for the EAS certificate. Preserve Web client IDs,
+secrets, origins and redirects. Do not enter this fingerprint into a Web client.
+
+If the installed APK came from a different project/build, inspect that APK instead.
+The certificate of the user's phone installation and Google Cloud registration
+could not be read directly because no phone or signed-in Cloud session was connected.
+Therefore missing/mismatched registration remains a concrete setup item to verify,
+not a proven diagnosis. Retry the existing EAS APK after correcting that setting;
+if it still fails, install the rebuilt EAS APK for the safe native error category
+and signing diagnostics. Also verify consent-screen test-account access and that
+Google Play services is current.
+
+### Local APK: separate certificate, not the EAS value
+
 The completed `dist/android/rsd-education-native-google-development-arm64-v8a.apk`
 was verified with Android's APK signing tool. Its package is
 `com.rsdeducation.student`, its ABI is `arm64-v8a` and its minimum Android SDK is 24.
@@ -64,8 +119,8 @@ The APK's signing SHA-1 is:
 5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25
 ```
 
-This is **not** a claim about the signing fingerprint of your existing EAS APK.
-Inspect EAS credentials for the development profile before registering its SHA-1:
+This local fingerprint differs from the verified EAS value above. To inspect
+signing credentials when building with a different EAS profile:
 
 ```powershell
 cd 'C:\Users\swamy\OneDrive\ドキュメント\platform\platform\mobile'
@@ -163,6 +218,7 @@ home screen must still be checked. Never share tokens, complete callback URLs,
 keystores, credentials or SecureStore dumps when reporting results.
 
 Sources: [Google native button flow](https://developer.android.com/identity/sign-in/credential-manager-siwg-implementation),
+[Google cancellation troubleshooting](https://developer.android.com/identity/sign-in/credential-manager-troubleshooting-guide),
 [Google ID releases](https://developers.google.com/identity/android-credential-manager/releases),
 [AndroidX Credentials releases](https://developer.android.com/jetpack/androidx/releases/credentials),
 [Google GIS browser setup](https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid),

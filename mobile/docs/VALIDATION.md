@@ -234,6 +234,48 @@ authenticated screen remain unverified. Follow `GOOGLE_SIGN_IN.md` for setup and
 real-account acceptance. No Google account was selected in the browser inspection,
 and no backend login session or live deployment was created by this task.
 
+## Post-account-selection investigation — 11 October 2026
+
+The user first reported a blank screen and then clarified that selecting a Google
+account returns to the login page. No physical phone is connected, so its precise error
+has not been captured and a successful real Google login is not claimed.
+
+- Native login now forwards only the server-issued nonce cookie explicitly and
+  disables the automatic native cookie jar for the exchange. The existing backend
+  still verifies Google's ID token and nonce; its routes were not changed.
+- Eight targeted native login tests passed, including absent/stale cookies, the
+  React Native header fallback, excluding old session cookies, cancellation and
+  a stalled request timing out. Network requests are bounded at 25 seconds.
+- All 38 mobile regression tests passed. Mobile TypeScript and ESLint passed;
+  the final root recovery controls and cancellation notice passed a second
+  TypeScript check and focused ESLint check after they were added.
+- The final Android Hermes export passed with the verified-profile change,
+  producing `../dist/login-session-export`. It is a bundle validation artifact,
+  not a newly installed APK or a successful physical-device Google login.
+- Sign-in stages are visible after account selection. A minimal native root error
+  boundary shows recovery controls for rendering exceptions without displaying
+  exception details or credentials. Existing protected-route guards are retained.
+- Backend errors are displayed inside the login card beside the Google button.
+  A cancelled native result now shows an explicit notice; it does not create a
+  session or silently look like a successful login. Successful sign-in still
+  publishes the verified backend profile before enabling protected routes.
+- Native login uses the verified RSD profile already returned by the login
+  endpoint, avoiding a redundant `/api/auth/me` request on successful login.
+  Older backends without a usable profile retain that fallback; startup session
+  restoration still calls `/api/auth/me`. Only session tokens are stored.
+- An isolated sample-data navigation preview was attempted with the real provider
+  and router. Its emulator repeatedly raised an Android ANR warning during startup,
+  before navigation could be verified. It created no real Google/backend session.
+  The preview servers and emulator were stopped afterward.
+- The connected Vercel runtime-log lookup returned no entries for the available
+  recent window, both with and without the auth-route query. No backend rejection
+  code or Google account failure can be inferred from that empty result.
+
+Restart Metro and reload the existing SDK 57 Google-enabled development client.
+This follow-up changes JavaScript only. If the phone still fails, capture the
+Metro error after account selection (without credentials); the exact failure
+boundary and physical-device acceptance remain outstanding.
+
 ## Authenticated acceptance run still required
 
 Deploy the prepared `/mobile-auth` adapter and practice persistence correction
@@ -269,3 +311,30 @@ saved in `../dependency-audit.json`. Suggested automatic fixes included an
 incompatible Expo downgrade to SDK 44 or router upgrade beyond SDK 56, so a
 forced audit fix was not applied. Re-run the audit before release and adopt
 compatible upstream patches as available.
+
+## October 11, 2026 — Google cancellation after account selection
+
+- The supplied screenshot shows the native picker returning no token. This is
+  before the app session exchange and overview navigation; it does not establish
+  a backend or routing failure.
+- User confirmed the installed app is an Expo/EAS APK. Read the existing linked
+  project's build list without creating a project or build. Downloaded its one
+  completed Android development artifact, build
+  `4dd69586-ed20-4635-84f0-c7928b3d9b91`, and verified it with `apksigner`.
+  Package: `com.rsdeducation.student`. EAS SHA-1:
+  `40:E4:CE:B0:D8:2B:5D:23:67:51:8E:72:5C:76:2A:58:C8:9F:91:9A`.
+  This differs from the previously documented local debug APK fingerprint.
+- Fixed misleading native cancellation handling; separate account reauthentication
+  and interruption messages, no automatic retry, and development-only logging of
+  public OAuth setup values. Native signing diagnostics read the installed
+  certificate rather than assuming a local debug certificate.
+- Updated native module compiled and full arm64 debug APK assembled successfully
+  with the existing Expo SDK 57 dependencies in the existing isolated build folder.
+- TypeScript, ESLint and all 39 mobile tests passed, including the regression that
+  native authorization failure must not retry or submit a backend login request.
+  Expo Doctor passed 21/21 checks; Expo install reported dependencies up to date.
+  Public Expo config preserved package, scheme, owner and the existing EAS ID.
+- No authorized phone or Google Cloud browser session was available. The Android
+  OAuth registration and a real Google account sign-in remain unverified. No
+  website/backend changes, keystore upload, Expo project creation, deployment or
+  successful end-to-end login is claimed.
