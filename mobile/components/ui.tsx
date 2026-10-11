@@ -1,7 +1,7 @@
-import type { ReactNode, ComponentProps } from 'react';
-import { useContext } from 'react';
+import type { ReactNode, ComponentProps, Ref } from 'react';
+import { useContext, useMemo } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions, type ListRenderItem } from 'react-native';
+import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions, type ListRenderItem, type LayoutChangeEvent } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@/utils/theme';
 import { pageLayout } from '@/utils/layout';
@@ -31,22 +31,30 @@ export function Screen({children, refreshing, onRefresh, footer, footerSafeArea=
   </SafeAreaView>;
 }
 // Long feeds use one native virtualized list, never a list nested in ScrollView.
-export function ListScreen<T>({data, renderItem, keyExtractor, header, footer, empty, onEndReached, refreshing, onRefresh, extraData, topBar, pageHeader, ...page}: PageProps & {
+export function ListScreen<T>({data, renderItem, keyExtractor, header, footer, empty, onEndReached, refreshing, onRefresh, extraData, topBar, pageHeader, listRef, onHeaderLayout, batchSize=6, initialNumToRender=batchSize, updateCellsBatchingPeriod=50, removeClippedSubviews=false, windowSize=7, onEndReachedThreshold=0.35, ...page}: PageProps & {
   data: T[]; renderItem: ListRenderItem<T>; keyExtractor: (item:T,index:number)=>string;
   header?: ReactNode; footer?: ReactNode; empty?: ReactNode; onEndReached?: ()=>void;
   refreshing?: boolean; onRefresh?: ()=>void; extraData?: unknown; topBar?:ReactNode; pageHeader?:ReactNode;
+  batchSize?:number; windowSize?:number; onEndReachedThreshold?:number;
+  initialNumToRender?:number; updateCellsBatchingPeriod?:number; removeClippedSubviews?:boolean;
+  listRef?:Ref<FlatList<T>>; onHeaderLayout?:(event:LayoutChangeEvent)=>void;
 }) {
   const inTabs=useContext(TabShellContext);const {width}=useWindowDimensions();const insets=useSafeAreaInsets();
   const layout=pageLayout(width-insets.left-insets.right,800);
+  const listHeader=useMemo(()=><View style={s.listHeader} onLayout={onHeaderLayout}>
+    {pageHeader??<PageHeading title={page.title} subtitle={page.subtitle} action={page.action}/>}
+    {header}
+  </View>,[pageHeader,header,page.title,page.subtitle,page.action,onHeaderLayout]);
   return <SafeAreaView edges={inTabs?[]:['top','left','right','bottom']} style={s.screen}>
     {topBar}
-    <FlatList data={data} renderItem={renderItem} keyExtractor={keyExtractor} extraData={extraData}
+    <FlatList ref={listRef} data={data} renderItem={renderItem} keyExtractor={keyExtractor} extraData={extraData}
       keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={[s.content,{padding:layout.padding,paddingBottom:24}]}
-      ListHeaderComponent={<View style={{gap:20}}>{pageHeader??<PageHeading {...page}/>}{header}</View>}
+      ListHeaderComponent={listHeader}
       ListFooterComponent={footer ? <View style={{gap:16}}>{footer}</View> : null}
       ListEmptyComponent={empty ? <View>{empty}</View> : null}
-      initialNumToRender={6} maxToRenderPerBatch={6} windowSize={7} removeClippedSubviews={false}
-      onEndReached={onEndReached} onEndReachedThreshold={0.35}
+      initialNumToRender={initialNumToRender} maxToRenderPerBatch={batchSize} updateCellsBatchingPeriod={updateCellsBatchingPeriod}
+      windowSize={windowSize} removeClippedSubviews={removeClippedSubviews}
+      onEndReached={onEndReached} onEndReachedThreshold={onEndReachedThreshold}
       refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={colors.primary}/> : undefined}/>
   </SafeAreaView>;
 }
@@ -85,6 +93,7 @@ export function Stats({items}: {items: {label: string; value: string | number}[]
 }
 export function Bar({value, color = colors.primary}: {value: number; color?:string}) { return <View accessibilityRole="progressbar" accessibilityValue={{min:0,max:100,now:Math.round(Math.max(0,Math.min(100,value)))}} style={{height:6, backgroundColor:colors.border, borderRadius:4, overflow:'hidden'}}><View style={{height:6, width:`${Math.max(0,Math.min(100,value))}%`,backgroundColor:color}}/></View>; }
 export const s = StyleSheet.create({
+  listHeader:{gap:20},
   screen:{flex:1,backgroundColor:colors.background},content:{padding:20,paddingBottom:32,gap:18,maxWidth:760,width:'100%',alignSelf:'center'},
   brandMark:{width:40,height:40,borderRadius:13,backgroundColor:colors.primary,alignItems:'center',justifyContent:'center'},brand:{fontSize:16,fontWeight:'800',color:colors.ink},eyebrow:{fontSize:10,fontWeight:'600',letterSpacing:1.5,color:colors.muted,marginTop:3},
   title:{fontSize:27,lineHeight:35,fontWeight:'800',letterSpacing:-.5,color:colors.ink},subtitle:{fontSize:14,lineHeight:22,color:colors.muted},

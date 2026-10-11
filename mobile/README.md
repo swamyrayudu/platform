@@ -11,9 +11,23 @@ mobile packages separately; do not add them to the website's package.json.
 
 ## Mock tests and question navigation
 
-The mock library uses the website's compact module cards, medium tabs, search,
-completion status and sequential unlocking. Existing pagination still loads
-modules in batches as you scroll.
+The mock library uses compact module cards, medium tabs, search, completion status
+and the website's sequential unlocking. Five modules load initially; scrolling
+near the end requests the next five automatically. A small indicator shows page
+loading, and a failed page has a retry action without removing earlier modules.
+Cards omit repeated English/Telugu medium badges and the redundant Not Started
+label; both medium tabs and all exam data remain available. Bilingual papers keep
+their label. Downloads stay at five modules; subsequent rendering uses two-card
+batches, with a buffer ahead of scrolling and Android off-screen view clipping.
+Unchanged cards and header controls are reused during page loading.
+Search/category/medium changes start their own feed.
+
+Tapping Start opens a compact mock summary with a top Back control, the actual
+question count/time/marks and marking rules. A short guide replaces the long
+instructions; the paper description expands under Details. Start / resume stays
+at the bottom (inline on short screens or with larger text). Back returns to
+Mock Tests; navigation waits while the start request is pending. Paid papers
+retain a direct Pro plans link.
 
 During an exam, tap the grid icon beside the timer to open the question palette
 on the right. It shows only **All questions**, grouped using the paper's actual
@@ -24,28 +38,63 @@ also close it. Previous/Next remain at the bottom on normal portrait screens;
 on short screens or with large text they move into the scrollable content. The panel adapts its columns
 to screen width and system text size, and the exam header wraps for large text.
 Mock exams and practice have no Save & leave or End and leave buttons below the question.
-The top Back button/system back gesture offers Stay or Stop timer & save. The
-second option freezes elapsed time immediately, saves and syncs answers, pauses
+The top Back button/system back gesture opens a custom app-styled dialog offering
+Stay or Stop timer & save. Submit uses the same dialog with Keep working / Submit.
+The timer pauses as either dialog opens; Stay, Keep working or Android Back
+resumes it without counting time spent in the dialog. Confirming keeps it paused
+through saving or submitting, including app switching. Stop timer & save saves and syncs answers, pauses
 the paper, then returns directly to Mock Tests or Practice. Failed saves keep the exam open
 and resume its timer. By user preference, practice is saved for resume instead of
 being ended on exit. Practice's timer and position are retained in the encrypted
 local draft; its existing answer endpoint saves pending answers. No new backend
 pause endpoint is introduced. The practice setup offers Resume practice.
 Answer saving, resume and server grading retain the existing backend rules.
+Failed saves keep the exam open and resume the timer; a failed final submission
+keeps its saved submission intent and stopped timer for Retry submission on Results.
+
+Confirming Submit opens the Results route immediately. The page first shows
+Submitting your answers, with the timer stopped, then loads the server result.
+Submission continues after the question screen unmounts; both screens join the
+same job. Errors offer Retry submission or Open saved exam. A reload recovers
+the encrypted draft or checks a completed server attempt. Back is guarded while
+submission is running; no completed result is displayed before server success.
+
+Results lead with marks/maximum and marks percentage, then equal Correct/Wrong/
+Skipped boxes, time and separately labelled accuracy among answered questions.
+Section/topic scores and ranking expand on request. Review cards show the full
+chosen and correct answers immediately; all options, explanation and reporting
+expand under Explanation & options. Answer review has a subject selector based
+on the paper's actual sections and 10 questions per page. Subject selection combines
+with All/Wrong/Skipped/Marked; changing either filter starts at page 1. Previous/
+Next and the visible range appear above and below the review. Original paper
+numbering is preserved; switching pages returns to review rather than the score
+summary. Next module and practice retry remain available.
+
+The active question page uses compact cards, wrapping question/option text and
+equal action sizes. Header controls and Review/Clear/Previous/Next rows stack
+when screen width or larger system text needs more room. The progress line shows
+answered questions. Report issue expands into a separate full-width form with
+seven reason choices, optional details (required for Something else), a 1,000
+character limit, server errors and a confirmed success message. The form avoids
+raw text inside native View containers and repeated nested card padding.
 
 ## Responsive navigation and practice
 
 The app uses the website's four bottom tabs: Home, Practice, Mock Tests and
-Progress. Profile and subscription access remain in the shared DSC / SGT header.
+Progress. The shared DSC / SGT header opens Profile and Plans/Manage. Practice
+and mock-test Pro access prompts go directly to Plans. Current subscription
+details live in Profile; the plans page starts with prices and payment buttons.
 The tab bar reserves the device's bottom safe area, adapts its height to larger
 text, keeps labels below icons in landscape and hides while the keyboard is open.
 Header/side safe areas are applied once by the tab shell. Sticky action bars sit
 above navigation; short screens and large-text layouts use scrollable actions.
 
 Practice uses the website's DSC Practice Zone header, medium switch and four
-numbered setup cards. Subjects use one or two columns according to available
-space and system text size. Only the website's seven subject groups are offered,
-with matching names, Telugu labels and order; raw bank aliases do not add tiles.
+compact numbered setup cards. The header has a small usage row and direct Pro
+plans link; repeated introductory text is removed. Subjects show one label in the
+selected medium and use one or two columns according to available space and text
+size. Only the website's seven subject groups are offered, with matching names,
+Telugu labels and order; raw bank aliases do not add tiles.
 Topics retain search and progressive loading, and topic/class/difficulty options
 and question counts come from the existing API. Instant feedback checks answers
 automatically through that API and shows its explanation; failed saves remain
@@ -53,14 +102,44 @@ queued with a retry control. Answer checking locks only after server feedback.
 Page padding, headings, chips, badges and statistic cards adapt to narrower
 screens and larger text without hiding the content.
 
-Practice choices use equal widths and the measured tallest text height within
-each group. The final box in an odd grid stays the same size as its neighbours,
-and long labels remain visible at larger system text sizes. Subjects stay visible
+Practice choices use equal widths, compact padding and 48/60-point minimum
+heights. Only rows with longer labels grow; one long subject no longer enlarges
+every box. Subjects use full-width rows on phones and two columns when there is
+room. The final box in an odd grid keeps its width, and larger system text remains
+readable. Subjects stay visible
 while one compact indicator checks question availability. Filter requests are
 grouped across rapid changes and share cached responses for equivalent selections;
 changing question count, mode or timer does not fetch metadata again. Start stays
 disabled until the current selection is confirmed. Selected topics are expandable
 and revealed in batches, rather than duplicating a long list by default.
+Count presets omit repeated Questions captions; custom entry expands on demand.
+All five modes use compact choices, with a brief explanation only for the selected
+mode. Class/difficulty/timer options and suggested topics start collapsed. Requested
+choice columns are capped by the measured container width and system text size,
+so even explicitly requested two-column controls can become one column.
+
+## Profile
+
+Profile has a top Back button (Home fallback when opened directly), a centered
+account card with a photo/initial fallback, and a Your subscription card with
+current plan/status/expiry and a View plans & pay/renew action. Study preferences
+start as a compact summary; Edit reveals display name, medium and goal controls.
+Cancel restores the saved values; a successful Save returns to the summary.
+Devices and sessions expand on demand. Legal links and sign-out actions use
+compact grouped rows with consistent spacing. Long names/email and larger text
+wrap; selection columns adapt to phone width and font size. Existing profile,
+devices, sign-out and subscription APIs are preserved. Practice/mock Pro prompts
+continue to open Plans directly.
+
+## App opening
+
+The existing RSD icon gently scales and fades into view with the app name,
+then fades into the current screen in about one second. It runs once per app
+root mount, while session restoration and navigation load in parallel. Reduced
+motion skips the animation; a 1.8-second fallback prevents the introduction
+from blocking navigation if image loading or accessibility checks stall.
+This is a JavaScript introduction after the system launch screen. No native
+configuration or APK rebuild is required to see it in the development client.
 
 ## Open in Expo Go on Android
 
@@ -220,10 +299,12 @@ The mobile controls use the website's Bloom colours and subject styling. Practic
 follows four numbered steps, with topic search and a responsive Start button. Subjects,
 topics, counts, access rules and explanations come from the existing APIs.
 
-Mock papers load 20 at a time as you scroll, with separate feeds for medium,
+Mock papers load five at a time as you scroll, with separate feeds for medium,
 category and search. A failed next page keeps the loaded papers visible and offers
-retry. History and results APIs return full responses; their lists reveal 12
-attempts or 8 review cards at a time and virtualize the visible rows. Topic search
+retry. History and results APIs return full responses; history reveals 12 attempts
+at a time, while results show a subject-filtered page of at most 10 review cards.
+Both virtualize the visible rows. Results pagination is local and does not add
+unsupported pagination parameters or extra API requests. Topic search
 reveals 12 choices at a time. Review cards retain original question numbers and
 expand the server's explanation on demand. Google authentication, offline exam
 storage and server grading are unchanged by this UI update.
@@ -316,9 +397,13 @@ Interrupted orders are retained encrypted. Use Check payment status; pending/err
 outcomes remain recoverable. A successful backend verify/recover refreshes the
 user's entitlements. No live payments are made by automated tests.
 
-The header's **Plans** button opens all prices from the existing authenticated
-plans API. Active subscribers see **Manage**, their current plan and expiry,
-and **Renew** buttons. Renewal uses the same server payment flow as the website;
+Profile's **View plans & pay/renew** button opens all prices from the existing
+authenticated plans API. Profile shows the current plan, status and expiry.
+The plans page has a compact Back/Refresh header and consistent plan cards with
+prices, durations, two benefit previews and **Pay/Renew** buttons. More benefits
+expand on demand. An optional coupon card stays below the plans; payment history
+is collapsed initially and shows five rows at a time when opened. Apply a coupon before paying; updated
+prices appear on the plan cards above. Renewal uses the same server payment flow as the website;
 paid days extend an unexpired subscription, or restart access after expiry.
 Prices are not hardcoded in the app. A coupon changes only the display and code
 sent with the order; the server determines the actual charge. Repeated taps

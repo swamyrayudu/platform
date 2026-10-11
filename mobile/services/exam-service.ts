@@ -3,7 +3,7 @@ import type { MockTest, MockTestListResponse, StartAttemptResponse, ClientSafeMo
 const base = '/api/dsc-sgt/mock-tests';
 export interface Attempt { id: string; mock_test_id: string; status: string; duration_seconds: number; time_spent_seconds: number; existing_answers: Record<string, {selected_option: SelectedOption; marked_for_review: boolean}> }
 export const examService = {
-  list: (params: {medium: string; search?: string; category?: string; page: number}) => api.request<MockTestListResponse>(`${base}?${query({...params, pageSize: 20})}`),
+  list: (params: {medium: string; search?: string; category?: string; page: number; pageSize: number}) => api.request<MockTestListResponse>(`${base}?${query(params)}`),
   metadata: (id: string) => api.request<{test: MockTest}>(`${base}/${encodeURIComponent(id)}`),
   start: (id: string) => api.request<StartAttemptResponse>(`${base}/${encodeURIComponent(id)}/start`, 'POST'),
   get: (id: string) => api.request<{attempt: Attempt}>(`${base}/attempts/${encodeURIComponent(id)}`),

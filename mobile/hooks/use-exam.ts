@@ -1,17 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import type { Href } from 'expo-router';
-import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/store/auth';
-import { ExamJournal, elapsedSeconds, type ExamDraft, type ExamKind } from '@/store/exam';
+import { elapsedSeconds, type ExamJournal, type ExamDraft, type ExamKind } from '@/store/exam';
 import { vault } from '@/services/vault';
 import { examDrafts } from '@/services/exam-drafts';
 import { practiceService } from '@/services/question-service';
 import { examService } from '@/services/exam-service';
 import type { SelectedOption } from '@/types/mock-tests';
+import { pauseExamClock, pausedQuestionTime, resumeExamClock, type ExamClock } from '@/utils/exam-clock';
+import { createExamJournal } from '@/services/exam-journal';
+import { examSubmission } from '@/services/exam-submission';
 export function useExam(kind: ExamKind, id: string) {
-  const {user}=useAuth();const cache=useQueryClient();const journal=useRef<ExamJournal|undefined>(undefined);
-  const clock=useRef({base:0,resumedAt:Date.now(),running:true});const questionTime=useRef(Date.now());
+  const {user}=useAuth();const journal=useRef<ExamJournal|undefined>(undefined);
+  const clock=useRef<ExamClock>({base:0,resumedAt:Date.now(),running:true});const questionTime=useRef(Date.now());
+  const confirmationOpen=useRef(false);
   const [draft,setDraft]=useState<ExamDraft>();const [error,setError]=useState<unknown>();const [busy,setBusy]=useState(false);const [loading,setLoading]=useState(true); const [reload,setReload]=useState(0);
   const [exitDestination,setExitDestination]=useState<Href>();const finishing=useRef(false);const checkingAnswer=useRef(false);
   const publish=useCallback(()=>{if(journal.current)setDraft({...journal.current.draft,answers:{...journal.current.draft.answers},pending:{...journal.current.draft.pending},feedback:{...journal.current.draft.feedback}});},[]);
@@ -20,10 +23,27 @@ export function useExam(kind: ExamKind, id: string) {
     // A timer tick changes only time; preserve the drawer's data references.
     setDraft(current=>current&&current.elapsed!==elapsed?{...current,elapsed}:current);
   },[]);
+  const resumeClock=useCallback(()=>{
+    const now=Date.now();
+    questionTime.current+=pausedQuestionTime(clock.current,now);
+    clock.current=resumeExamClock(clock.current,now);
+  },[]);
+  const pauseForConfirmation=useCallback(()=>{
+    const j=journal.current;
+    if(!j||busy||finishing.current||checkingAnswer.current||confirmationOpen.current)return false;
+    confirmationOpen.current=true;
+    clock.current=pauseExamClock(clock.current,j.draft.duration,Date.now());checkpoint();
+    return true;
+  },[busy,checkpoint]);
+  const endConfirmation=useCallback((resume=true)=>{
+    if(!confirmationOpen.current)return;
+    confirmationOpen.current=false;
+    if(resume&&!finishing.current&&!journal.current?.draft.submitIntent)resumeClock();
+  },[resumeClock]);
   useEffect(()=>{
     let cancelled=false;
     async function load() {
-      setLoading(true);setError(undefined);setDraft(undefined);setExitDestination(undefined);journal.current=undefined;
+      setLoading(true);setError(undefined);setDraft(undefined);setExitDestination(undefined);journal.current=undefined;confirmationOpen.current=false;
       try {
         if(!user)return;
         let next:ExamDraft|null=null;
@@ -59,12 +79,8 @@ export function useExam(kind: ExamKind, id: string) {
         if(cancelled)return;
         if(!next.questions.length)throw new Error('No questions were returned for this session.');
         clock.current={base:next.elapsed,resumedAt:Date.now(),running:true};questionTime.current=Date.now();
-        const loaded=new ExamJournal(next,{
-          persist:d=>examDrafts.save(d),
-          save:(q,a)=>kind==='practice'?practiceService.answer(id,{questionId:q.key,selectedAnswer:a.option,markedForReview:a.marked,timeTakenSeconds:a.seconds}):examService.answer(id,{questionId:q.key,questionNumber:q.number,selectedOption:a.option,markedForReview:a.marked,timeTakenSeconds:a.seconds}).then(()=>undefined),
-          state:async()=>kind==='practice'?(await practiceService.get(id)).session.status:(await examService.get(id)).attempt.status,
-          submit:async elapsed=>{if(kind==='practice')await practiceService.submit(id,elapsed);else await examService.submit(id,elapsed);},
-        });
+        if(next.submitIntent)clock.current=pauseExamClock(clock.current,next.duration,Date.now());
+        const loaded=createExamJournal(next);
         await loaded.persist();
         if(cancelled)return;
         journal.current=loaded;
@@ -79,12 +95,17 @@ export function useExam(kind: ExamKind, id: string) {
     const timer=setInterval(()=>{
       checkpoint();
       const j=journal.current;if(!j)return;
+      if(!clock.current.running||finishing.current)return;
       if(j.draft.elapsed%10===0&&!finishing.current)void j.persist().catch(setError);
       if(j.draft.duration>0&&j.draft.elapsed>=j.draft.duration&&!j.draft.submitIntent)void submit();
     },1000);
     const subscription=AppState.addEventListener('change',state=>{
       const j=journal.current;if(!j||finishing.current)return;
       checkpoint();
+      if(clock.current.pausedAt!==undefined){
+        if(state!=='active')void j.persist().catch(setError);
+        return;
+      }
       if(state!=='active'){
         clock.current={base:j.draft.elapsed,resumedAt:Date.now(),running:kind==='practice'};
         void j.persist().catch(setError);
@@ -94,29 +115,38 @@ export function useExam(kind: ExamKind, id: string) {
     return()=>{clearInterval(timer);subscription.remove();};
   });
   async function select(option:SelectedOption,marked?:boolean) {
-    const j=journal.current;if(!j||busy||finishing.current||checkingAnswer.current)return;setError(undefined);
+    const j=journal.current;if(!j||busy||finishing.current||checkingAnswer.current||confirmationOpen.current)return;setError(undefined);
     const instant=j.draft.feedbackMode==='instant';if(instant){checkingAnswer.current=true;setBusy(true);}
     const q=j.draft.questions[j.draft.index];const previous=j.draft.answers[q.key];
     try{
       const seconds=(previous?.seconds||0)+Math.max(0,Math.floor((Date.now()-questionTime.current)/1000));questionTime.current=Date.now();
-      await j.select(q.key,option,marked??previous?.marked??false,seconds);publish();
+      // The journal updates its in-memory answer synchronously. Show it now;
+      // await the durable save before sending anything to the server.
+      const saved=j.select(q.key,option,marked??previous?.marked??false,seconds);
+      publish();
+      await saved;
       await j.flush();publish();
     }catch(e){setError(e);publish();}finally{if(instant){checkingAnswer.current=false;setBusy(false);}}
   }
   async function sync() {setBusy(true);setError(undefined);try{await journal.current?.flush();publish();}catch(e){setError(e);}finally{setBusy(false);}}
   async function submit() {
-    const j=journal.current;if(!j||busy||finishing.current)return;finishing.current=true;checkpoint();setBusy(true);setError(undefined);
-    try{await j.submit();journal.current=undefined;await examDrafts.clear(j.draft.userId,kind,id);await cache.invalidateQueries();setExitDestination({pathname:'/result',params:{kind,id}});}
-    catch(e){journal.current=j;setError(e);publish();}finally{finishing.current=false;setBusy(false);}
+    const j=journal.current;if(!j||busy||finishing.current)return;finishing.current=true;setBusy(true);setError(undefined);
+    clock.current=pauseExamClock(clock.current,j.draft.duration,Date.now());checkpoint();
+    j.draft.submitIntent=true;
+    // Hand off before navigating. The result page joins this job and owns retry;
+    // no storage, network or cache refresh must delay the route transition.
+    void examSubmission.run(j.draft.userId,kind,id,j).catch(()=>{});
+    journal.current=undefined;
+    setExitDestination({pathname:'/result',params:{kind,id,submit:'1'}});
   }
   const move=useCallback(async(index:number)=>{
-    const j=journal.current;if(!j)return; j.draft.index=index;questionTime.current=Date.now();publish();
+    const j=journal.current;if(!j||finishing.current||confirmationOpen.current)return; j.draft.index=index;questionTime.current=Date.now();publish();
     try{checkpoint();await j.persist();}catch(e){setError(e);}
   },[checkpoint,publish]);
   const leave=useCallback(async(abandon=false)=>{
-    const j=journal.current;if(!j||finishing.current)return;finishing.current=true;setBusy(true);setError(undefined);checkpoint();
-    // Stop at confirmation, before waiting for local saves and network sync.
-    clock.current={base:j.draft.elapsed,resumedAt:Date.now(),running:false};
+    const j=journal.current;if(!j||finishing.current)return;finishing.current=true;setBusy(true);setError(undefined);
+    // Retain the confirmation's paused time while waiting for saves and sync.
+    clock.current=pauseExamClock(clock.current,j.draft.duration,Date.now());checkpoint();
     try{
       await j.prepareLeave(abandon,{
         abandon:()=>kind==='practice'?practiceService.abandon(id):examService.abandon(id),
@@ -126,9 +156,9 @@ export function useExam(kind: ExamKind, id: string) {
       journal.current=undefined;
       setExitDestination(kind==='mock'?'/(tabs)/mocks':'/(tabs)/practice');
     }catch(e){
-      clock.current={base:j.draft.elapsed,resumedAt:Date.now(),running:true};
+      resumeClock();
       setError(e);
     }finally{finishing.current=false;setBusy(false);}
-  },[checkpoint,kind,id]);
-  return {draft,error,busy,loading,exitDestination,select,sync,submit,move,leave,retry:()=>setReload(x=>x+1)};
+  },[checkpoint,kind,id,resumeClock]);
+  return {draft,error,busy,loading,exitDestination,select,sync,submit,move,leave,pauseForConfirmation,endConfirmation,retry:()=>setReload(x=>x+1)};
 }

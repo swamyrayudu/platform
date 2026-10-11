@@ -580,3 +580,382 @@ compatible upstream patches as available.
   Confirm equal group boxes, readable long labels, the unchanged odd final item,
   stable choices while checking, batched selected topics and disabled Start until
   the requested selection is ready. These changes remain local and unpublished.
+
+## October 11, 2026 — logo introduction and smaller practice boxes
+
+- Added a short opening animation using the existing assets/icon.png: a gentle
+  scale/slide entrance with RSD Education and Learn. Practice. Grow., followed by
+  a fade into navigation. It mounts once outside the auth-driven Navigation;
+  session restoration runs in parallel and sign-in/reloads do not replay it.
+  Reduced motion skips animation. A 1.8-second fallback and effect cleanup avoid
+  blocking the app on image loading/accessibility errors or leaving animations
+  and subscriptions running after unmount.
+- Removed group-wide maximum text height and the text measurement updates from
+  practice choices. Controls now have compact 48/60-point minimum heights, smaller
+  padding and 32-point icons. Long text grows its own row without enlarging every
+  choice. Phone subjects use one full-width column, matching the website; wider
+  screens can use two. Full subject names and Telugu labels remain visible.
+- TypeScript, full mobile ESLint (zero warnings) and all 76 mobile tests passed;
+  the updated layout check also passed for full-width subject rows on ordinary
+  phone widths. Final Android Hermes export passed at
+  dist/opening-compact-final-export (1432 modules, existing RSD icon included).
+- Physical-device appearance remains unverified. Check a cold start, sign-in,
+  returning from the background (no repeated animation), reduced motion, both
+  practice mediums, longer subject/topic names and larger system fonts.
+  These are JavaScript changes; the installed development client can load them
+  without an APK rebuild. No website/backend/native configuration changed.
+
+## October 11, 2026 — Profile text error and layout
+
+- Confirmed the exact error: an inline literal JSX space between the devices
+  error and device list expressions compiled to a string child of Card's native
+  View. Removed that space by restructuring Profile; Card itself was valid and
+  was not changed to hide or automatically wrap invalid text.
+- Added a top Back control with a Home fallback. Arranged account identity,
+  active subscription/expiry, editable preferences, compact device rows, sign-out
+  actions and legal links. Names/email wrap and the identity stacks on narrow
+  screens or larger text. Missing/failed avatars have an initial fallback.
+  Existing profile, sessions, revoke, sign-out and subscription APIs are retained;
+  devices query cache is scoped to the current user.
+- The regression check inspects compiled JSX literal children and failed on the
+  original Profile with Card: " ". It now passes. All 77 mobile tests, TypeScript
+  and lint of the changed Profile/test passed. Android Hermes export passed at
+  dist/profile-fixed-export. No website/backend or native configuration changed.
+- Physical phone appearance/navigation and live profile changes remain unverified.
+  Reload the development client, open Profile from the avatar, check Back, long
+  names, devices/loading/error states and larger system text. No APK rebuild is
+  needed for these JavaScript changes; changes are local and unpublished.
+
+## October 11, 2026 — subscription information in Profile, direct Plans links
+
+- Practice quota/Pro-topic and locked mock prompts open Plans directly. The
+  shared header Plans/Manage button and Home View plans action remain available.
+  Profile has a dedicated Your subscription card with status, server plan name,
+  expiry and pay/renew link. Only the current subscription summary moved there.
+  Plan names reuse the existing plans query, enabled for accounts with a plan.
+- The plans page starts with plan prices and Pay/Renew buttons; the current access
+  summary lives in Profile. The optional coupon card follows the plan cards, with
+  responsive input/apply controls, applied/invalid feedback and Remove coupon.
+  Applying a code updates the displayed prices above before checkout. Payment
+  history stays below; interrupted payment recovery remains available and blocks
+  another checkout. Back falls back to Profile for direct route opens.
+- Payment services, server prices/order creation, verification, recovery and
+  access updates were not changed. All 77 tests, TypeScript, full mobile ESLint
+  (zero warnings) passed after restoring the direct Plans links. The plans layout
+  Android Hermes export passed at dist/profile-plans-export before that navigation
+  correction. Source checks confirm Pro prompts navigate directly to /subscription.
+- No live checkout was performed. Phone appearance, coupon application and real
+  payment still require device verification. Reload the development client, open
+  avatar → Profile → View plans & pay/renew, check plans first and coupon below,
+  and check Back returns to the previous screen. Also check locked practice/mock
+  features and header/Home actions go directly to Plans. No APK rebuild or website/backend edit is
+  required. These changes are local and unpublished.
+
+## October 11, 2026 — Profile overview and organized sections
+
+- Redesigned Profile with a centered Google identity card, full-width name/email
+  wrapping, photo/initial fallback, white sections with consistent padding/icons,
+  and the existing top Back control. Subscription status, plan and expiry stay
+  in Profile with the existing direct Plans action.
+- Study preferences begin as a medium/goals summary; Edit opens the display-name
+  field, website medium tabs and compact goal choices. Cancel restores saved
+  values. Successful server saves update the profile and return to the summary;
+  failures keep the form open. Save and Cancel controls are disabled while saving.
+- Devices and sessions expand on demand instead of filling the initial page.
+  Existing loading/error/retry, device status and revoke actions are preserved.
+  Legal links and sign-out actions use grouped rows with consistent touch targets,
+  dividers, icon styling and text wrapping. All-device sign-out retains confirmation.
+  Practice/mock prompts still navigate directly to Plans; those screens and the
+  backend were not edited during this redesign.
+- TypeScript, lint of the changed Profile/test, all 77 mobile tests and Android
+  Hermes export passed at dist/profile-organized-export. The existing compiled
+  JSX regression check also covers the new ProfileSection container and passed
+  again after the final accessibility changes. No native dependencies changed.
+- Physical-phone appearance and live preference/device actions remain unverified.
+  Reload the development client; check long identity text, larger system fonts,
+  Edit/Cancel/Save, opening devices, Back and Plans. No APK rebuild is required.
+
+## October 11, 2026 — organized subscription plans
+
+- Replaced the large default page heading with compact Back/Refresh controls.
+  Plan cards share a consistent layout: server name/badge, price/original price,
+  period/duration, two benefit previews and Pay/Renew. Remaining benefits expand
+  on demand; current/recommended plans have small badges and a subtle accent.
+  Typography, padding, dividers and wrapping match the redesigned Profile.
+- The optional coupon section remains below the plans, with an uppercase native
+  input, Apply control and compact applied-code/Remove feedback. Input is disabled
+  during coupon validation or checkout; confirmed coupon prices still come from
+  the existing endpoint. Pending payment recovery and errors stay visible, and
+  existing guards prevent payment while account/payment checks are incomplete.
+- Payment history expands on demand, initially revealing five compact rows with
+  plan name, date, amount and status. Show more reveals another five. History
+  failure is reported as unavailable rather than incorrectly showing no payments.
+  Current subscription information remains in Profile. Direct Plans links from
+  Practice/Mock Tests, payment services, native configuration and backend are intact.
+- TypeScript, lint of all changed code, all 79 mobile tests and Android Hermes
+  export passed at dist/plans-organized-export. The existing native text-child
+  regression now also covers the Plans screen and shared plan card.
+- No live payment was made. Physical-phone layout, coupon interaction, payment
+  history expansion and live checkout need device verification. Reload the
+  installed development client; no APK rebuild is required. Changes remain local.
+
+## October 11, 2026 — compact mock library and five-module scrolling
+
+- Simplified the heading, single medium switch, search and unlock hint. Cards use
+  compact spacing, smaller rounded corners, consistent statistics/actions and no
+  shadow. Repeated English/Telugu medium badges and Not Started labels were removed;
+  both medium tabs, bilingual labels, actual exam titles/data and progress remain.
+- The existing module endpoint accepts pageSize=5; no backend change was needed.
+  Requests now pass five for each page, and the cache key isolates the old
+  20-module feed. Scrolling near the end fetches the next page automatically,
+  with a small footer indicator instead of a Load more button. Failures retain
+  the loaded modules and retry the same page; repeated events share one request.
+- The mock list opts into five-item rendering batches and a smaller virtualized
+  window. Stable row keys, render callbacks and retained data identities allow
+  memoized cards to reuse previous renders. Other feeds keep their list defaults.
+  Start, Continue, result navigation, sequential locks and direct Pro → Plans
+  links retain their existing behavior; exam/question pagination is untouched.
+- TypeScript, full mobile ESLint with zero warnings, all 82 tests and Android
+  Hermes export passed at dist/mocks-five-export. New regression coverage verifies
+  5 → 10 → 15 → 16 accumulation, final-page stopping, earlier card identities and
+  old-cache isolation. Existing retry/filter/duplicate-request checks passed;
+  native text-child checks now cover the mock screen and card as well.
+- Phone layout and scroll performance are not yet measured. Reload the installed
+  development client and scroll through several batches, switch mediums/search,
+  and check Start/Continue/Results and Pro → Plans. No APK rebuild is required.
+  Changes are local and unpublished.
+
+## October 11, 2026 — further mock library scroll optimization
+
+- Separated network paging from rendering: downloads remain five modules, with
+  five initial cards and two cards per subsequent render batch, spaced 32 ms
+  apart. The render window is seven viewports and fetching begins within 1.2
+  viewports of the end, allowing more preparation before reaching new cards.
+- Android detaches off-screen native views; iOS retains its previous clipping
+  behavior. Cards have no transforms, absolute positioning or shadows. Heights
+  remain dynamic for long titles, progress and larger text; no guessed fixed
+  card geometry was introduced. Other feeds retain their existing defaults.
+- Memoized the mock heading, controls and shared list header element, and retained
+  the stable refresh/render handlers. Page loading notifications no longer rebuild
+  medium tabs, search and filters when their values have not changed. Existing
+  pagination, retry, exam navigation and subscription behavior are preserved.
+- Reviewed React hooks, dependency lists, accessibility and render identity, and
+  consulted https://reactnative.dev/docs/optimizing-flatlist-configuration.
+  TypeScript, full mobile ESLint with zero warnings, all 82 existing tests and
+  Android Hermes export passed at dist/mocks-smooth-export. No dependencies changed.
+- These changes reduce avoidable rendering/drawing work; frame timing on the
+  user's phone is not yet measured. Reload the current development client and
+  check slow/fast scrolling down and back up through several pages, including
+  larger system text. No APK rebuild is required; changes remain local.
+
+## October 11, 2026 — simplified responsive Practice setup
+
+- Replaced the large introductory card with a compact DSC Practice Zone heading,
+  History control, short server quota row and direct Pro plans action. Removed
+  Smart Practice Engine copy and repeated introductory/pro/topic descriptions.
+  Important quota-exhaustion reasons, unavailable-question errors and retry
+  controls remain visible. Subscription details still live in Profile.
+- Four consistent panels use short Subject/Topics/Questions/Practice mode headings,
+  compact padding and smaller corners. Subjects show the website's full label in
+  the selected English/Telugu medium while retaining the same canonical API value,
+  seven subject groups and order. Medium tabs use short labels and retain full
+  accessible names. Topic selection, search and progressive loading are preserved.
+- Question presets omit repeated captions; custom count is still available through
+  an expandable row. All five existing modes are selectable in compact tiles,
+  with one short explanation for the chosen mode. Instant feedback uses a concise
+  switch row. Class/difficulty/timer and suggested topics are initially collapsed;
+  opening them retains the existing selection and recommendation behavior.
+- Choice columns now use measured container width and font scale; requested column
+  counts are maximums, avoiding squeezed two-column controls on narrow screens or
+  with larger text. Geometry tests cover 160–700-point containers, 1–3x text sizes,
+  compact/regular tiles and 1–3 requested columns. Existing safe-area navigation,
+  short-screen inline Start button and text wrapping remain in place.
+- Reviewed native text children, hooks and accessibility. TypeScript, full mobile
+  ESLint with zero warnings, all 88 tests and Android Hermes export passed at
+  dist/practice-simple-export. Native text-child regression checks now cover the
+  Practice screen, its selectors/choices/resume and TopicPicker. Website subject
+  parity and the existing practice/session tests passed.
+- No website/backend, authentication, native configuration or dependencies changed.
+  Physical-phone layout and live practice selection need verification. Reload the
+  development client; check both mediums, long subject names, custom count, all
+  modes, More options/timer, saved resume and direct Pro → Plans. No APK rebuild
+  is required. Changes are local and unpublished.
+
+## October 11, 2026 — compact Grand Test start page and top Back
+
+- Replaced the verbose mock instructions screen with a top Back control, compact
+  module/access badges, full paper title and responsive question/time/marks tiles.
+  Correct-answer marks and negative marking remain visible using server metadata.
+  A four-line guide explains answering, the grid, pausing through Back and submitting.
+  The old Save & leave wording and backend/storage implementation paragraphs are gone.
+- The actual description is retained under an expandable Details panel. Start /
+  resume uses the existing start endpoint and attempt navigation, with a sticky
+  button that becomes inline on short/large-text screens. Back returns directly
+  to Mock Tests; Back/Pro plans and route removal are guarded during the pending
+  start request. Paid papers retain their direct Pro → Plans link. The duplicate
+  bottom Back button was removed.
+- Metadata failures/retry, start errors, server marking rules, active exam controls,
+  saving/timers and question data are preserved. Summary tiles reuse the tested
+  width/font-scale layout utility. All text wraps and interactive controls retain
+  minimum 44-point targets. No native configuration, dependencies or backend edits.
+- TypeScript, full mobile ESLint with zero warnings, all 89 tests and Android
+  Hermes export passed at dist/mock-start-simple-export. The native text-child
+  regression now covers the redesigned start screen as well.
+- Phone appearance and authenticated Start/Resume remain unverified. Reload the
+  development client and check Mock Tests → Start, top Back, Details, narrow/large
+  text layouts, paid Pro plans and entering/resuming an attempt. No new APK is
+  needed. Changes are local and unpublished.
+
+## October 11, 2026 — responsive active Grand Test and question report
+
+- Reproduced the expanded report form's raw-text error with the compiled JSX
+  regression: the existing Card received a literal inline space between its
+  error and success branches. Removed that child by restructuring the form;
+  native text-child coverage now includes Exam and ReportQuestion.
+- Compact question cards preserve complete English/Telugu questions and all
+  options. Header icons retain 44-point targets; question Review/Clear actions
+  use short labels and accessible descriptions. Width/font-scale calculations
+  stack the header/action/navigation rows when needed. Bottom controls remain
+  equal width in a row and become inline on short/large-text screens. Progress
+  and paper metadata now scroll with the question; the bar represents answers.
+- Report issue is a separate expandable panel instead of a nested padded Card.
+  Full-width reason rows wrap long labels, with a details counter, the existing
+  1,000-character cap, required Other details and disabled fields while sending.
+  Errors are Text elements; success appears only after the existing API accepts
+  the report. Memoization avoids rebuilding the form on each timer tick. iOS
+  keyboard avoidance and drag-to-dismiss support the multiline field.
+- Existing answer selection/locking, instant explanations, review flags, drawer,
+  saving, paused resume, Back confirmation and submit flow remain intact. The
+  shared question screen/form also improve practice and result reports. No API,
+  authentication, website/backend, dependency or native configuration edits.
+- TypeScript, full mobile ESLint with zero warnings, all 92 tests and Android
+  Hermes export passed at dist/grand-exam-responsive-export (1,433 modules,
+  3.6 MB bundle). Geometry checks cover 280–1,024-point widths and 1–3x text.
+- Physical-phone appearance and authenticated report submission remain untested.
+  Reload the installed development client; check both mediums, long options,
+  larger system text, landscape, Review/Clear, the drawer, Report issue with
+  keyboard, Back → Stay/Stop timer & save, resume and submit. No APK rebuild is
+  required. Changes remain local and unpublished.
+
+## October 11, 2026 — immediate answer selection
+
+- Found that useExam.select published the chosen option only after awaiting the
+  encrypted local draft save. It now publishes the journal's synchronous in-memory
+  change before awaiting that save, so the highlight is independent of storage
+  latency. Network sync still waits for the durable save; no debounce, dropped
+  save, automatic grading or optimistic server acknowledgment was introduced.
+- Regression tests exercise the actual compiled hook tap handler with the real
+  ExamJournal and gated storage/network ports. All four reproduced the previous
+  delayed highlight before the fix. They now verify immediate feedback, latest
+  rapid-tap choice, no network send before persistence, retained pending answers
+  on disk failure, and instant-practice locking while checking an answer.
+- The change also covers Review/Clear through the shared handler. Existing
+  save/sync failures, stale acknowledgments, submission, Back/pause and resume
+  remain covered by the journal tests. No dependencies or backend edits.
+- TypeScript, full mobile ESLint with zero warnings, all 96 tests and Android
+  Hermes export passed at dist/mock-answer-immediate-export (1,433 modules,
+  3.6 MB bundle). Physical-phone frame timing remains unmeasured. Reload the
+  installed development client; check quick answer changes, Review/Clear, Next,
+  pause/resume and offline retry. No new APK is required; changes remain local.
+
+## October 11, 2026 — custom exam confirmation dialogs and stopped timer
+
+- Replaced the native Back/Submit alerts with a reusable native AlertDialog:
+  app colors, rounded white panel, dimmed backdrop, icon, wrapping text and
+  two responsive buttons. Short/large-text screens can scroll the dialog.
+  Android Back and accessibility escape cancel; the backdrop does not submit
+  or discard answers. The existing palette Back behavior remains unchanged.
+- Back offers Stay / Stop timer & save; Submit offers Keep working / Submit
+  with the current unanswered count. Opening either dialog checkpoints and
+  pauses the exam clock synchronously. Cancel resumes from that checkpoint
+  and excludes dialog time from the question's time-taken value. Repeated taps
+  cannot open duplicate dialogs or reset the original pause time.
+- AppState transitions preserve an explicit dialog/action pause. Timer ticks
+  avoid repeated checkpoint saves and expiry submission while paused. Confirming
+  retains the stopped clock through durable saves, synchronization and server
+  pause/submission. Failed leave resumes; failed final submission retains its
+  durable intent and frozen timer for retry, including when reloading a saved
+  pending submission. Existing timer expiry and backend endpoints are preserved.
+- Regression tests execute the actual hook callbacks with the real ExamJournal,
+  a controlled clock and gated persistence/network ports: cancellation, app
+  switching, slow/failed pause, successful submission and failed submission.
+  Immediate answer selection, saving/expiry tests and native text checks pass.
+- TypeScript, full mobile ESLint with zero warnings, all 102 tests and Android
+  Hermes export passed at dist/exam-alert-dialog-export (1,435 modules,
+  3.6 MB bundle). Reviewed hooks, synchronous double-tap guards, accessibility,
+  wrapping and short-screen layout. No new dependencies or backend edits.
+- Physical-phone dialog appearance and authenticated server flow remain untested.
+  Reload the development app and check header Back, system Back/gesture, Stay,
+  Stop timer & save, Submit/Keep working, background/return while open, larger
+  text, landscape and offline retry. No APK rebuild is required; edits are local.
+
+## October 11, 2026 — immediate Results route and clearer submission/results
+
+- Previously useExam awaited encrypted saves, server submission, draft cleanup
+  and all active cache refreshes before redirecting. Confirming Submit now freezes
+  the clock, marks submit intent, hands the real journal to a shared job and
+  immediately requests the Results route. The route joins that job and shows
+  submission progress before fetching/displaying the server result. Successful
+  completion marks related caches stale without waiting for background refetches.
+- The job retains the journal across route unmount, serializes simultaneous joins,
+  and uses ExamJournal's existing persist → state check → answer flush → submit
+  order. Failed disk/network/cleanup operations retain intent and answers for
+  Retry submission. App restarts can recover the encrypted draft; if none remains,
+  only a confirmed completed/submitted server state permits result loading. User,
+  kind and attempt identity are checked before accepting restored/handed-off data.
+  A lost response is reconciled without another final submit. Back is guarded
+  while submitting; errors expose retry and saved-exam recovery.
+- Submit confirmation uses shorter text with answered/remaining counts and a
+  Timer paused notice. Results replace the large generic stats/card stack with
+  marks, maximum and marks percentage; equal Correct/Wrong/Skipped counts; time;
+  and answer accuracy with its denominator explained. Mock marks percentage is
+  no longer labelled Accuracy. Fractional/negative scores and skipped/zero-answer
+  cases retain their actual meaning; no pass/fail threshold or grade is invented.
+- Section/topic scores and ranking are expandable; practice recommendations remain
+  under topic scores. Next module/practice mistakes remain available. Compact
+  review cards show full chosen/correct option text, then expand all options,
+  explanations and reporting. Original paper numbers, source identities, recorded
+  verdicts, edit warnings, four filters and eight-at-a-time review loading remain.
+- Regression coverage checks immediate handoff before server completion, shared
+  pending work, durable write ordering, cold recovery, failed writes, scoped
+  identity, lost responses and cleanup retry; result metrics and Telugu answer
+  labels; equal outcome geometry and native text containers. React hooks,
+  accessibility, conditional queries and virtualized review rendering reviewed.
+- TypeScript, full mobile ESLint with zero warnings, all 116 tests and Android
+  Hermes export passed at dist/results-immediate-export (1,440 modules, 3.6 MB).
+  No dependency, native configuration, website or backend changes.
+- Physical-phone timing/layout and authenticated submission remain untested.
+  Reload the development app; check Submit → immediate progress → results,
+  offline retry, app restart during submission, Back guard, fractional marks,
+  skipped answers, filters/details, ranking/next module and larger text. These
+  are local changes; no APK rebuild is required.
+
+## October 11, 2026 — subject filters and submitted-answer pagination
+
+- Results now offer All subjects and only the subjects/sections present in the
+  returned paper. Mock sections use their real IDs and names; practice falls back
+  to subject. Counts show how many questions belong to each available subject.
+  Selection combines with All/Wrong/Skipped/Marked and resets to page 1.
+- Replaced growing review batches with at most 10 answers per page. Previous/Next,
+  page count and visible range appear above and below the review. Only current
+  page rows enter the existing FlatList. Page changes scroll to review controls
+  using measured header height, without reloading the score summary or adding a
+  nested list. Larger text stacks navigation buttons; subject names wrap and the
+  selector scrolls within a safe-area modal, dismissible by Android Back.
+- Pagination uses the existing full result response; no backend changes or
+  unsupported query parameters. Original numbering, unique identities, recorded
+  verdicts, chosen/correct answers, expanded options/explanations and reporting
+  remain available. Empty filters have an empty state, not a fabricated page;
+  refreshed/shrunken data clamps to an available page.
+- Tests cover reaching all 160 questions once, section/subject identity and
+  fallback, combining each verdict filter, original numbering and explanations,
+  partial/empty pages, refresh clamping and the actual filter callbacks resetting
+  page 1. Native JSX containers checked for the new controls. Hooks, stable
+  list identities, virtualized rendering and accessibility reviewed.
+- TypeScript, full mobile ESLint with zero warnings, all 122 tests and Android
+  Hermes export passed at dist/results-pagination-export (1,441 modules, 3.6 MB).
+  No new dependencies or native configuration changes.
+- Physical-phone appearance and scroll position remain untested. Reload the
+  development app; review a submitted 160-question paper, select each subject,
+  combine verdict filters, use both pagers, expand answers, refresh the result
+  and check larger text/landscape. Changes are local; no APK rebuild required.

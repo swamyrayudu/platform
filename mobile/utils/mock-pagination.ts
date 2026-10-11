@@ -2,11 +2,13 @@ import type { MockTestListResponse } from '../types/mock-tests';
 import { infiniteQueryOptions } from '@tanstack/react-query';
 
 export type MockLibraryFilters = {medium:string;category:string;search:string};
-export function mockLibraryOptions(filters:MockLibraryFilters, loadPage:(params:MockLibraryFilters & {page:number})=>Promise<MockTestListResponse>) {
+export const MOCK_PAGE_SIZE = 5;
+export function mockLibraryOptions(filters:MockLibraryFilters, loadPage:(params:MockLibraryFilters & {page:number;pageSize:number})=>Promise<MockTestListResponse>) {
   return infiniteQueryOptions({
-    queryKey:['mocks',filters.medium,filters.category,filters.search],
+    // Keep the previous 20-module cache separate from this five-module feed.
+    queryKey:['mocks',filters.medium,filters.category,filters.search,MOCK_PAGE_SIZE],
     initialPageParam:1,
-    queryFn:({pageParam})=>loadPage({...filters,page:pageParam}),
+    queryFn:({pageParam})=>loadPage({...filters,page:pageParam,pageSize:MOCK_PAGE_SIZE}),
     getNextPageParam:nextMockPage,
   });
 }

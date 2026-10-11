@@ -56,6 +56,6 @@ export default function Home() {
       <SectionHeading title="Explore the syllabus" detail={`${syllabus.total_questions} questions · ${syllabus.total_marks} marks · ${syllabus.duration_minutes} minutes`}/>
       {syllabus.sections.map(section=>{const subject=sectionSubjects[section.id]||section.name;const style=subjectStyle(subject);return <ChoiceRow key={section.id} title={section.name} detail={`${style.tag} · ${section.questions} questions · ${section.marks} marks`} icon={style.icon} color={style.color} onPress={()=>router.push({pathname:'/practice',params:{subject}})}/>;})}
     </> : null}
-    <Card gold><Badge label={user?.accountType==='PREMIUM'?'DSC PRO':'GO FURTHER WITH DSC PRO'} color={colors.gold}/><Heading>Make your preparation count.</Heading><Body>View your subscription and the practice features available to your account.</Body><Button secondary label="Your subscription" onPress={()=>router.push('/subscription')}/></Card>
+    <Card gold><Badge label={user?.accountType==='PREMIUM'?'DSC PRO':'GO FURTHER WITH DSC PRO'} color={colors.gold}/><Heading>Make your preparation count.</Heading><Body>View plans and the practice features available to your account.</Body><Button secondary label="View plans" onPress={()=>router.push('/subscription')}/></Card>
   </Screen>;
 }

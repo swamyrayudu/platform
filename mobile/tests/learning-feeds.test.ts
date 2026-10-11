@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { InfiniteQueryObserver, QueryClient } from '@tanstack/react-query';
-import { mockLibraryOptions, mergeMockPages } from '../utils/mock-pagination';
+import { mockLibraryOptions, mergeMockPages, MOCK_PAGE_SIZE } from '../utils/mock-pagination';
 import { selectReviewQuestions, type ReviewQuestion } from '../utils/question-review';
 import type { MockTestListItem, MockTestListResponse } from '../types/mock-tests';
 
@@ -9,9 +9,38 @@ function paper(id:string, progress:MockTestListItem['progress_status']='not_star
   return {id,slug:id,title:id,description:null,category:'grand_mock',medium:'english',duration_minutes:150,total_questions:160,total_marks:80,is_free:true,status:'published',published_at:null,module_number:null,series:'grand_mock_v1',version:1,progress_status:progress,is_sequence_locked:false};
 }
 function page(number:number,tests:MockTestListItem[],totalPages=2):MockTestListResponse {
-  return {success:true,medium:'english',tests,page:number,page_size:20,total:3,total_pages:totalPages,medium_counts:{english:3,telugu:1},highest_completed_module:0};
+  return {success:true,medium:'english',tests,page:number,page_size:MOCK_PAGE_SIZE,total:3,total_pages:totalPages,medium_counts:{english:3,telugu:1},highest_completed_module:0};
 }
 const filters={medium:'english',category:'grand_mock',search:''};
+
+test('mock library requests five modules per page, appends without replacing earlier rows and ignores the old larger-page cache',async()=>{
+  const client=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:Infinity}}});
+  client.setQueryData(['mocks',filters.medium,filters.category,filters.search],{
+    pages:[page(1,[paper('old-cache')])],pageParams:[1],
+  });
+  const calls:{page:number;pageSize:number}[]=[];
+  const all=Array.from({length:16},(_,index)=>paper(String(index+1)));
+  const observer=new InfiniteQueryObserver(client,mockLibraryOptions(filters,async(params)=>{
+    calls.push({page:params.page,pageSize:params.pageSize});
+    const start=(params.page-1)*params.pageSize;
+    return {...page(params.page,all.slice(start,start+params.pageSize),4),total:all.length};
+  }));
+  const unsubscribe=observer.subscribe(()=>{});
+  try {
+    await observer.refetch();
+    const firstRow=mergeMockPages(observer.getCurrentResult().data!.pages)[0];
+    for(const count of [5,10,15,16]) {
+      const result=observer.getCurrentResult();
+      const rows=mergeMockPages(result.data!.pages);
+      assert.equal(rows.length,count);
+      assert.deepEqual(rows.map(row=>row.id),all.slice(0,count).map(row=>row.id));
+      assert.equal(rows[0],firstRow,'Existing card props retain their identity as pages append.');
+      assert.equal(result.hasNextPage,count<all.length);
+      await observer.fetchNextPage({cancelRefetch:false});
+    }
+    assert.deepEqual(calls,[1,2,3,4].map(number=>({page:number,pageSize:5})));
+  } finally {unsubscribe();client.clear();}
+});
 
 test('mock scrolling retains loaded papers on failure, retries the same page and stops at the last page',async()=>{
   const client=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:Infinity}}});

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { usePreventRemove } from 'expo-router/react-navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Screen, Card, Heading, Body, Button, Input, ErrorState, Loading, Badge, s } from '@/components/ui';
+import { Screen, Body, Button, ErrorState, Badge } from '@/components/ui';
+import { SubscriptionPlanCard } from '@/components/subscription-plan-card';
 import { paymentService, canCheckout, type Plan } from '@/services/payment-service';
 import { useAuth } from '@/store/auth';
 import { colors } from '@/utils/theme';
@@ -19,6 +20,8 @@ export default function Subscription() {
   const [message,setMessage]=useState('');
   const [refreshing,setRefreshing]=useState(false);
   const [expandedPlan,setExpandedPlan]=useState<string|null>(null);
+  const [showHistory,setShowHistory]=useState(false);
+  const [historyLimit,setHistoryLimit]=useState(5);
   const paymentInProgress=useRef(false);
   const historyKey=['payments',userId];
   const plans=useQuery({queryKey:['plans'],queryFn:paymentService.plans,enabled:!!userId});
@@ -29,8 +32,6 @@ export default function Subscription() {
   // Ignore old coupon responses when the input changes during a request.
   const appliedCoupon=coupon.data?.valid&&coupon.variables===normalizedCode?coupon.data:null;
   const subscribed=hasActiveSubscription(user);
-  const expires=subscriptionDate(user?.subscriptionExpiresAt);
-  const currentPlan=plans.data?.plans.find(plan=>plan.id===user?.subscriptionPlan);
   const previouslyPaid=!!user?.subscriptionPlan||!!history.data?.orders.some(order=>order.status==='PAID');
 
   useEffect(()=>{if(history.data)update(history.data.user);},[history.data,update]);
@@ -87,47 +88,101 @@ export default function Subscription() {
     paymentInProgress.current=true;
     buy.reset();recover.mutate();
   };
-  const status=subscribed?'Active':user?.subscriptionStatus==='CANCELLED'?'Cancelled':user?.subscriptionStatus==='EXPIRED'||user?.subscriptionStatus==='ACTIVE'?'Expired':'Free account';
-  return <Screen title="Manage subscription" subtitle="Choose a plan, pay or renew your RSD Pro access." refreshing={refreshing} onRefresh={()=>void refresh()} action={<Button secondary icon="arrow-back" label="Back" disabled={working} onPress={()=>router.canGoBack()?router.back():router.replace('/')}/> }>
-    <Card gold>
-      <View style={s.between}><Heading>{subscribed?'You have RSD Pro':'Your subscription'}</Heading><Badge label={status} color={subscribed?colors.green:colors.muted}/></View>
-      <Body>{currentPlan?.name??(user?.subscriptionPlan?'RSD Pro plan':'No paid plan yet')}</Body>
-      <Body>{expires?`${subscribed?'Active until':'Expiry date'}: ${expires}`:subscribed?'Your access is active.':'Choose any plan below to unlock Pro.'}</Body>
-      {subscribed?<Body>Your current access is already active. Renew whenever you want; purchased days are added to your remaining access.</Body>:previouslyPaid?<Body>Pay again with any plan below to restart your subscription.</Body>:null}
-      <Button secondary label="Refresh subscription" busy={refreshing} disabled={working} onPress={()=>void refresh()}/>
-    </Card>
-    {history.isLoading?<Loading/>:null}
-    {history.error?<ErrorState error={history.error} retry={()=>void refetchHistory()}/>:null}
-    {message?<View accessibilityLiveRegion="polite"><Card><Body color={colors.primary}>{message}</Body></Card></View>:null}
+  const back=()=>{if(router.canGoBack())router.back();else router.replace('/profile');};
+  const checking=history.isPending||pending.isPending||plans.isFetching;
+  const orders=history.data?.orders??[];
+  return <Screen title="Plans" refreshing={refreshing} onRefresh={()=>void refresh()} pageHeader={
+    <View style={styles.header}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Back" disabled={working} onPress={back} style={({pressed})=>[styles.headerButton,pressed&&styles.pressed,working&&styles.disabled]}>
+        <Ionicons name="arrow-back" size={22} color={colors.primary}/>
+      </Pressable>
+      <View style={styles.copy}><Text accessibilityRole="header" style={styles.title}>Plans</Text><Text style={styles.caption}>RSD Pro access</Text></View>
+      <Pressable accessibilityRole="button" accessibilityLabel="Refresh plans and payment status" accessibilityState={{disabled:working||refreshing,busy:refreshing}} disabled={working||refreshing} onPress={()=>void refresh()} style={({pressed})=>[styles.headerButton,pressed&&styles.pressed,working&&styles.disabled]}>
+        {refreshing?<ActivityIndicator size="small" color={colors.primary}/>:<Ionicons name="refresh-outline" size={20} color={colors.primary}/>}
+      </Pressable>
+    </View>
+  }>
+    <View style={styles.intro}>
+      <Text accessibilityRole="header" style={styles.introTitle}>Choose your plan</Text>
+      <Text style={styles.caption}>One-time payment. No automatic renewal.</Text>
+      {canCheckout?<View style={styles.hint}><Ionicons name="pricetag-outline" size={15} color={colors.gold}/><Text style={styles.hintText}>Have a coupon? Apply it below before paying.</Text></View>:null}
+    </View>
+
+    {message?<View accessibilityLiveRegion="polite" style={[styles.panel,styles.message]}><Body color={colors.primary}>{message}</Body></View>:null}
     {buy.error?<ErrorState error={buy.error}/>:null}
     {recover.error?<ErrorState error={recover.error}/>:null}
     {pending.error?<ErrorState error={pending.error} retry={()=>void refetchPending()}/>:null}
-    {pending.data?<Card><Heading>Check your previous payment</Heading><Body>A checkout is awaiting confirmation. Check it before paying again.</Body><Button label="Check payment status" busy={recover.isPending} disabled={buy.isPending} onPress={checkPayment}/></Card>:null}
-    {!canCheckout?<Card><Heading>Subscription access</Heading><Body>Your plans and existing access are shown here. Direct payment is available in the RSD Android development or direct APK build.</Body></Card>:null}
-    <Heading>{subscribed?'Renew with any plan':'All subscription plans'}</Heading>
-    {plans.isLoading?<Loading/>:null}
+    {pending.data?<View style={[styles.panel,styles.notice]}>
+      <View style={styles.sectionHeader}><Ionicons name="time-outline" size={20} color={colors.gold}/><Text accessibilityRole="header" style={styles.sectionTitle}>Check your previous payment</Text></View>
+      <Body>A payment is awaiting confirmation. Check its status before paying again.</Body>
+      <Button label="Check payment status" busy={recover.isPending} disabled={buy.isPending} onPress={checkPayment}/>
+    </View>:null}
+    {!canCheckout?<View style={styles.panel}><Body>Payment is unavailable in this app version. You can view plans here and your current access in Profile.</Body></View>:null}
+    {checking&&!plans.isLoading?<View accessibilityLiveRegion="polite" style={styles.hint}><ActivityIndicator size="small" color={colors.primary}/><Text style={styles.hintText}>Checking payment availability…</Text></View>:null}
+    {history.error?<ErrorState error={history.error} retry={()=>void refetchHistory()}/>:null}
+    {plans.isLoading?<View style={[styles.panel,styles.loading]}><ActivityIndicator color={colors.primary}/><Text style={styles.caption}>Loading available plans…</Text></View>:null}
     {plans.error?<ErrorState error={plans.error} retry={()=>void refetchPlans()}/>:null}
-    {canCheckout?<Card><Input label="Coupon code (optional)" value={code} onChangeText={text=>{setCode(text);coupon.reset();}}/><Button secondary label="Apply coupon" disabled={!normalizedCode||working} busy={coupon.isPending} onPress={()=>coupon.mutate(normalizedCode)}/>{appliedCoupon?<Body color={colors.green}>{appliedCoupon.discountPercent}% discount applied.</Body>:coupon.data&&coupon.variables===normalizedCode?<Body>This coupon is not valid.</Body>:null}{coupon.error?<ErrorState error={coupon.error}/>:null}</Card>:null}
-    {plans.data?.plans.map(plan=>{
-      const price=appliedCoupon?.prices?.[plan.id]??plan.amountPaise;
-      const isCurrent=subscribed&&plan.id===user?.subscriptionPlan;
-      const expanded=expandedPlan===plan.id;
-      const paying=buy.isPending&&buy.variables?.planId===plan.id;
-      return <Card key={plan.id} gold={isCurrent||plan.popular}>
-        <View style={s.between}><Heading>{plan.name}</Heading>{isCurrent?<Badge label="Current plan · Active" color={colors.green}/>:plan.popular?<Badge label="Recommended" color={colors.gold}/>:null}</View>
-        <Body>{plan.badge}</Body>
-        <View style={styles.priceRow}><Text style={styles.price}>{formatPrice(price)}</Text><Body>{plan.period}</Body>{plan.originalAmountPaise>price?<Text style={styles.originalPrice}>{formatPrice(plan.originalAmountPaise)}</Text>:null}</View>
-        <Body>{plan.durationDays} days of Pro access{subscribed?' added to your remaining subscription':''}.</Body>
-        {canCheckout?<Button icon="card-outline" label={`${subscribed||previouslyPaid?'Renew':'Pay'} ${formatPrice(price)}${isCurrent?' · current plan':''}`} busy={paying} disabled={checkoutBlocked} onPress={()=>pay(plan)}/>:null}
-        <Pressable accessibilityRole="button" accessibilityLabel={`${expanded?'Hide':'Show'} ${plan.name} features`} accessibilityState={{expanded}} onPress={()=>setExpandedPlan(expanded?null:plan.id)} style={styles.featuresToggle}><Text style={styles.featureLabel}>{expanded?'Hide features':'See included features'}</Text><Ionicons name={expanded?'chevron-up':'chevron-down'} size={18} color={colors.primary}/></Pressable>
-        {expanded?plan.features.map(feature=><Body key={feature}>✓ {feature}</Body>):null}
-      </Card>;
-    })}
-    {canCheckout?<Body>One-time payment · No automatic renewal · Secure checkout with Razorpay. Your subscription updates after the server confirms payment.</Body>:null}
-    <Card><Heading>Payment history</Heading>{history.data?.orders.length===0?<Body>No payments yet.</Body>:null}{history.data?.orders.map(order=><View key={order.id} style={styles.historyRow}><View style={s.between}><Heading>{plans.data?.plans.find(plan=>plan.id===order.planId)?.name??'RSD Pro plan'}</Heading><Badge label={order.status==='PAID'?'Paid':order.status==='FAILED'?'Failed':'Awaiting payment'} color={order.status==='PAID'?colors.green:colors.muted}/></View><Body>{formatPrice(order.amount)} · {subscriptionDate(order.paidAt??order.createdAt)}</Body></View>)}</Card>
+    {plans.data?.plans.length===0?<View style={styles.panel}><Body>No plans are available right now. Please refresh or try again later.</Body></View>:null}
+
+    {plans.data?.plans.map(plan=><SubscriptionPlanCard key={plan.id}
+      plan={plan} price={appliedCoupon?.prices?.[plan.id]??plan.amountPaise}
+      current={subscribed&&plan.id===user?.subscriptionPlan}
+      renew={subscribed||previouslyPaid} extending={subscribed} checkout={canCheckout}
+      blocked={checkoutBlocked} paying={buy.isPending&&buy.variables?.planId===plan.id}
+      expanded={expandedPlan===plan.id} onPay={()=>pay(plan)}
+      onToggle={()=>setExpandedPlan(expandedPlan===plan.id?null:plan.id)}/>)}
+
+    {canCheckout?<View style={styles.panel}>
+      <View style={styles.sectionHeader}><View style={styles.sectionIcon}><Ionicons name="pricetag-outline" size={18} color={colors.primary}/></View><Text accessibilityRole="header" style={styles.sectionTitle}>Have a coupon?</Text><Badge label="Optional" color={colors.muted}/></View>
+      <Text style={styles.caption}>Apply before paying. Updated prices appear on the plans above.</Text>
+      <View style={styles.couponControls}>
+        <TextInput accessibilityLabel="Coupon code" placeholder="Enter coupon code" placeholderTextColor={colors.muted}
+          autoCapitalize="characters" autoCorrect={false} editable={!working&&!coupon.isPending} value={code}
+          onChangeText={text=>{setCode(text);coupon.reset();}} style={styles.couponInput}/>
+        <View style={styles.couponApply}><Button secondary label="Apply" disabled={!normalizedCode||working} busy={coupon.isPending} onPress={()=>coupon.mutate(normalizedCode)}/></View>
+      </View>
+      {appliedCoupon?<View accessibilityLiveRegion="polite" style={styles.couponSuccess}>
+        <Ionicons name="checkmark-circle-outline" size={20} color={colors.green}/>
+        <View style={styles.copy}><Text style={styles.couponCode}>{appliedCoupon.code}</Text><Text style={styles.successText}>{appliedCoupon.discountPercent!=null?String(appliedCoupon.discountPercent)+'% discount applied':'Coupon applied'}</Text></View>
+        <Pressable accessibilityRole="button" accessibilityLabel="Remove coupon" disabled={working} onPress={()=>{setCode('');coupon.reset();}} style={({pressed})=>[styles.removeCoupon,pressed&&styles.pressed,working&&styles.disabled]}><Text style={styles.removeLabel}>Remove</Text></Pressable>
+      </View>:coupon.data&&coupon.variables===normalizedCode?<Text accessibilityLiveRegion="polite" style={styles.invalidCoupon}>This coupon is not valid. Check the code and try again.</Text>:null}
+      {coupon.error?<ErrorState error={coupon.error}/>:null}
+    </View>:null}
+
+    {canCheckout?<View style={styles.checkoutNote}><Ionicons name="lock-closed-outline" size={15} color={colors.muted}/><Text style={styles.noteText}>Secure payment with Razorpay. Access updates after payment is confirmed.</Text></View>:null}
+
+    <View style={styles.panel}>
+      <Pressable accessibilityRole="button" accessibilityLabel={showHistory?'Hide payment history':'Show payment history'} accessibilityState={{expanded:showHistory}} onPress={()=>{setShowHistory(value=>!value);setHistoryLimit(5);}} style={({pressed})=>[styles.historyToggle,pressed&&styles.pressed]}>
+        <View style={styles.sectionIcon}><Ionicons name="receipt-outline" size={18} color={colors.primary}/></View>
+        <View style={styles.copy}><Text accessibilityRole="header" style={styles.sectionTitle}>Payment history</Text><Text style={styles.caption}>{history.isLoading?'Loading payments…':history.error?'Unable to load payments':orders.length===0?'No payments yet':String(orders.length)+' payments'}</Text></View>
+        <Ionicons name={showHistory?'chevron-up':'chevron-down'} size={18} color={colors.primary}/>
+      </Pressable>
+      {showHistory?<View style={styles.historyList}>
+        {history.isLoading?<View style={styles.loading}><ActivityIndicator size="small" color={colors.primary}/><Text style={styles.caption}>Loading payments…</Text></View>:null}
+        {history.data&&orders.length===0?<Text style={styles.caption}>Your payments will appear here.</Text>:null}
+        {orders.slice(0,historyLimit).map(order=><View key={order.id} style={styles.historyRow}>
+          <View style={styles.historyDetails}><Text style={styles.historyName}>{plans.data?.plans.find(plan=>plan.id===order.planId)?.name??'RSD Pro plan'}</Text><Text style={styles.caption}>{subscriptionDate(order.paidAt??order.createdAt)}</Text></View>
+          <View style={styles.historyAmount}><Text style={styles.amount}>{formatPrice(order.amount)}</Text><Badge label={order.status==='PAID'?'Paid':order.status==='FAILED'?'Failed':'Awaiting payment'} color={order.status==='PAID'?colors.green:order.status==='FAILED'?colors.red:colors.muted}/></View>
+        </View>)}
+        {orders.length>historyLimit?<Button secondary label="Show more payments" onPress={()=>setHistoryLimit(value=>value+5)}/>:null}
+      </View>:null}
+    </View>
   </Screen>;
 }
 const styles=StyleSheet.create({
-  priceRow:{flexDirection:'row',flexWrap:'wrap',alignItems:'center',gap:8},price:{fontSize:28,fontWeight:'800',color:colors.ink,flexShrink:1},originalPrice:{fontSize:15,color:colors.muted,textDecorationLine:'line-through'},
-  featuresToggle:{minHeight:44,flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:8},featureLabel:{fontSize:14,fontWeight:'600',color:colors.primary,flexShrink:1},historyRow:{gap:8,borderTopWidth:1,borderTopColor:colors.border,paddingTop:14},
+  header:{flexDirection:'row',alignItems:'center',gap:12},headerButton:{width:44,height:44,borderRadius:14,borderWidth:1,borderColor:colors.border,backgroundColor:colors.card,alignItems:'center',justifyContent:'center'},
+  copy:{flex:1,minWidth:0,gap:3},title:{fontSize:23,lineHeight:31,fontWeight:'700',color:colors.ink},caption:{fontSize:12,lineHeight:19,color:colors.muted,flexShrink:1},
+  intro:{gap:6},introTitle:{fontSize:19,lineHeight:27,fontWeight:'700',color:colors.ink},
+  hint:{flexDirection:'row',alignItems:'center',gap:7},hintText:{flex:1,minWidth:0,fontSize:12,lineHeight:20,color:colors.muted},
+  panel:{padding:16,borderRadius:20,borderWidth:1,borderColor:colors.border,backgroundColor:colors.card,gap:12},
+  sectionHeader:{flexDirection:'row',flexWrap:'wrap',alignItems:'center',gap:8},sectionTitle:{fontSize:14,lineHeight:22,fontWeight:'700',color:colors.ink,flex:1,minWidth:110},
+  sectionIcon:{width:30,height:30,borderRadius:10,backgroundColor:colors.primarySoft,alignItems:'center',justifyContent:'center'},
+  notice:{backgroundColor:'#FCF6EA',borderColor:'#E4CFA9'},message:{backgroundColor:colors.primarySoft,borderColor:'#D7D1E8'},loading:{flexDirection:'row',alignItems:'center',gap:10},
+  couponControls:{flexDirection:'row',flexWrap:'wrap',gap:10},couponInput:{flexGrow:1,flexBasis:180,minWidth:0,minHeight:50,borderWidth:1,borderColor:colors.border,borderRadius:14,paddingHorizontal:12,paddingVertical:10,fontSize:16,color:colors.ink,backgroundColor:'#FAF9F7'},couponApply:{flexGrow:1,flexBasis:80,minWidth:0},
+  couponSuccess:{flexDirection:'row',flexWrap:'wrap',alignItems:'center',gap:8,padding:10,borderRadius:12,backgroundColor:colors.greenSoft},couponCode:{fontSize:12,lineHeight:19,fontWeight:'700',color:colors.green},successText:{fontSize:12,lineHeight:19,color:colors.green},invalidCoupon:{fontSize:12,lineHeight:20,color:colors.red},
+  removeCoupon:{minHeight:44,minWidth:60,padding:8,alignItems:'center',justifyContent:'center'},removeLabel:{fontSize:12,lineHeight:20,color:colors.green,fontWeight:'600'},
+  checkoutNote:{flexDirection:'row',alignItems:'flex-start',gap:8,paddingHorizontal:4},noteText:{flex:1,minWidth:0,fontSize:11,lineHeight:18,color:colors.muted},
+  historyToggle:{minHeight:48,flexDirection:'row',alignItems:'center',gap:8},historyList:{gap:10},
+  historyRow:{flexDirection:'row',flexWrap:'wrap',alignItems:'flex-start',gap:10,paddingTop:12,borderTopWidth:StyleSheet.hairlineWidth,borderTopColor:colors.border},historyDetails:{flex:1,minWidth:130,gap:4},historyName:{fontSize:13,lineHeight:21,fontWeight:'600',color:colors.ink},historyAmount:{maxWidth:'100%',alignItems:'flex-end',gap:4},amount:{fontSize:14,lineHeight:22,fontWeight:'700',color:colors.primary},
+  pressed:{opacity:0.7},disabled:{opacity:0.5},
 });

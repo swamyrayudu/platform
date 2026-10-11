@@ -19,5 +19,5 @@ export function PracticeResume({userId}:{userId?:string}) {
     return()=>{alive=false;};
   },[userId]));
   if(!draft)return null;
-  return <Card><Heading>Continue your saved practice</Heading><Body>{draft.title} · Question {draft.index+1} of {draft.questions.length}. Your answers and time are saved.</Body><Button icon="play-outline" label="Resume practice" onPress={()=>router.push({pathname:'/exam',params:{kind:'practice',id:draft.id}})}/></Card>;
+  return <Card><Heading>Saved practice</Heading><Body>{draft.title} · Question {draft.index+1}/{draft.questions.length}</Body><Button icon="play-outline" label="Resume practice" onPress={()=>router.push({pathname:'/exam',params:{kind:'practice',id:draft.id}})}/></Card>;
 }

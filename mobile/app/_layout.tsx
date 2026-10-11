@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '@/store/auth';
 import { Loading, Screen, ErrorState } from '@/components/ui';
 import { ApiError } from '@/services/api-client';
+import { AppOpening } from '@/components/app-opening';
 const cache = new QueryClient({defaultOptions:{queries:{staleTime:30000, retry:(count,err)=>count<1 && !(err instanceof ApiError && [401,403,404,429].includes(err.status))},mutations:{retry:false}}});
 // A screen rendering failure must offer recovery instead of leaving a blank app.
 // Do not display exception details that might contain session data.
@@ -29,4 +30,4 @@ function Navigation() {
     <Stack.Screen name="auth/callback"/>
   </Stack>;
 }
-export default function Root() { return <SafeAreaProvider><QueryClientProvider client={cache}><AuthProvider><StatusBar style="dark"/><Navigation/></AuthProvider></QueryClientProvider></SafeAreaProvider>; }
+export default function Root() { return <SafeAreaProvider><QueryClientProvider client={cache}><AuthProvider><StatusBar style="dark"/><View style={{flex:1}}><Navigation/><AppOpening/></View></AuthProvider></QueryClientProvider></SafeAreaProvider>; }
