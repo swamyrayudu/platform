@@ -8,7 +8,6 @@ import { analyticsService } from '@/services/analytics-service';
 import { useAuth } from '@/store/auth';
 import { vault } from '@/services/vault';
 import type { ExamDraft } from '@/store/exam';
-import { practiceService } from '@/services/question-service';
 import { examService } from '@/services/exam-service';
 import { examDrafts } from '@/services/exam-drafts';
 import { colors, subjectStyle } from '@/utils/theme';
@@ -24,13 +23,11 @@ export default function Home() {
     let alive=true;
     void (async()=>{
       const active=await vault.read<ExamDraft>('active-exam');
-      if(active&&active.userId===user?.id){
-        const {state}=await examDrafts.load(active.userId,active.kind,active.id,async()=>({status:active.kind==='mock'?(await examService.get(active.id)).attempt.status:(await practiceService.get(active.id)).session.status}));
+      if(active?.kind==='mock'&&active.userId===user?.id){
+        const {state}=await examDrafts.load(active.userId,'mock',active.id,async()=>({status:(await examService.get(active.id)).attempt.status}));
         if(!state||state.status==='in_progress'){if(alive)setDraft(active);return;}
       }
-      const created=await vault.read<{id:string;userId:string}>('created-practice');
-      if(created?.userId===user?.id){const result=await practiceService.get(created!.id);if(alive)setDraft(result.session.status==='in_progress'?{id:created!.id,kind:'practice'}:null);}
-      else if(alive)setDraft(null);
+      if(alive)setDraft(null);
     })().catch(()=>{if(alive)setDraft(null);});
     return()=>{alive=false;};
   },[user?.id]));
@@ -38,7 +35,7 @@ export default function Home() {
   const stackedActions=factsWidth<280*Math.max(1,fontScale);
   return <Screen title="Home" pageHeader={<View style={styles.intro}><Text style={styles.eyebrow}>AP DSC / SGT</Text><Text accessibilityRole="header" style={styles.title}>Exam syllabus</Text><Text style={styles.detail}>Choose a subject to start practising.</Text></View>}
     refreshing={data.isRefetching} onRefresh={()=>void data.refetch()}>
-    {draft ? <View style={styles.resume}><Heading>Saved {draft.kind==='mock'?'mock test':'practice'}</Heading><Button icon="play-outline" label="Resume" onPress={()=>router.push({pathname:'/exam',params:{kind:draft.kind,id:draft.id}})}/></View> : null}
+    {draft ? <View style={styles.resume}><Heading>Saved mock test</Heading><Button icon="play-outline" label="Resume" onPress={()=>router.push({pathname:'/exam',params:{kind:'mock',id:draft.id}})}/></View> : null}
     {data.isPending ? <Loading/> : null}
     {data.error ? <ErrorState error={data.error} retry={()=>void data.refetch()}/> : null}
     {syllabus ? <>

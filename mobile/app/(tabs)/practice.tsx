@@ -8,7 +8,6 @@ import { TopicPicker } from '@/components/topic-picker';
 import { PracticeMediumTabs, PracticeSubjects, PracticeDataStatus } from '@/components/practice-selectors';
 import { PracticeChoices } from '@/components/practice-choices';
 import { usePracticeFilters } from '@/hooks/use-practice-filters';
-import { PracticeResume } from '@/components/practice-resume';
 import { practiceService } from '@/services/question-service';
 import { useAuth } from '@/store/auth';
 import { launchPractice } from '@/services/session-launch';
@@ -63,7 +62,6 @@ function PracticeBuilder({params}:{params:{subject?:string;topic?:string}}) {
       {exhausted&&quota.data?.reason ? <Text style={styles.hint}>{quota.data.reason}</Text> : null}
       <PracticeMediumTabs value={filter.medium} onChange={medium=>{if(medium===filter.medium)return;update({medium,subject:medium==='telugu'?'Telugu':'English',topics:[],subtopics:[],class_levels:[],difficulty:[]});setCustomTopics(false);}}/>
     </View>
-    <PracticeResume userId={user?.id}/>
     {quota.error ? <ErrorState error={quota.error} retry={()=>void quota.refetch()}/> : null}
     <PracticeSection step={1} title="Subject">
       <PracticeSubjects medium={filter.medium} selected={filter.subject} onSelect={subject=>{if(subject===filter.subject)return;update({subject,topics:[],subtopics:[],class_levels:[],difficulty:[]});setCustomTopics(false);}}/>

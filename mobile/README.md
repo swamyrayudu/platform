@@ -39,17 +39,18 @@ on short screens or with large text they move into the scrollable content. The p
 to screen width and system text size, and the exam header wraps for large text.
 Mock exams and practice have no Save & leave or End and leave buttons below the question.
 The top Back button/system back gesture opens a custom app-styled dialog offering
-Stay or Stop timer & save. Submit uses the same dialog with Keep working / Submit.
+Stay or Stop timer & save for mock tests, and Stay or Finish & leave for practice.
+Submit uses the same dialog with Keep working / Submit.
 The timer pauses as either dialog opens; Stay, Keep working or Android Back
 resumes it without counting time spent in the dialog. Confirming keeps it paused
 through saving or submitting, including app switching. Stop timer & save saves and syncs answers, pauses
-the paper, then returns directly to Mock Tests or Practice. Failed saves keep the exam open
-and resume its timer. By user preference, practice is saved for resume instead of
-being ended on exit. Practice's timer and position are retained in the encrypted
-local draft; its existing answer endpoint saves pending answers. No new backend
-pause endpoint is introduced. The practice setup offers Resume practice.
-Answer saving, resume and server grading retain the existing backend rules.
-Failed saves keep the exam open and resume the timer; a failed final submission
+the paper, then returns directly to Mock Tests. Failed mock saves keep the exam open
+and resume its timer. Practice Finish & leave syncs pending answers and completes
+server grading before returning to Practice. Practice has no Resume button on
+Home or its setup page. Failed practice completion retains encrypted answers and
+submission intent with its timer stopped; Retry finishes the same practice.
+Answer saving and server grading retain the existing backend rules.
+A failed final submission
 keeps its saved submission intent and stopped timer for Retry submission on Results.
 
 Confirming Submit opens the Results route immediately. The page first shows
@@ -305,7 +306,7 @@ server session, then clears tokens, encrypted local drafts and query cache.
 Home centers on the exam syllabus: actual question count, marks and duration,
 one Practice/Mock Tests action pair and a compact list of the backend's sections
 with their question/mark split. Known sections open the existing practice subject;
-unknown sections remain visible without inventing a practice choice. Saved exam
+unknown sections remain visible without inventing a practice choice. Saved mock
 resume remains available. Motivational/promotional panels, repeated route links,
 progress statistics and module journey are removed from Home. Progress, History,
 Profile and Plans remain available through their existing navigation.
@@ -372,6 +373,12 @@ not block another module or the other medium: encrypted drafts are kept per
 user, exam kind and server attempt ID. The installed app's old single draft is
 migrated without discarding queued answers. Home offers the most recently opened
 exam; earlier mock attempts remain available through their library cards.
+Saved mock tests do not block starting practice. Before practice creation, any
+legacy Home-only mock is archived with its answers, pending sync and timer.
+An older saved practice or an interrupted creation is completed before starting
+a new practice. Queued answers are synced first; completion failures prevent
+duplicate creation and preserve the draft for retry. No mock is ended to make
+room for practice.
 Opening a saved exam checks server status first, so submitted papers open results
 and ended attempts cannot be resumed. A network-only failure can still resume a
 cached draft; authentication failures do not bypass the server check.

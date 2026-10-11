@@ -17,7 +17,6 @@ for (const [name, path] of [
   ['Practice', '../app/(tabs)/practice.tsx'],
   ['Practice selectors', '../components/practice-selectors.tsx'],
   ['Practice choices', '../components/practice-choices.tsx'],
-  ['Practice resume', '../components/practice-resume.tsx'],
   ['Topic picker', '../components/topic-picker.tsx'],
   ['Mock start', '../app/mock/[id].tsx'],
   ['Exam', '../components/exam-screen.tsx'],

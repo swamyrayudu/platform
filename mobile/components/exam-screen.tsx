@@ -96,7 +96,8 @@ export default function Exam() {
     <KeyboardAvoidingView style={styles.body} behavior={Platform.OS==='ios'?'padding':undefined}>
     <ScrollView ref={scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={[styles.content,{padding:layout.padding,paddingBottom:20}]}>
       {exam.loading ? <Loading/> : null}
-      {exam.error ? <ErrorState error={exam.error} retry={d?()=>void exam.sync():exam.retry}/> : null}
+      {d?.kind==='practice'&&d.submitIntent&&exam.busy ? <Body>Finishing practice…</Body> : null}
+      {exam.error ? <ErrorState error={exam.error} retry={d?()=>void (d.kind==='practice'&&d.submitIntent?leaveExam():exam.sync()):exam.retry}/> : null}
       {d&&q ? <View key={q.key} style={styles.questionContent}>
         <View style={styles.progress}><Text style={styles.progressText}>{counts!.answered}/{counts!.all} answered{Object.keys(d.pending).length?` · ${Object.keys(d.pending).length} syncing`:''}</Text><Bar value={100*counts!.answered/Math.max(1,d.questions.length)}/></View>
         <Text accessibilityRole="header" style={styles.testTitle}>{d.title}</Text>
@@ -120,7 +121,7 @@ export default function Exam() {
               <Ionicons name="refresh-outline" size={17} color={colors.muted}/><Text style={[styles.actionText,{color:colors.muted}]}>Clear</Text>
             </Pressable>
           </View>
-          {d.feedbackMode==='instant'&&exam.busy&&a?.option&&!d.feedback[q.key] ? <Body>Checking your answer…</Body> : null}
+          {d.feedbackMode==='instant'&&!d.submitIntent&&exam.busy&&a?.option&&!d.feedback[q.key] ? <Body>Checking your answer…</Body> : null}
           {d.feedbackMode==='instant'&&d.feedback[q.key] ? <Card gold><Heading>{d.feedback[q.key].is_correct?'Correct!':'Keep learning'}</Heading><Body>Correct answer: {d.feedback[q.key].correct_answer}</Body><Body>{d.feedback[q.key].explanation||'No explanation is available for this question.'}</Body></Card> : null}
         </View>
         <ReportQuestion uid={q.uid} question={q.question} source={d.kind==='mock'?'mock_exam':'practice_exam'} testId={d.testId}/>
@@ -133,12 +134,12 @@ export default function Exam() {
     </KeyboardAvoidingView>
     {paletteOpen&&d ? <QuestionPalette questions={d.questions} answers={d.answers} index={d.index} disabled={exam.busy||!!exam.exitDestination} onClose={closePalette} onJump={move}/> : null}
     {confirmation ? <AlertDialog
-      title={confirmation==='leave'?'Save and leave?':'Submit test?'}
+      title={confirmation==='leave'?(d?.kind==='practice'?'Finish practice?':'Save and leave?'):'Submit test?'}
       notice="Timer paused"
-      description={confirmation==='leave'?`Save your answers and return to ${d?.kind==='mock'?'Mock Tests':'Practice'}. Resume later.`:`${counts?.answered??0} of ${counts?.all??0} answered · ${counts?.unanswered??0} left. Finish and view results?`}
-      icon={confirmation==='leave'?'pause-outline':'checkmark-done-outline'}
+      description={confirmation==='leave'?(d?.kind==='practice'?'Finish and score your answers, then return to Practice. This practice will be completed.':'Save your answers and return to Mock Tests. Resume later.'):`${counts?.answered??0} of ${counts?.all??0} answered · ${counts?.unanswered??0} left. Finish and view results?`}
+      icon={confirmation==='leave'&&d?.kind==='mock'?'pause-outline':'checkmark-done-outline'}
       cancelLabel={confirmation==='leave'?'Stay':'Keep working'}
-      confirmLabel={confirmation==='leave'?'Stop timer & save':'Submit'}
+      confirmLabel={confirmation==='leave'?(d?.kind==='practice'?'Finish & leave':'Stop timer & save'):'Submit'}
       onCancel={cancelConfirmation} onConfirm={confirmAction}/>:null}
   </SafeAreaView>;
 }

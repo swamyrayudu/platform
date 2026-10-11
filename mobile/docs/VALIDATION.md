@@ -1,5 +1,53 @@
 # Google sign-in investigation — 10 October 2026
 
+## Practice completes on Back — 11 October 2026
+
+This supersedes the earlier practice save/resume preference below. Practice no
+longer offers Resume on Home or the practice setup. Header Back and system Back
+use Stay / Finish & leave. Confirming stops the timer, persists and syncs queued
+answers, submits through the existing backend and returns to Practice only after
+successful completion. Errors retain the answers and submission intent with the
+timer stopped for retry. Normal Submit still opens Results immediately.
+
+Older saved or interrupted practices are reconciled and completed before a new
+practice is created. Already completed/abandoned sessions are cleared safely;
+mock drafts, pending answers, timers and save/resume behavior are preserved.
+
+- TypeScript, full ESLint and all **157 tests passed** on Node 24.19.0.
+- Tests execute the hook callbacks and launcher using real journal/submission
+  and scoped draft logic. Coverage includes slow saves, duplicate Back, failed
+  sync, lost completion responses, account isolation and legacy session cleanup.
+- Android Hermes export passed (1,454 modules, 3.6 MB) in
+  `dist/practice-complete-export`.
+- No website/backend, native configuration or dependency changes. No EAS update
+  or APK has been published, and the phone flow has not been tested here.
+- Phone check: answer practice questions, Back, Stay, then Back / Finish & leave.
+  Verify its completed result in Progress and no practice Resume card. Test an
+  offline completion retry, then confirm a saved mock still resumes correctly.
+
+## Practice beside a saved mock — 11 October 2026
+
+The reproduced error came from `launchPractice` treating any same-user
+`active-exam` draft as a practice creation lock. It now blocks only an unfinished
+practice, and archives a legacy mock draft before allowing practice creation.
+Mock answers, pending revisions and elapsed time remain stored under their
+original attempt ID. The practice Resume card also finds its creation marker
+and scoped draft when the Home shortcut points to a mock. Existing practice
+creation/duplicate protection and server permissions remain unchanged.
+
+- TypeScript, full ESLint and all **152 tests passed** on Node 24.19.0.
+- Nine new cases execute the actual launcher/resume helper against the real
+  scoped draft store with isolated storage/API ports. They verify mock survival
+  through practice completion, independent practice resume, completed creation
+  markers, user isolation, storage failure and concurrent Start taps.
+- Android Hermes export passed: 1,455 modules, 3.6 MB bundle
+  `entry-28ede4b52795d9a2c38558b58db08abd.hbc` in
+  `dist/practice-mock-resume-export`.
+- Website/backend and native configuration/dependencies were not changed.
+  This JavaScript change has not been published as an EAS update or APK. On-phone
+  verification should save/leave a mock, start/complete practice, then resume
+  that mock from its library card and confirm its answers and paused timer.
+
 ## In-app updates — 11 October 2026
 
 - Installed `expo-updates ~57.0.25` using Expo's SDK 57 dependency installer.

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Href } from 'expo-router';
 import { useAuth } from '@/store/auth';
 import { elapsedSeconds, type ExamJournal, type ExamDraft, type ExamKind } from '@/store/exam';
@@ -12,6 +13,7 @@ import { pauseExamClock, pausedQuestionTime, resumeExamClock, type ExamClock } f
 import { createExamJournal } from '@/services/exam-journal';
 import { examSubmission } from '@/services/exam-submission';
 export function useExam(kind: ExamKind, id: string) {
+  const cache=useQueryClient();
   const {user}=useAuth();const journal=useRef<ExamJournal|undefined>(undefined);
   const clock=useRef<ExamClock>({base:0,resumedAt:Date.now(),running:true});const questionTime=useRef(Date.now());
   const confirmationOpen=useRef(false);
@@ -84,7 +86,7 @@ export function useExam(kind: ExamKind, id: string) {
         await loaded.persist();
         if(cancelled)return;
         journal.current=loaded;
-        if(kind==='practice') await vault.remove('created-practice');
+        if(kind==='practice') await vault.write('created-practice',{id,userId:user.id});
         publish();
       }catch(e){if(!cancelled)setError(e);}finally{if(!cancelled)setLoading(false);}
     }
@@ -148,7 +150,11 @@ export function useExam(kind: ExamKind, id: string) {
     // Retain the confirmation's paused time while waiting for saves and sync.
     clock.current=pauseExamClock(clock.current,j.draft.duration,Date.now());checkpoint();
     try{
-      await j.prepareLeave(abandon,{
+      if(kind==='practice'&&!abandon){
+        j.draft.submitIntent=true;publish();
+        await examSubmission.run(j.draft.userId,kind,id,j);
+        void cache.invalidateQueries({predicate:query=>['overview','performance','history','quota','weak'].includes(String(query.queryKey[0])),refetchType:'none'}).catch(()=>{});
+      }else await j.prepareLeave(abandon,{
         abandon:()=>kind==='practice'?practiceService.abandon(id):examService.abandon(id),
         clear:()=>examDrafts.clear(j.draft.userId,kind,id),
         pause:elapsed=>examService.pause(id,elapsed),
@@ -156,9 +162,9 @@ export function useExam(kind: ExamKind, id: string) {
       journal.current=undefined;
       setExitDestination(kind==='mock'?'/(tabs)/mocks':'/(tabs)/practice');
     }catch(e){
-      resumeClock();
+      if(!j.draft.submitIntent)resumeClock();
       setError(e);
     }finally{finishing.current=false;setBusy(false);}
-  },[checkpoint,kind,id,resumeClock]);
+  },[checkpoint,kind,id,resumeClock,publish,cache]);
   return {draft,error,busy,loading,exitDestination,select,sync,submit,move,leave,pauseForConfirmation,endConfirmation,retry:()=>setReload(x=>x+1)};
 }
