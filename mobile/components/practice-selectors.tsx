@@ -4,7 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, subjectStyle } from '@/utils/theme';
 import { pageLayout } from '@/utils/layout';
 import type { PracticeMedium } from '@/types/practice';
-import { PRACTICE_SUBJECTS } from '@/utils/practice-subjects';
+import { hasSubjectMethodology, methodologyLabel, PRACTICE_SUBJECTS } from '@/utils/practice-subjects';
 import { PracticeChoices } from './practice-choices';
 
 export function PracticeMediumTabs({value,onChange}:{value:PracticeMedium;onChange:(medium:PracticeMedium)=>void}) {
@@ -16,7 +16,7 @@ export function PracticeMediumTabs({value,onChange}:{value:PracticeMedium;onChan
 export function PracticeSubjects({medium='english',selected,onSelect}:{medium?:PracticeMedium;selected:string;onSelect:(subject:string)=>void}) {
   const {width,height,fontScale}=useWindowDimensions();const insets=useSafeAreaInsets();
   const {subjectColumns}=pageLayout(width-insets.left-insets.right,height,fontScale);
-  return <PracticeChoices columns={subjectColumns} items={PRACTICE_SUBJECTS.map(subject=>({...subjectStyle(subject.name),value:subject.name,label:medium==='telugu'?subject.teluguName:subject.name}))} selected={selected} onSelect={onSelect}/>;
+  return <PracticeChoices columns={subjectColumns} items={PRACTICE_SUBJECTS.map(subject=>({...subjectStyle(subject.name),value:subject.name,label:medium==='telugu'?subject.teluguName:subject.name,detail:hasSubjectMethodology(subject.name)?methodologyLabel(medium):undefined}))} selected={selected} onSelect={onSelect}/>;
 }
 export function PracticeDataStatus({checking,count}:{checking:boolean;count?:number}) {
   return <View accessibilityLiveRegion="polite" style={styles.dataStatus}>{checking?<ActivityIndicator size="small" color={colors.primary}/>:null}<Text style={styles.statusText}>{checking?'Checking questions…':count!==undefined?`${count} questions available`:'Choose a subject.'}</Text></View>;

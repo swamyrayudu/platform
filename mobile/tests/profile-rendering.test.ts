@@ -7,6 +7,8 @@ import ts from 'typescript';
 // Check the compiled JSX, because even a single inline JSX space is a text
 // child at runtime. React Native View/Card cannot render that child.
 for (const [name, path] of [
+  ['Home', '../app/(tabs)/index.tsx'],
+  ['Sign in', '../app/login.tsx'],
   ['Profile', '../app/(tabs)/profile.tsx'],
   ['Plans', '../app/subscription.tsx'],
   ['Plan card', '../components/subscription-plan-card.tsx'],
@@ -25,6 +27,9 @@ for (const [name, path] of [
   ['Result summary', '../components/result-summary.tsx'],
   ['Answer review', '../components/question-review-card.tsx'],
   ['Review controls', '../components/review-controls.tsx'],
+  ['Progress', '../app/(tabs)/performance.tsx'],
+  ['Progress overview', '../components/progress-overview.tsx'],
+  ['Performance chart', '../components/performance-chart.tsx'],
 ] as const) {
 test(name + ' containers do not receive literal text children, including inline JSX spaces', () => {
   const source = readFileSync(new URL(path, import.meta.url), 'utf8');

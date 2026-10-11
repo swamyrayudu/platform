@@ -80,6 +80,13 @@ raw text inside native View containers and repeated nested card padding.
 
 ## Responsive navigation and practice
 
+The sign-in landing page uses the existing RSD logo, one Google-only sign-in
+card, a short About this app paragraph and compact Terms/Privacy links. Large
+promotional headings and statistic cards are removed. Sign-in still uses the
+existing auth provider and browser callback bridge, with progress, cancellation,
+errors and the active-device notice. Duplicate button taps are guarded; short
+screens and larger text scroll within a safe-area layout.
+
 The app uses the website's four bottom tabs: Home, Practice, Mock Tests and
 Progress. The shared DSC / SGT header opens Profile and Plans/Manage. Practice
 and mock-test Pro access prompts go directly to Plans. Current subscription
@@ -294,6 +301,31 @@ clear credentials. Transient network errors preserve them. Logout revokes the
 server session, then clears tokens, encrypted local drafts and query cache.
 
 ## Student features
+
+Home centers on the exam syllabus: actual question count, marks and duration,
+one Practice/Mock Tests action pair and a compact list of the backend's sections
+with their question/mark split. Known sections open the existing practice subject;
+unknown sections remain visible without inventing a practice choice. Saved exam
+resume remains available. Motivational/promotional panels, repeated route links,
+progress statistics and module journey are removed from Home. Progress, History,
+Profile and Plans remain available through their existing navigation.
+
+Home and Practice mark Telugu, English, Mathematics, Science and Social Studies
+as Content + Methodology, matching the existing AP SGT blueprint. In Telugu
+practice medium the label and brief teaching-methods explanation are Telugu.
+Methodology is part of these subjects, not an eighth practice subject or extra
+exam marks. Existing topic selection, access rules and question loading remain.
+
+Progress uses an overall performance pie chart, two compact activity counts and
+subject bars showing correct/recorded questions. Green means correct; gold means
+wrong or skipped, because the existing analytics includes all questions from
+submitted mock sections. The chart uses exact subject counts rather than an
+average of subject percentages. Empty history shows a start action, not a zero
+score chart. Next practice links one real subject/topic into the existing setup;
+three recent mocks link to results, and full history remains available. Practice
+accuracy changes are labelled in percentage points. Progress refreshes when its
+tab opens and supports pull-to-refresh. Charts use native Views with no additional
+native dependencies or APK rebuild.
 
 The mobile controls use the website's Bloom colours and subject styling. Practice
 follows four numbered steps, with topic search and a responsive Start button. Subjects,

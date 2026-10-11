@@ -13,7 +13,7 @@ import { practiceService } from '@/services/question-service';
 import { useAuth } from '@/store/auth';
 import { launchPractice } from '@/services/session-launch';
 import { colors } from '@/utils/theme';
-import { websitePracticeSubject } from '@/utils/practice-subjects';
+import { hasSubjectMethodology, websitePracticeSubject } from '@/utils/practice-subjects';
 import type { PracticeFilterState, PracticeMode } from '@/types/practice';
 const modes: {value:PracticeMode;label:string;description:string;icon:'flash-outline'|'shuffle-outline'|'locate-outline'|'refresh-outline'|'sparkles-outline'}[]=[
   {value:'balanced',label:'Balanced',description:'Mix topics and difficulty.',icon:'flash-outline'},
@@ -71,6 +71,7 @@ function PracticeBuilder({params}:{params:{subject?:string;topic?:string}}) {
       {options.ready&&data?.total_matching_questions===0?<Body color={colors.red}>Try another subject, medium or filter.</Body>:null}
     </PracticeSection>
     <PracticeSection step={2} title="Topics">
+      {hasSubjectMethodology(filter.subject)?<Text style={styles.methodologyHint}>{filter.medium==='telugu'?'మెథడాలజీ అంటే ఈ విషయాన్ని బోధించే పద్ధతులు.':'Methodology means teaching methods for this subject.'}</Text>:null}
       <PracticeChoices compact columns={2} items={[{value:'all',label:'All topics'},{value:'custom',label:premium?'Choose topics':'Choose topics · Pro',accent:premium?undefined:'gold'}]} selected={premium&&customTopics?'custom':'all'} onSelect={value=>{if(value==='custom'&&!premium){router.push('/subscription');return;}setCustomTopics(value==='custom');if(value==='all')update({topics:[],subtopics:[]});}}/>
       {premium&&customTopics ? data?<TopicPicker key={`${filter.medium}:${filter.subject}`} topics={data.available_topics} selected={filter.topics} onToggle={topic=>toggle('topics',topic)} scope={`${filter.medium}:${filter.subject}:${filter.class_levels.join(',')}`}/>:<Text style={styles.hint}>Loading topics…</Text> : null}
     </PracticeSection>
@@ -131,4 +132,5 @@ const styles=StyleSheet.create({
   label:{fontSize:13,lineHeight:20,fontWeight:'600',color:colors.ink},hint:{fontSize:12,lineHeight:19,color:colors.muted},options:{gap:12},
   switchRow:{flexDirection:'row',alignItems:'center',gap:12,paddingTop:12,borderTopWidth:1,borderTopColor:colors.border},switchCopy:{flex:1,minWidth:0,gap:3},flex:{flex:1,minWidth:0},
   disclosure:{minHeight:44,flexDirection:'row',alignItems:'center',gap:8,paddingVertical:4},pressed:{opacity:.7},
+  methodologyHint:{fontSize:12,lineHeight:20,color:'#805717',backgroundColor:'#FCF4E6',padding:10,borderRadius:12},
 });

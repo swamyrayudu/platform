@@ -25,3 +25,14 @@ export function websitePracticeSubject(value:string|undefined):PracticeSubject|n
   return PRACTICE_SUBJECTS.find(subject=>subject.name.toLowerCase()===key||subject.teluguName.toLowerCase()===key)?.name
     ?? (Object.hasOwn(aliases,key)?aliases[key]:null);
 }
+
+// The existing AP SGT blueprint includes methodology within these sections;
+// it is not an additional practice subject or an extra set of exam marks.
+const methodologySubjects=new Set<PracticeSubject>(['English','Telugu','Mathematics','Science','Social Studies']);
+export function hasSubjectMethodology(value:string|undefined) {
+  const subject=websitePracticeSubject(value);
+  return subject!==null&&methodologySubjects.has(subject);
+}
+export function methodologyLabel(medium:'english'|'telugu'='english') {
+  return medium==='telugu'?'విషయ జ్ఞానం + మెథడాలజీ':'Content + Methodology';
+}

@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, View, Text } from 'react-native';
+import { Pressable, StyleSheet, View, Text, useWindowDimensions } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Screen, Card, Heading, Body, Button, Stats, Loading, ErrorState, Bar, Badge, ChoiceRow, SectionHeading, s } from '@/components/ui';
+import { Screen, Card, Heading, Button, Loading, ErrorState } from '@/components/ui';
 import { analyticsService } from '@/services/analytics-service';
 import { useAuth } from '@/store/auth';
 import { vault } from '@/services/vault';
@@ -12,9 +12,13 @@ import { practiceService } from '@/services/question-service';
 import { examService } from '@/services/exam-service';
 import { examDrafts } from '@/services/exam-drafts';
 import { colors, subjectStyle } from '@/utils/theme';
+import { resultCountLayout } from '@/utils/layout';
+import { hasSubjectMethodology, methodologyLabel, websitePracticeSubject } from '@/utils/practice-subjects';
 const sectionSubjects: Record<string,string>={gk:'GK & Current Affairs',perspectives:'Educational Psychology + Perspectives in Education',psychology:'Educational Psychology + Perspectives in Education',telugu:'Telugu',english:'English',mathematics:'Mathematics',science:'Science',social:'Social Studies'};
 export default function Home() {
   const {user}=useAuth(); const data=useQuery({queryKey:['overview'],queryFn:analyticsService.overview});
+  const {fontScale}=useWindowDimensions();const [factsWidth,setFactsWidth]=useState(0);
+  const facts=resultCountLayout(factsWidth,fontScale);
   const [draft,setDraft]=useState<Pick<ExamDraft,'id'|'kind'>|null>(null);
   useFocusEffect(useCallback(()=>{
     let alive=true;
@@ -30,32 +34,40 @@ export default function Home() {
     })().catch(()=>{if(alive)setDraft(null);});
     return()=>{alive=false;};
   },[user?.id]));
-  const summary=data.data?.summary; const syllabus=data.data?.syllabus;
-  return <Screen title={`Namaste, ${user?.name?.split(' ')[0] || 'Candidate'}!`} subtitle="Ready to crack DSC / SGT? Let's make today count."
-    action={<Pressable accessibilityRole="button" accessibilityLabel="Open your profile" onPress={()=>router.push('/profile')} style={s.iconBox}><Ionicons name="person-outline" size={22} color={colors.primary}/></Pressable>}
+  const syllabus=data.data?.syllabus;
+  const stackedActions=factsWidth<280*Math.max(1,fontScale);
+  return <Screen title="Home" pageHeader={<View style={styles.intro}><Text style={styles.eyebrow}>AP DSC / SGT</Text><Text accessibilityRole="header" style={styles.title}>Exam syllabus</Text><Text style={styles.detail}>Choose a subject to start practising.</Text></View>}
     refreshing={data.isRefetching} onRefresh={()=>void data.refetch()}>
-    <View style={{padding:22,borderRadius:28,borderWidth:1,borderColor:'#D6D1E5',backgroundColor:colors.primarySoft,gap:16}}>
-      <Badge label="AP DSC / SGT PREPARATION"/>
-      <Text style={{fontSize:25,lineHeight:33,fontWeight:'800',color:colors.primary}}>Learn a little.{'\n'}Grow every day.</Text>
-      <Body>Chapter-wise practice, clear explanations and full-length mock exams. Your next step starts here.</Body>
-      <Button icon="book-outline" label="Continue practice" onPress={()=>router.push('/practice')}/>
-      <Button secondary icon="timer-outline" label="Explore mock tests" onPress={()=>router.push('/mocks')}/>
-    </View>
-    {draft ? <Card gold><Badge label="PICK UP WHERE YOU LEFT OFF" color={colors.gold}/><Heading>Continue your {draft.kind==='mock'?'mock exam':'practice'}</Heading><Body>Your answers are saved on this device.</Body><Button icon="play-outline" label={draft.kind==='mock'?'Resume paper':'Resume practice'} onPress={()=>router.push({pathname:'/exam',params:{kind:draft.kind,id:draft.id}})}/></Card> : null}
-    {data.isLoading ? <Loading/> : data.error ? <ErrorState error={data.error} retry={()=>void data.refetch()}/> : summary ? <>
-      <SectionHeading title="Your preparation at a glance"/>
-      <Stats items={[{label:'Questions solved',value:summary.questions_solved},{label:'Average accuracy',value:`${summary.avg_accuracy_pct}%`},{label:'Study streak',value:`${summary.study_streak_days} days`},{label:'Modules done',value:`${summary.modules_completed}/${summary.modules_total}`}]}/>
-      <Card><View style={s.between}><Heading>Your module journey</Heading><Badge label={`${summary.modules_completed}/${summary.modules_total}`}/></View><Bar value={100*summary.modules_completed/Math.max(1,summary.modules_total)}/><Body>{summary.modules_in_progress} modules in progress</Body></Card>
-    </> : null}
-    <SectionHeading title="Core learning modules" detail="Everything you need for your next step."/>
-    <ChoiceRow title="Smart practice" detail="Choose a subject, focus on topics, learn from each answer." icon="book-outline" color="#4F8B81" onPress={()=>router.push('/practice')}/>
-    <ChoiceRow title="Grand mock exams" detail="Timed papers that follow the official exam structure." icon="timer-outline" color="#8B7FD0" onPress={()=>router.push('/mocks')}/>
-    <ChoiceRow title="Performance & progress" detail="Discover strengths and the topics to practise next." icon="stats-chart-outline" color="#5878B8" onPress={()=>router.push('/performance')}/>
-    <ChoiceRow title="Attempt history" detail="Revisit your answers and explanations." icon="time-outline" color="#BD7F52" onPress={()=>router.push('/history')}/>
+    {draft ? <View style={styles.resume}><Heading>Saved {draft.kind==='mock'?'mock test':'practice'}</Heading><Button icon="play-outline" label="Resume" onPress={()=>router.push({pathname:'/exam',params:{kind:draft.kind,id:draft.id}})}/></View> : null}
+    {data.isPending ? <Loading/> : null}
+    {data.error ? <ErrorState error={data.error} retry={()=>void data.refetch()}/> : null}
     {syllabus ? <>
-      <SectionHeading title="Explore the syllabus" detail={`${syllabus.total_questions} questions · ${syllabus.total_marks} marks · ${syllabus.duration_minutes} minutes`}/>
-      {syllabus.sections.map(section=>{const subject=sectionSubjects[section.id]||section.name;const style=subjectStyle(subject);return <ChoiceRow key={section.id} title={section.name} detail={`${style.tag} · ${section.questions} questions · ${section.marks} marks`} icon={style.icon} color={style.color} onPress={()=>router.push({pathname:'/practice',params:{subject}})}/>;})}
+      <View style={styles.facts} onLayout={event=>setFactsWidth(event.nativeEvent.layout.width)}>
+        {[{label:'Questions',value:syllabus.total_questions},{label:'Marks',value:syllabus.total_marks},{label:'Minutes',value:syllabus.duration_minutes}].map(item=><View key={item.label} style={[styles.fact,factsWidth?{width:facts.itemWidth}:styles.unmeasured]}><Text style={styles.factValue}>{item.value}</Text><Text style={styles.factLabel}>{item.label}</Text></View>)}
+      </View>
     </> : null}
-    <Card gold><Badge label={user?.accountType==='PREMIUM'?'DSC PRO':'GO FURTHER WITH DSC PRO'} color={colors.gold}/><Heading>Make your preparation count.</Heading><Body>View plans and the practice features available to your account.</Body><Button secondary label="View plans" onPress={()=>router.push('/subscription')}/></Card>
+    <View style={[styles.actions,{flexDirection:stackedActions?'column':'row'}]}>
+      <View style={[styles.action,stackedActions&&styles.stackedAction]}><Button icon="book-outline" label="Practice" onPress={()=>router.push('/practice')}/></View>
+      <View style={[styles.action,stackedActions&&styles.stackedAction]}><Button secondary icon="timer-outline" label="Mock Tests" onPress={()=>router.push('/mocks')}/></View>
+    </View>
+    {syllabus ? <Card>
+      <Heading>Subjects</Heading>
+      {syllabus.sections.length===0 ? <Text style={styles.detail}>Subjects will appear when the syllabus is available.</Text> : null}
+      {syllabus.sections.map(section=>{
+        const subject=Object.hasOwn(sectionSubjects,section.id)?sectionSubjects[section.id]:websitePracticeSubject(section.name);
+        const style=subjectStyle(section.name);
+        const methodology=hasSubjectMethodology(subject??undefined);
+        const content=<><View style={[styles.icon,{backgroundColor:style.color+'15'}]}><Ionicons name={style.icon} size={19} color={style.color}/></View><View style={styles.subjectText}><Text style={styles.subjectName}>{section.name}</Text><Text style={styles.detail}>{section.questions} questions · {section.marks} marks</Text>{methodology?<Text style={styles.methodology}>{methodologyLabel()}</Text>:null}</View>{subject?<Ionicons name="chevron-forward" size={18} color={colors.muted}/>:null}</>;
+        return subject?<Pressable key={section.id} accessibilityRole="button" accessibilityLabel={`${section.name}, ${section.questions} questions, ${section.marks} marks.${methodology?' Content and methodology.':''} Open practice`} onPress={()=>router.push({pathname:'/practice',params:{subject}})} style={({pressed})=>[styles.subject,pressed&&{opacity:.7}]}>{content}</Pressable>:<View key={section.id} style={styles.subject}>{content}</View>;
+      })}
+    </Card> : null}
   </Screen>;
 }
+const styles=StyleSheet.create({
+  intro:{gap:5},eyebrow:{fontSize:11,lineHeight:18,fontWeight:'700',letterSpacing:.8,color:colors.gold},title:{fontSize:26,lineHeight:35,fontWeight:'800',color:colors.ink},detail:{fontSize:12,lineHeight:20,color:colors.muted},
+  resume:{padding:14,gap:10,borderRadius:18,borderWidth:1,borderColor:'#E4CFA9',backgroundColor:'#FAF5EB'},
+  facts:{flexDirection:'row',flexWrap:'wrap',gap:8},fact:{minWidth:0,paddingHorizontal:8,paddingVertical:12,gap:3,alignItems:'center',borderRadius:14,backgroundColor:colors.primarySoft},unmeasured:{flex:1},factValue:{fontSize:24,lineHeight:33,fontWeight:'800',color:colors.primary},factLabel:{fontSize:12,lineHeight:19,fontWeight:'500',color:colors.muted,textAlign:'center'},
+  actions:{gap:10},action:{flex:1,minWidth:0},stackedAction:{flex:0},
+  subject:{minHeight:68,paddingVertical:12,flexDirection:'row',alignItems:'center',gap:10,borderTopWidth:1,borderTopColor:colors.border},icon:{width:34,height:34,borderRadius:11,alignItems:'center',justifyContent:'center'},subjectText:{flex:1,minWidth:0,gap:3},subjectName:{fontSize:14,lineHeight:23,fontWeight:'600',color:colors.ink},
+  methodology:{fontSize:11,lineHeight:18,fontWeight:'600',color:colors.gold},
+});

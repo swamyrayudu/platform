@@ -959,3 +959,118 @@ compatible upstream patches as available.
   development app; review a submitted 160-question paper, select each subject,
   combine verdict filters, use both pagers, expand answers, refresh the result
   and check larger text/landscape. Changes are local; no APK rebuild required.
+
+## October 11, 2026 — simpler visual Progress page
+
+- Replaced the six large metric cards, nested subject cards, duplicated weak-area
+  lists and dense recent-attempt buttons with one performance pie chart, two equal
+  activity tiles, compact coloured subject bars, one Next practice action and
+  three recent mock results. Full history and result ranking remain accessible
+  from their existing routes. Empty history shows start actions and no fake chart.
+- Inspected the analytics calculation: subject totals combine practice attempts
+  and entire submitted mock sections. The pie uses exact summed correct/total
+  counts, not averaged or rounded subject percentages; its remaining slice is
+  explicitly Wrong or skipped. The note explains that skipped mock questions are
+  included. Recorded question count includes repeated attempts and is not called
+  unique questions or syllabus completion. Average mock score remains marks;
+  practice-only accuracy change is labelled points versus earlier practice.
+- The two-slice pie uses two clipped rotating native half-discs, a fixed number
+  of View layers and a center label, with a spoken chart summary. No chart library, native
+  module, WebView or chart animation was added. The chart/legend stack when room
+  is insufficient; measured equal activity tiles become full-width with larger
+  text. Subject names, questions and test titles wrap without fixed text heights.
+- Next practice chooses the server's weakest usable subject and a matching real
+  topic, retaining the existing practice setup and subscription gating. Analytics
+  subject aliases map to website choices; unknown subjects have no invented
+  practice link. Progress refreshes both existing queries on tab focus and pull
+  to refresh, sharing pending requests, so revisiting after submission reloads
+  current results. Loading, errors, suggestions retry and result links remain.
+- Tests check weighted totals, zero/complete/empty data, every sampled pie angle
+  across small and large percentages, original source ordering, focus matching,
+  existing-subject routing and small/large-text layout bounds. New native JSX
+  containers are checked for literal text children. React hooks, accessibility,
+  conditional rendering and error handling reviewed.
+- TypeScript, full mobile ESLint with zero warnings, all 130 tests (new progress/native tests also rerun after final
+  edits), and Android Hermes export passed at dist/progress-visual-export
+  (1,444 modules, 3.6 MB). No website/backend/native configuration edits.
+- Physical-phone layout, screen-reader behavior and authenticated fresh totals
+  remain untested. Reload the development app; check empty history, a completed
+  mock with skipped questions, practice, refocusing after submit, offline retry,
+  subject practice links, recent results, larger text and landscape. Changes are
+  local; no APK rebuild is required.
+
+## October 11, 2026 — syllabus-focused Home
+
+- Home now has a short Exam syllabus introduction, three equal question/marks/
+  duration tiles, one Practice/Mock Tests action pair, and one compact section
+  list. Names, counts, marks and order come from the existing overview response;
+  no exam totals are hard-coded in the page. Known section links keep the
+  website's practice groups, including the shared education subject; unknown
+  sections stay visible without creating an unsupported practice choice.
+- Removed the large motivational hero, repeated core-module links, four progress
+  statistics, module-journey panel, duplicate profile button and Pro promotional
+  footer. Existing tab/header navigation still exposes Progress, Profile and
+  Plans; attempt history remains available from Progress. Saved-exam lookup,
+  user scoping and resume are unchanged and have a compact conditional panel.
+- Exam facts use the existing tested equal-width layout and stack for larger
+  text. Action buttons stack when space is limited; subject names/counts wrap,
+  with 68-point minimum touch rows. The page keeps one native ScrollView for the
+  small syllabus list. Loading, pull-to-refresh and error retry remain available.
+- TypeScript, full mobile ESLint with zero warnings, all 131 tests (including
+  Home native text-container coverage), and Android Hermes export passed at
+  dist/home-syllabus-export (1,444 modules, 3.6 MB). Reviewed native children,
+  accessibility, wrapping, section links and unchanged resume lifecycle.
+- Phone appearance and authenticated taps remain untested. Reload and check
+  syllabus counts/section links, both actions, saved practice/mock resume, error
+  retry, smaller screens and larger text. Changes are local; no native dependency,
+  website/backend changes or APK rebuild.
+
+## October 11, 2026 — methodology shown in syllabus and Practice
+
+- Checked the project's existing AP SGT blueprint and subject/question metadata.
+  Home's Telugu, English, Mathematics, Science and Social Studies rows now show
+  Content + Methodology. Practice uses the same inclusion rule and adds that
+  detail to the existing five subject choices; Telugu medium uses Telugu wording.
+  The selected subject's Topics card briefly explains methodology as teaching
+  methods. Existing topic picker and subscription rules remain unchanged.
+- No separate methodology subject, guaranteed question allocation, additional
+  marks, new filter parameter or question-bank content was introduced. GK and
+  education subject choices keep their existing labels. Home accessibility labels
+  include methodology; all text wraps within existing responsive containers.
+- Blueprint regression checks each section's actual methodology metadata against
+  the displayed inclusion rule. The test compiles isolated pure blueprint data;
+  website/database imports do not enter the mobile project or bundle. All seven
+  website subjects and raw-bank alias routing remain checked.
+- TypeScript, full mobile ESLint with zero warnings, all 132 tests and Android
+  Hermes export passed at dist/methodology-labels-export (1,444 modules, 3.6 MB).
+  The subject/native-container tests and changed-test lint were rerun after the
+  final test-isolation adjustment. No backend, website or native config changes.
+- Physical-phone text wrapping and authenticated topic selection remain untested.
+  Reload and check the Home rows, both practice mediums, changing subjects,
+  existing Pro topic selection and larger system text. Changes are local; no
+  APK rebuild needed.
+
+## October 11, 2026 — minimal Google sign-in landing page
+
+- Replaced the generic page header, large teaching-journey slogan, nested cards,
+  study-medium stats and full-width policy buttons with the existing logo/name,
+  one Google sign-in card, a short About this app paragraph and compact Terms/
+  Privacy links. Copy describes AP DSC / SGT practice, methodology, mock tests,
+  explanations and progress without adding unsupported product claims.
+- The page still calls the existing AuthProvider signIn with its stage callback;
+  the browser handoff, secure session, onboarding and protected routes were not
+  changed. Pending button state, stage text, retryable errors, cancellation notice
+  and active-device disclosure remain. A synchronous ref prevents duplicate taps.
+  Policy links keep the existing backend URLs and handle browser-opening errors.
+- One safe-area ScrollView centers a bounded 480-point layout when space permits
+  and scrolls on small/landscape screens or with larger text. Labels wrap, the
+  Google action has a 54-point minimum height, policy links have 44-point targets,
+  and changing status/errors announce through native accessibility live regions.
+  No new asset, provider, dependency, native or backend configuration changes.
+- TypeScript, full mobile ESLint with zero warnings, all 133 tests and Android
+  Hermes export passed at dist/login-landing-export (1,444 modules, 3.6 MB).
+  Existing auth cancellation, encrypted callback handoff and scoping regressions
+  pass; the compiled sign-in JSX is now included in native text-container checks.
+- Phone visuals and live account sign-in remain untested. Reload and check the
+  signed-out page, larger text, short screens, sign-in/cancellation/retry states,
+  return to onboarding/Home and policy links. Changes are local; no APK rebuild.
