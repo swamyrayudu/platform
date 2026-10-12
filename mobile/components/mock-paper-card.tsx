@@ -1,3 +1,4 @@
+import { Heading } from '@/components/heading';
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -29,7 +30,7 @@ export const MockPaperCard = memo(function MockPaperCard({test,premium}: {test:M
         <Text style={[styles.small,{color:test.is_free?'#32966B':colors.gold}]}>{test.is_free?'Free':'Pro'}</Text>
       </View>
     </View>
-    <Text accessibilityRole="header" style={styles.title}>{test.title}</Text>
+    <Heading style={styles.title}>{test.title}</Heading>
     {completed||ongoing ? <View style={[styles.status,completed&&{borderColor:'#B5E5D0',backgroundColor:'#EFF9F4'}]}><Ionicons name={completed?'checkmark-circle-outline':'time-outline'} size={13} color={completed?'#32966B':colors.primary}/><Text style={[styles.statusText,completed&&{color:'#32966B'}]}>{completed?`Completed${percent!=null?` · ${percent.toFixed(1)}%`:''}`:'In progress'}</Text></View> : null}
     <View style={styles.stats}>{[{label:'Questions',value:test.total_questions},{label:'Marks',value:test.total_marks},{label:'Time',value:`${test.duration_minutes} min`}].map((stat,index)=><View key={stat.label} style={[styles.stat,index===1&&styles.middleStat]}><Text style={styles.statLabel}>{stat.label}</Text><Text style={styles.statValue}>{stat.value}</Text></View>)}</View>
     {completed&&test.user_attempt?.score!=null ? <View style={styles.score}><View style={styles.scoreLabel}><Ionicons name="trophy-outline" size={15} color="#32966B"/><Text style={styles.statLabel}>Best Score</Text></View><Text style={styles.scoreValue}>{test.user_attempt.score} / {test.total_marks}{percent!=null?` (${percent.toFixed(1)}%)`:''}</Text></View> : null}
@@ -41,7 +42,7 @@ const styles=StyleSheet.create({
   badges:{flexDirection:'row',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:6},badgeGroup:{flexDirection:'row',alignItems:'center',flexWrap:'wrap',gap:6,flexShrink:1},
   module:{borderRadius:8,paddingHorizontal:8,paddingVertical:4,backgroundColor:colors.primarySoft},moduleText:{fontSize:12,lineHeight:18,fontWeight:'700',color:colors.primary},
   medium:{borderRadius:8,paddingHorizontal:7,paddingVertical:4,backgroundColor:'#F3F1FA'},small:{fontSize:11,lineHeight:17,fontWeight:'600',color:colors.primary},
-  access:{flexDirection:'row',alignItems:'center',gap:4,borderRadius:12,borderWidth:1,paddingHorizontal:8,paddingVertical:4},title:{fontSize:16,lineHeight:25,fontWeight:'700',color:colors.ink},
+  access:{flexDirection:'row',alignItems:'center',gap:4,borderRadius:12,borderWidth:1,paddingHorizontal:8,paddingVertical:4},title:{},
   status:{alignSelf:'flex-start',maxWidth:'100%',flexDirection:'row',alignItems:'center',gap:5,borderRadius:12,borderWidth:1,borderColor:'#BEB8D9',backgroundColor:colors.primarySoft,paddingHorizontal:8,paddingVertical:4},statusText:{flexShrink:1,fontSize:11,lineHeight:17,fontWeight:'600',color:colors.primary},
   stats:{flexDirection:'row',borderRadius:12,backgroundColor:'#F7F6F3',paddingVertical:9},stat:{flex:1,minWidth:0,alignItems:'center',justifyContent:'center',paddingHorizontal:4,gap:3},middleStat:{borderLeftWidth:1,borderRightWidth:1,borderColor:colors.border},statLabel:{fontSize:11,lineHeight:17,color:colors.muted,textAlign:'center'},statValue:{fontSize:13,lineHeight:19,fontWeight:'700',color:colors.ink,textAlign:'center'},
   score:{flexDirection:'row',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:6,borderRadius:12,backgroundColor:'#F0F8F4',paddingHorizontal:10,paddingVertical:8},scoreLabel:{flexDirection:'row',gap:5,alignItems:'center'},scoreValue:{fontSize:12,lineHeight:18,fontWeight:'700',color:'#32966B'},

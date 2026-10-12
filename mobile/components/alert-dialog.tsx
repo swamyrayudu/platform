@@ -1,3 +1,4 @@
+import { Heading } from '@/components/heading';
 import type { ComponentProps } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,7 +16,7 @@ export function AlertDialog({title,description,notice,cancelLabel,confirmLabel,b
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false} bounces={false}>
         <View accessibilityViewIsModal onAccessibilityEscape={cancel} style={styles.panel}>
           <View style={styles.intro}><View style={styles.icon}><Ionicons name={icon} size={24} color={colors.primary}/></View>{notice?<Text style={styles.notice}>{notice}</Text>:null}</View>
-          <Text accessibilityRole="header" style={styles.title}>{title}</Text>
+          <Heading style={styles.title}>{title}</Heading>
           <Text style={styles.description}>{description}</Text>
           <View style={[styles.actions,{flexDirection:stacked?'column':'row'}]}>
             <View style={[styles.action,stacked&&styles.stackedAction]}><Button secondary label={cancelLabel} disabled={busy} onPress={cancel}/></View>
@@ -31,6 +32,6 @@ const styles=StyleSheet.create({
   panel:{width:'100%',maxWidth:440,padding:20,gap:12,borderRadius:22,borderWidth:1,borderColor:colors.border,backgroundColor:colors.card},
   icon:{width:46,height:46,borderRadius:14,alignItems:'center',justifyContent:'center',backgroundColor:colors.primarySoft},
   intro:{flexDirection:'row',alignItems:'center',gap:10},notice:{flexShrink:1,fontSize:12,lineHeight:19,color:colors.muted},
-  title:{fontSize:20,lineHeight:29,fontWeight:'700',color:colors.ink},description:{fontSize:14,lineHeight:23,color:colors.muted},
+  title:{},description:{fontSize:14,lineHeight:23,color:colors.muted},
   actions:{gap:10,marginTop:8},action:{flexGrow:1,flexBasis:0,minWidth:0},stackedAction:{flexGrow:0,flexBasis:'auto'},
 });

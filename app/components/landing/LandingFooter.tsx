@@ -6,7 +6,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { Mail } from 'lucide-react'
-import { BloomMark } from './LandingHeader'
+import { BrandMark } from '@/components/brand-logo'
 
 export default function LandingFooter() {
   return (
@@ -14,7 +14,7 @@ export default function LandingFooter() {
 
       {/* Left: mark + copyright */}
       <div className="flex items-center gap-2.5">
-        <BloomMark className="h-4 w-4" />
+        <BrandMark className="h-5 w-5" />
         <span>© 2026 rsdeducation — All rights reserved</span>
       </div>
 

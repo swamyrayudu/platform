@@ -6,6 +6,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { ModeToggle } from '@/components/mode-toggle'
+import { BrandLogo } from '@/components/brand-logo'
 
 const NAV_LINKS = [
   { label: 'Mock Tests', href: '#mock-tests' },
@@ -34,10 +35,7 @@ export default function LandingHeader({
 
         {/* Left: Logo mark + wordmark */}
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
-          <BloomMark />
-          <span className="text-[15px] font-semibold tracking-tight text-foreground">
-            rsd<span className="font-normal text-muted-foreground">education</span>
-          </span>
+          <BrandLogo />
         </Link>
 
         {/* Center: Nav links — hidden below lg, as in the reference */}
@@ -73,25 +71,5 @@ export default function LandingHeader({
 
       </div>
     </header>
-  )
-}
-
-/* ── Four-point sparkle logo mark ── */
-
-export function BloomMark({ className = 'h-6 w-6' }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden
-    >
-      <path
-        d="M12 1.5c.55 4.6 2.4 7.45 6.6 8.4l3.9.9-3.9.9c-4.2.95-6.05 3.8-6.6 8.4-.55-4.6-2.4-7.45-6.6-8.4L1.5 10.8l4.4-.9C10.1 8.95 11.45 6.1 12 1.5Z"
-        fill="currentColor"
-        className="text-primary"
-      />
-    </svg>
   )
 }

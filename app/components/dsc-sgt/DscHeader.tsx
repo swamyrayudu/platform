@@ -16,6 +16,7 @@ import {
   User,
 } from 'lucide-react'
 import { ModeToggle } from '@/components/mode-toggle'
+import { BrandMark } from '@/components/brand-logo'
 import { useAuth } from '@/app/contexts/AuthContext'
 import { usePremium } from './PremiumContext'
 import { Avatar } from '@/components/ui/avatar'
@@ -72,9 +73,7 @@ export default function DscHeader() {
 
         {/* ── Left: exam identity ── */}
         <Link href="/dsc-sgt" className="flex min-w-0 shrink items-center gap-2.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary text-[11px] font-semibold tracking-tight text-primary-foreground">
-            DSC
-          </div>
+          <BrandMark className="h-8 w-8" />
           <div className="flex min-w-0 flex-col">
             <div className="flex items-center gap-1.5">
               <span className="truncate text-sm font-semibold tracking-tight text-foreground">

@@ -1,3 +1,4 @@
+import { Heading, HeadingFontProvider } from '@/components/heading';
 import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, Text, Pressable } from 'react-native';
@@ -13,7 +14,7 @@ const cache = new QueryClient({defaultOptions:{queries:{staleTime:30000, retry:(
 // Do not display exception details that might contain session data.
 export function ErrorBoundary({retry}:ErrorBoundaryProps) {
   return <View style={{flex:1,padding:24,paddingTop:64,justifyContent:'center',gap:20,backgroundColor:'#F4F2ED'}}>
-    <Text accessibilityRole="header" style={{fontSize:24,fontWeight:'700',color:'#302D55'}}>Unable to open this screen</Text>
+    <Heading>Unable to open this screen</Heading>
     <Text style={{fontSize:16,lineHeight:24,color:'#302D55'}}>Please reload this screen and try again. If this keeps happening, contact support with code APP_SCREEN_ERROR.</Text>
     <Pressable accessibilityRole="button" onPress={()=>void retry()} style={{padding:16,borderRadius:16,backgroundColor:'#302D55'}}><Text style={{color:'#FFF',textAlign:'center',fontWeight:'700'}}>Reload screen</Text></Pressable>
   </View>;
@@ -31,4 +32,4 @@ function Navigation() {
     <Stack.Screen name="auth/callback"/>
   </Stack>;
 }
-export default function Root() { return <SafeAreaProvider><QueryClientProvider client={cache}><AuthProvider><StatusBar style="dark"/><View style={{flex:1}}><Navigation/><AppOpening/><AppUpdate/></View></AuthProvider></QueryClientProvider></SafeAreaProvider>; }
+export default function Root() { return <SafeAreaProvider><HeadingFontProvider><QueryClientProvider client={cache}><AuthProvider><StatusBar style="dark"/><View style={{flex:1}}><Navigation/><AppOpening/><AppUpdate/></View></AuthProvider></QueryClientProvider></HeadingFontProvider></SafeAreaProvider>; }

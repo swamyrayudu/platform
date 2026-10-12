@@ -1,3 +1,4 @@
+import { Heading } from '@/components/heading';
 import { useState, type ComponentProps, type ReactNode } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { router } from 'expo-router';
@@ -24,7 +25,7 @@ function ProfileSection({title,icon,action,children}:{title:string;icon:IconName
     <View style={styles.sectionHeader}>
       <View style={styles.sectionTitle}>
         <View style={styles.sectionIcon}><Ionicons name={icon} size={18} color={colors.primary}/></View>
-        <Text accessibilityRole="header" style={styles.sectionText}>{title}</Text>
+        <Heading style={styles.sectionText}>{title}</Heading>
       </View>
       {action}
     </View>
@@ -103,7 +104,7 @@ export default function Profile() {
         <Ionicons name="arrow-back" size={22} color={colors.primary}/>
       </Pressable>
       <View style={styles.copy}>
-        <Text accessibilityRole="header" style={styles.title}>Profile</Text>
+        <Heading style={styles.title}>Profile</Heading>
         <Text style={styles.caption}>Your account, your learning</Text>
       </View>
     </View>
@@ -114,13 +115,13 @@ export default function Profile() {
           <Image accessibilityLabel="Google profile photo" source={{uri:avatar}} onError={()=>setFailedAvatar(avatar)} style={styles.avatar}/>:
           <View style={[styles.avatar,styles.avatarFallback]}><Text style={styles.initial}>{user?.name?.trim().charAt(0).toUpperCase()||'R'}</Text></View>}
       </View>
-      <Text accessibilityRole="header" style={styles.name}>{user?.name||'RSD Student'}</Text>
+      <Heading style={styles.name}>{user?.name||'RSD Student'}</Heading>
       <Text selectable style={styles.email}>{user?.email}</Text>
       <View style={styles.googleAccount}><Ionicons name="checkmark-circle" size={14} color={colors.green}/><Text style={styles.googleLabel}>Connected with Google</Text></View>
     </View>
 
     <ProfileSection title="Your subscription" icon="ribbon-outline" action={<Badge label={status} color={subscribed?colors.green:colors.muted}/>}>
-      <Text style={styles.planName}>{currentPlan?.name??(user?.subscriptionPlan?'RSD Pro plan':'Start with RSD Pro')}</Text>
+      <Heading style={styles.planName}>{currentPlan?.name??(user?.subscriptionPlan?'RSD Pro plan':'Start with RSD Pro')}</Heading>
       <View style={styles.subscriptionDetail}>
         <Ionicons name={expires?'calendar-outline':'sparkles-outline'} size={16} color={colors.gold}/>
         <Text style={styles.detailText}>{expires?(subscribed?'Valid until ':'Expiry date: ')+expires:subscribed?'Your Pro access is active.':'Unlock more practice and mock tests.'}</Text>
@@ -213,7 +214,7 @@ const styles=StyleSheet.create({
   header:{flexDirection:'row',alignItems:'center',gap:12},
   back:{width:44,height:44,borderRadius:14,backgroundColor:colors.card,borderWidth:1,borderColor:colors.border,alignItems:'center',justifyContent:'center'},
   copy:{flex:1,minWidth:0,gap:3},
-  title:{fontSize:23,lineHeight:31,fontWeight:'700',color:colors.ink},
+  title:{},
   caption:{fontSize:12,lineHeight:19,color:colors.muted,flexShrink:1},
   panel:{padding:16,borderRadius:20,borderWidth:1,borderColor:colors.border,backgroundColor:colors.card,gap:12},
   identity:{alignItems:'center',backgroundColor:'#F5F4FA',borderColor:'#DED9EE',paddingVertical:22,gap:8},
@@ -221,15 +222,15 @@ const styles=StyleSheet.create({
   avatar:{width:64,height:64,borderRadius:32},
   avatarFallback:{backgroundColor:colors.primarySoft,alignItems:'center',justifyContent:'center'},
   initial:{fontSize:27,fontWeight:'700',color:colors.primary},
-  name:{fontSize:20,lineHeight:28,fontWeight:'700',color:colors.ink,textAlign:'center',maxWidth:'100%'},
+  name:{textAlign:'center',maxWidth:'100%'},
   email:{fontSize:12,lineHeight:20,color:colors.muted,textAlign:'center',maxWidth:'100%'},
   googleAccount:{flexDirection:'row',flexWrap:'wrap',justifyContent:'center',alignItems:'center',gap:5,marginTop:3},
   googleLabel:{fontSize:11,lineHeight:18,color:colors.muted,textAlign:'center',flexShrink:1},
   sectionHeader:{flexDirection:'row',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:8},
   sectionTitle:{flexDirection:'row',alignItems:'center',gap:8,flex:1,minWidth:130},
   sectionIcon:{width:30,height:30,borderRadius:10,backgroundColor:colors.primarySoft,alignItems:'center',justifyContent:'center'},
-  sectionText:{fontSize:14,lineHeight:21,fontWeight:'700',color:colors.ink,flex:1},
-  planName:{fontSize:18,lineHeight:26,fontWeight:'700',color:colors.primary},
+  sectionText:{flex:1},
+  planName:{},
   subscriptionDetail:{flexDirection:'row',alignItems:'center',gap:8},
   detailText:{fontSize:12,lineHeight:20,color:colors.muted,flex:1,minWidth:0},
   edit:{minHeight:44,paddingHorizontal:10,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:5,borderRadius:12,backgroundColor:'#F5F4FA'},

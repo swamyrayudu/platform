@@ -1,5 +1,58 @@
 # Google sign-in investigation — 10 October 2026
 
+## Consistent mobile headings — 12 October 2026
+
+Page, section, card and dialog headings now share `components/heading.tsx` and
+`utils/typography.ts`: Manrope Bold, size 20, line height 30, dark indigo
+`#1B1A2E`. Existing heading imports from `components/ui.tsx` use its re-export.
+Screen-specific styles retain layout/alignment; the shared component applies
+typography last so a screen cannot accidentally change the size or color.
+
+- The official Expo Google Fonts static Manrope Bold file is bundled locally
+  with its SIL Open Font License. Binary inspection confirms TrueType, static
+  (no variable axes), weight 700, 96,800 bytes; no dependency/native config edits.
+- One root provider loads the font with the existing `expo-font` library.
+  Navigation/auth restoration continue during loading or failure, using native
+  bold text as fallback. Telugu uses native script fallback with the same size,
+  line height and color. No per-heading font downloads or loading hooks.
+- System font scaling and wrapping remain enabled. Question drawer section rows
+  reserve two scaled heading lines while retaining virtualization, progressive
+  loading, original indices and existing question/answer data.
+- TypeScript and full ESLint passed with no warnings; all **157 tests passed**,
+  including native text containers, question drawer geometry and exam flows.
+- Android Hermes export passed with the bundled Manrope font (30 assets,
+  1,458 modules, 3.6 MB) in `dist/unified-headings-export`.
+- React review: one font loader, stable source map, accessible headings,
+  shrinkable/wrapping titles, and no body/button/answer typography changes.
+  No website/backend edits in this change. No update or APK published; actual
+  typography on Android/iOS hardware has not been visually verified here.
+
+## Shared app and website logo — 11 October 2026
+
+The indigo/gold open-book logo now replaces the previous brand marks in website
+headers, footers, onboarding, legal pages, hero branding and loading screens.
+The mobile header, sign-in screen, shared page header and opening animation use
+the same generated image. Launcher icons and website browser icons also use the
+shared source, `public/rsd-logo.svg`; regenerate with the root
+`scripts/create-brand-assets.mjs` script.
+
+- Website and mobile in-app PNGs match byte for byte (512 × 512, transparent).
+  The launcher icon is opaque at 1,024 × 1,024; the adaptive foreground is
+  transparent at 1,024 × 1,024 with mask padding and an indigo native background.
+- Public Expo config passed: version **1.0.2**, Android code **3**, unchanged
+  package, scheme, EAS project ID, authentication plugins and environment setup.
+- Mobile TypeScript, full ESLint and all **157 tests passed** on Node 24.
+- Website TypeScript and targeted ESLint passed with one existing TopNav
+  internal-navigation warning; no new errors. `git diff --check` passed.
+- Android Hermes export passed: 1,455 modules, 29 assets, 3.6 MB bundle
+  `entry-4376fcd4272adbb53e5c1205fae39455.hbc` in
+  `dist/shared-brand-export`; the exported assets include `brand-mark.png`.
+- Logo images were visually inspected. Full website browser and on-phone
+  verification were not completed. No APK, EAS update or website deployment
+  has been published. The launcher icon requires a replacement APK; JavaScript
+  updates cannot replace it in an installed app. Existing 1.0.1 installations
+  also need that APK before receiving updates for the 1.0.2 appVersion runtime.
+
 ## Practice completes on Back — 11 October 2026
 
 This supersedes the earlier practice save/resume preference below. Practice no

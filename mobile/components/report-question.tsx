@@ -1,3 +1,4 @@
+import { Heading } from '@/components/heading';
 import { memo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -24,7 +25,7 @@ export const ReportQuestion=memo(function ReportQuestion({uid,question,source,te
         <Ionicons name="checkmark-circle" size={21} color={colors.green}/>
         <Text style={styles.confirmationText}>Thank you. Your report has been recorded.</Text>
       </View> : <>
-        <Text accessibilityRole="header" style={styles.heading}>What needs fixing?</Text>
+        <Heading style={styles.heading}>What needs fixing?</Heading>
         <View accessibilityRole="radiogroup" style={styles.reasons}>
           {FEEDBACK_REASONS.map(item=><Pressable key={item.id} accessibilityRole="radio" accessibilityLabel={item.label} accessibilityState={{checked:reason===item.id,disabled:report.isPending}} disabled={report.isPending} onPress={()=>setReason(item.id)} style={({pressed})=>[styles.reason,reason===item.id&&styles.selected,pressed&&styles.pressed]}>
             <Ionicons name={reason===item.id?'radio-button-on':'radio-button-off'} size={19} color={reason===item.id?colors.primary:colors.muted}/>
@@ -47,7 +48,7 @@ const styles=StyleSheet.create({
   panel:{width:'100%',minWidth:0,borderWidth:1,borderColor:colors.border,borderRadius:16,backgroundColor:colors.card},
   toggle:{minHeight:48,paddingHorizontal:14,paddingVertical:12,flexDirection:'row',alignItems:'center',gap:10},
   toggleText:{flex:1,minWidth:0,fontSize:13,lineHeight:20,fontWeight:'600',color:colors.muted},
-  pressed:{opacity:.7},form:{padding:14,paddingTop:0,gap:12},heading:{fontSize:15,lineHeight:23,fontWeight:'700',color:colors.ink},
+  pressed:{opacity:.7},form:{padding:14,paddingTop:0,gap:12},heading:{},
   reasons:{gap:6},reason:{minHeight:44,paddingHorizontal:10,paddingVertical:10,flexDirection:'row',alignItems:'center',gap:10,borderWidth:1,borderColor:colors.border,borderRadius:12},
   selected:{borderColor:colors.primary,backgroundColor:colors.primarySoft},reasonText:{flex:1,minWidth:0,fontSize:13,lineHeight:20,color:colors.ink},
   detailsHeader:{flexDirection:'row',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:6},label:{fontSize:12,lineHeight:19,fontWeight:'600',color:colors.muted},counter:{fontSize:11,lineHeight:18,color:colors.muted,fontVariant:['tabular-nums']},

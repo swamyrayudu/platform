@@ -8,7 +8,7 @@
 
 import React from 'react'
 import BloomField from '@/app/components/landing/BloomField'
-import { BloomMark } from '@/app/components/landing/LandingHeader'
+import { BrandMark } from '@/components/brand-logo'
 
 interface HeroBannerProps {
   /** Full name of the signed-in candidate, if we have one. */
@@ -30,7 +30,7 @@ export default function HeroBanner({ name }: HeroBannerProps) {
           landing page: the thing a candidate came for is the exam list below,
           and a 420px banner pushed the first card off the screen. */}
       <div className="relative flex min-h-[168px] flex-col items-center px-6 pb-16 pt-8 text-center sm:min-h-[200px] sm:pb-20 sm:pt-10">
-        <BloomMark className="h-5 w-5 text-bloom-lavender" />
+        <BrandMark className="h-7 w-7" />
 
         <p className="mt-3 text-[11px] font-medium tracking-wide text-white/65">
           {firstName ? `Welcome back, ${firstName}` : 'Your preparation hub'}

@@ -6,14 +6,18 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors } from '@/utils/theme';
 import { pageLayout } from '@/utils/layout';
 import { TabShellContext } from './tab-shell-context';
+import { BrandMark } from './brand-mark';
+import { Heading } from './heading';
+import { headingTypography } from '@/utils/typography';
+export { Heading } from './heading';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 type PageProps = { title: string; subtitle?: string; action?: ReactNode };
 function PageHeading({title, subtitle, action}: PageProps) {
   const inTabs=useContext(TabShellContext);
   return <View style={{gap:20}}>
-    {!inTabs ? <View style={s.between}><View style={[s.inline,{flexShrink:1}]}><View style={s.brandMark}><Ionicons name="school-outline" size={21} color="#fff"/></View><View style={{flexShrink:1,minWidth:0}}><Text style={s.brand}>RSD Education</Text><Text style={s.eyebrow}>AP DSC / SGT</Text></View></View>{action}</View> : null}
-    <View style={[s.between,{alignItems:'flex-start'}]}><View style={{flex:1,minWidth:0,gap:7}}><Text accessibilityRole="header" style={s.title}>{title}</Text>{subtitle ? <Text style={s.subtitle}>{subtitle}</Text> : null}</View>{inTabs? action:null}</View>
+    {!inTabs ? <View style={s.between}><View style={[s.inline,{flexShrink:1}]}><BrandMark size={40}/><View style={{flexShrink:1,minWidth:0}}><Text style={s.brand}>RSD Education</Text><Text style={s.eyebrow}>AP DSC / SGT</Text></View></View>{action}</View> : null}
+    <View style={[s.between,{alignItems:'flex-start'}]}><View style={{flex:1,minWidth:0,gap:7}}><Heading style={s.title}>{title}</Heading>{subtitle ? <Text style={s.subtitle}>{subtitle}</Text> : null}</View>{inTabs? action:null}</View>
   </View>;
 }
 export function Screen({children, refreshing, onRefresh, footer, footerSafeArea=true, pageHeader, ...page}: PageProps & {children: ReactNode; refreshing?: boolean; onRefresh?: () => void; footer?: ReactNode; footerSafeArea?:boolean;pageHeader?:ReactNode}) {
@@ -59,7 +63,6 @@ export function ListScreen<T>({data, renderItem, keyExtractor, header, footer, e
   </SafeAreaView>;
 }
 export function Card({children, gold = false}: {children: ReactNode; gold?: boolean}) { return <View style={[s.card, gold && {backgroundColor: colors.soft, borderColor:'#E4CFA9'}]}>{children}</View>; }
-export function Heading({children}: {children: ReactNode}) { return <Text accessibilityRole="header" style={s.heading}>{children}</Text>; }
 export function Body({children, color}: {children: ReactNode; color?: string}) { return <Text style={[s.body, color ? {color} : undefined]}>{children}</Text>; }
 export function Badge({label, color = colors.primary}: {label:string; color?:string}) { return <View style={[s.badge,{backgroundColor:color+'12'}]}><Text style={{fontSize:12,fontWeight:'700',color}}>{label}</Text></View>; }
 export function SectionHeading({title, detail, step}: {title:string; detail?:string; step?:number}) {
@@ -77,7 +80,7 @@ export function Chips<T extends string>({items, selected, onSelect}: {items: {va
 export function ChoiceRow({title, detail, icon, color = colors.primary, selected, onPress, trailing}: {title:string; detail?:string; icon:IconName; color?:string; selected?:boolean; onPress:()=>void; trailing?:ReactNode}) {
   return <Pressable accessibilityRole="button" accessibilityState={{selected:!!selected}} onPress={onPress} style={({pressed})=>[s.choice,selected && {borderColor:colors.primary,backgroundColor:colors.primarySoft},pressed && {opacity:.75}]}>
     <View style={[s.iconBox,{backgroundColor:color+'15'}]}><Ionicons name={icon} size={23} color={color}/></View>
-    <View style={{flex:1,gap:4}}><Text style={{fontSize:15,fontWeight:'700',color:colors.ink,lineHeight:22}}>{title}</Text>{detail ? <Text style={{fontSize:12,lineHeight:19,color:colors.muted}}>{detail}</Text> : null}</View>
+    <View style={{flex:1,minWidth:0,gap:4}}><Heading>{title}</Heading>{detail ? <Text style={{fontSize:12,lineHeight:19,color:colors.muted}}>{detail}</Text> : null}</View>
     {trailing ?? <Ionicons name={selected ? 'checkmark-circle' : 'chevron-forward'} size={20} color={selected ? colors.primary : colors.muted}/>}
   </Pressable>;
 }
@@ -95,9 +98,9 @@ export function Bar({value, color = colors.primary}: {value: number; color?:stri
 export const s = StyleSheet.create({
   listHeader:{gap:20},
   screen:{flex:1,backgroundColor:colors.background},content:{padding:20,paddingBottom:32,gap:18,maxWidth:760,width:'100%',alignSelf:'center'},
-  brandMark:{width:40,height:40,borderRadius:13,backgroundColor:colors.primary,alignItems:'center',justifyContent:'center'},brand:{fontSize:16,fontWeight:'800',color:colors.ink},eyebrow:{fontSize:10,fontWeight:'600',letterSpacing:1.5,color:colors.muted,marginTop:3},
-  title:{fontSize:27,lineHeight:35,fontWeight:'800',letterSpacing:-.5,color:colors.ink},subtitle:{fontSize:14,lineHeight:22,color:colors.muted},
-  card:{maxWidth:'100%',padding:18,borderRadius:24,borderWidth:1,borderColor:colors.border,backgroundColor:colors.card,gap:14},heading:{minWidth:0,maxWidth:'100%',flexShrink:1,fontSize:17,lineHeight:25,fontWeight:'700',color:colors.ink},body:{maxWidth:'100%',fontSize:14,lineHeight:22,color:colors.muted},
+  brand:{fontSize:16,fontWeight:'800',color:colors.ink},eyebrow:{fontSize:10,fontWeight:'600',letterSpacing:1.5,color:colors.muted,marginTop:3},
+  title:{},subtitle:{fontSize:14,lineHeight:22,color:colors.muted},
+  card:{maxWidth:'100%',padding:18,borderRadius:24,borderWidth:1,borderColor:colors.border,backgroundColor:colors.card,gap:14},heading:headingTypography,body:{maxWidth:'100%',fontSize:14,lineHeight:22,color:colors.muted},
   button:{minHeight:50,padding:14,borderRadius:16,backgroundColor:colors.primary,alignItems:'center',justifyContent:'center'},secondary:{backgroundColor:colors.card,borderWidth:1,borderColor:colors.border},buttonText:{fontSize:14,lineHeight:20,fontWeight:'700',textAlign:'center',flexShrink:1},
   row:{flexDirection:'row',flexWrap:'wrap',gap:8},inline:{flexDirection:'row',alignItems:'center',gap:10},between:{flexDirection:'row',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:12},
   chip:{maxWidth:'100%',minHeight:44,paddingHorizontal:14,paddingVertical:12,borderRadius:14,borderWidth:1,borderColor:colors.border,backgroundColor:colors.card},chipActive:{backgroundColor:colors.primarySoft,borderColor:colors.primary},

@@ -1,3 +1,4 @@
+import { Heading } from '@/components/heading';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, TextInput, View, type ListRenderItemInfo } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -42,7 +43,7 @@ export default function Mocks() {
   const refresh=useCallback(()=>void refetch(),[refetch]);
   const sequenceLocked=useMemo(()=>papers.some(paper=>paper.is_sequence_locked),[papers]);
   const pageHeader=useMemo(()=><View style={styles.heading}>
-      <View style={styles.titleRow}><View style={styles.titleMark}/><Text accessibilityRole="header" style={styles.title}>SGT Mock Tests</Text></View>
+      <View style={styles.titleRow}><View style={styles.titleMark}/><Heading style={styles.title}>SGT Mock Tests</Heading></View>
       {sample ? <Text style={styles.subtitle}>{sample.total_questions} questions · {sample.total_marks} marks · {sample.duration_minutes} min</Text> : null}
     </View>,[sample]);
   // Page fetch notifications should not rebuild medium tabs, search and filters.
@@ -95,7 +96,7 @@ export default function Mocks() {
 const styles=StyleSheet.create({
   heading:{gap:5},titleRow:{flexDirection:'row',alignItems:'center',gap:8},
   titleMark:{width:3,height:20,borderRadius:2,backgroundColor:colors.primary},
-  title:{flex:1,fontSize:20,lineHeight:28,fontWeight:'700',color:colors.ink},
+  title:{flex:1},
   subtitle:{fontSize:12,lineHeight:19,color:colors.muted},
   mediumTabs:{flexDirection:'row',gap:4,borderRadius:18,borderWidth:1,borderColor:colors.border,padding:4,backgroundColor:colors.card},
   mediumTab:{flex:1,minHeight:44,flexDirection:'row',flexWrap:'wrap',alignItems:'center',justifyContent:'center',gap:6,paddingHorizontal:8,paddingVertical:8,borderRadius:14},

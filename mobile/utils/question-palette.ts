@@ -1,4 +1,5 @@
 import type { DraftAnswer, ExamQuestion } from '../store/exam';
+import { HEADING_LINE_HEIGHT } from './typography';
 
 export function paletteCounts(questions:ExamQuestion[],answers:Record<string,DraftAnswer>) {
   const answered=questions.filter(question=>!!answers[question.key]?.option).length;
@@ -23,7 +24,7 @@ export type PaletteRow = { key:string; height:number; offset:number } & (
 export function paletteRows(questions:ExamQuestion[],columns:number,cellHeight:number,fontScale=1):PaletteRow[] {
   const rows:PaletteRow[]=[];let offset=0;
   for(const section of paletteSections(questions)) {
-    const height=Math.ceil(34*fontScale)+14;
+    const height=Math.ceil(2*HEADING_LINE_HEIGHT*fontScale)+14;
     rows.push({key:`heading:${section.id}`,type:'heading',title:section.title,count:section.questions.length,height,offset});offset+=height;
     for(let start=0;start<section.questions.length;start+=Math.max(1,columns)) {
       const height=cellHeight+6;

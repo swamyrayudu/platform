@@ -1,8 +1,8 @@
+import { Heading } from '@/components/heading';
 import { useEffect, useState } from 'react';
-import { AccessibilityInfo, Animated, Easing, Image, StyleSheet, Text, useWindowDimensions } from 'react-native';
+import { AccessibilityInfo, Animated, Easing, StyleSheet, Text, useWindowDimensions } from 'react-native';
 import { colors } from '@/utils/theme';
-
-const logo = require('../assets/icon.png');
+import { BrandMark } from './brand-mark';
 
 // Navigation and session restoration mount underneath this short introduction.
 // Keeping it outside Navigation prevents a replay after sign-in or an auth reload.
@@ -58,8 +58,8 @@ export function AppOpening() {
         { translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) },
       ],
     }]}>
-      <Image source={logo} accessible={false} resizeMode="contain" onLoadEnd={() => setImageReady(true)} style={{ width: logoSize, height: logoSize }}/>
-      <Text accessibilityRole="header" style={styles.name}>RSD Education</Text>
+      <BrandMark size={logoSize} onLoadEnd={() => setImageReady(true)}/>
+      <Heading style={styles.name}>RSD Education</Heading>
       <Text style={styles.caption}>Learn. Practice. Grow.</Text>
     </Animated.View>
   </Animated.View>;
@@ -68,6 +68,6 @@ export function AppOpening() {
 const styles = StyleSheet.create({
   overlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, zIndex: 100, backgroundColor: '#FFFEFB', alignItems: 'center', justifyContent: 'center', padding: 24 },
   brand: { alignItems: 'center', gap: 10, width: '100%', maxWidth: 400 },
-  name: { color: colors.primary, fontSize: 24, lineHeight: 32, fontWeight: '700', textAlign: 'center' },
+  name: {textAlign: 'center'},
   caption: { color: colors.gold, fontSize: 14, lineHeight: 22, textAlign: 'center' },
 });

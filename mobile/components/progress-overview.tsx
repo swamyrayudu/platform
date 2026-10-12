@@ -1,3 +1,4 @@
+import { Heading } from '@/components/heading';
 import { useState } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -14,7 +15,7 @@ export function ProgressOverview({data}:{data:Performance}) {
   const summary=progressSummary(data);
   const trend=data.accuracy_delta_pct;
   return <View style={styles.panel}>
-    <Text accessibilityRole="header" style={styles.title}>Overall performance</Text>
+    <Heading style={styles.title}>Overall performance</Heading>
     <View onLayout={event=>setWidth(event.nativeEvent.layout.width)} style={styles.content}>
       {summary.accuracy!==null?<>
         <View style={[styles.chartRow,{flexDirection:layout.stackedChart?'column':'row'}]}>
@@ -41,7 +42,7 @@ export function ProgressOverview({data}:{data:Performance}) {
   </View>;
 }
 const styles=StyleSheet.create({
-  panel:{padding:16,gap:16,borderWidth:1,borderColor:colors.border,borderRadius:22,backgroundColor:colors.card},title:{fontSize:17,lineHeight:26,fontWeight:'700',color:colors.ink},content:{gap:14},
+  panel:{padding:16,gap:16,borderWidth:1,borderColor:colors.border,borderRadius:22,backgroundColor:colors.card},title:{},content:{gap:14},
   chartRow:{gap:16,alignItems:'center'},legend:{flexGrow:1,flexShrink:1,gap:10},legendItem:{padding:12,gap:4,borderRadius:14},legendHeading:{flexDirection:'row',alignItems:'center',gap:7},dot:{width:8,height:8,borderRadius:4},label:{flexShrink:1,fontSize:12,lineHeight:20,color:colors.muted},count:{fontSize:22,lineHeight:31,fontWeight:'700'},countLabel:{fontSize:12,fontWeight:'500',color:colors.muted},note:{fontSize:12,lineHeight:20,color:colors.muted},
   stats:{flexDirection:'row',flexWrap:'wrap',gap:10},stat:{minWidth:0,padding:12,gap:4,borderRadius:14,backgroundColor:colors.primarySoft},unmeasured:{flexBasis:'100%'},statValue:{fontSize:23,lineHeight:32,fontWeight:'700',color:colors.primary},
   trend:{flexDirection:'row',alignItems:'center',gap:7,paddingTop:4},trendText:{flex:1,fontSize:12,lineHeight:20,fontWeight:'600',color:colors.ink},

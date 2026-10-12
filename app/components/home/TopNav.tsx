@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 import { ModeToggle } from '@/components/mode-toggle'
 import { Avatar } from '@/components/ui/avatar'
-import { BloomMark } from '@/app/components/landing/LandingHeader'
+import { BrandLogo } from '@/components/brand-logo'
 
 export interface UserProfile {
   name?: string | null
@@ -49,10 +49,7 @@ export default function TopNav({ user, logout, logoutAll }: TopNavProps) {
 
         {/* Logo */}
         <Link href="/home" className="flex items-center gap-2.5">
-          <BloomMark />
-          <span className="text-[15px] font-semibold tracking-tight text-foreground">
-            rsd<span className="font-normal text-muted-foreground">education</span>
-          </span>
+          <BrandLogo />
         </Link>
 
         {/* Right side: theme toggle + profile */}

@@ -33,7 +33,7 @@ export default function Home() {
   },[user?.id]));
   const syllabus=data.data?.syllabus;
   const stackedActions=factsWidth<280*Math.max(1,fontScale);
-  return <Screen title="Home" pageHeader={<View style={styles.intro}><Text style={styles.eyebrow}>AP DSC / SGT</Text><Text accessibilityRole="header" style={styles.title}>Exam syllabus</Text><Text style={styles.detail}>Choose a subject to start practising.</Text></View>}
+  return <Screen title="Home" pageHeader={<View style={styles.intro}><Text style={styles.eyebrow}>AP DSC / SGT</Text><Heading style={styles.title}>Exam syllabus</Heading><Text style={styles.detail}>Choose a subject to start practising.</Text></View>}
     refreshing={data.isRefetching} onRefresh={()=>void data.refetch()}>
     {draft ? <View style={styles.resume}><Heading>Saved mock test</Heading><Button icon="play-outline" label="Resume" onPress={()=>router.push({pathname:'/exam',params:{kind:'mock',id:draft.id}})}/></View> : null}
     {data.isPending ? <Loading/> : null}
@@ -61,7 +61,7 @@ export default function Home() {
   </Screen>;
 }
 const styles=StyleSheet.create({
-  intro:{gap:5},eyebrow:{fontSize:11,lineHeight:18,fontWeight:'700',letterSpacing:.8,color:colors.gold},title:{fontSize:26,lineHeight:35,fontWeight:'800',color:colors.ink},detail:{fontSize:12,lineHeight:20,color:colors.muted},
+  intro:{gap:5},eyebrow:{fontSize:11,lineHeight:18,fontWeight:'700',letterSpacing:.8,color:colors.gold},title:{},detail:{fontSize:12,lineHeight:20,color:colors.muted},
   resume:{padding:14,gap:10,borderRadius:18,borderWidth:1,borderColor:'#E4CFA9',backgroundColor:'#FAF5EB'},
   facts:{flexDirection:'row',flexWrap:'wrap',gap:8},fact:{minWidth:0,paddingHorizontal:8,paddingVertical:12,gap:3,alignItems:'center',borderRadius:14,backgroundColor:colors.primarySoft},unmeasured:{flex:1},factValue:{fontSize:24,lineHeight:33,fontWeight:'800',color:colors.primary},factLabel:{fontSize:12,lineHeight:19,fontWeight:'500',color:colors.muted,textAlign:'center'},
   actions:{gap:10},action:{flex:1,minWidth:0},stackedAction:{flex:0},

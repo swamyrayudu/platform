@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/app/contexts/AuthContext'
 import { LoadingScreen } from '@/components/ui/loading-screen'
+import { BrandLogo } from '@/components/brand-logo'
 import type { LearningGoal, EducationMedium } from '@/lib/auth/types'
 
 // ---- Learning Goals Data ----------------------------------------
@@ -198,14 +199,7 @@ export default function OnboardingPage() {
       {/* Top bar with logo */}
       <header className="border-b border-border/60 bg-background/80 backdrop-blur-md sticky top-0 z-30">
         <div className="mx-auto flex h-14 max-w-3xl items-center px-4 sm:px-6">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-xs">
-              R
-            </div>
-            <span className="text-sm font-bold tracking-tight text-foreground">
-              rsd<span className="font-normal text-muted-foreground">education</span>
-            </span>
-          </div>
+          <BrandLogo />
         </div>
       </header>
 

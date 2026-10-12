@@ -9,6 +9,17 @@ The repository contains an outer workspace and an inner website root. Run the
 commands below **inside the inner `platform/mobile/` directory**. Install the
 mobile packages separately; do not add them to the website's package.json.
 
+## Heading typography
+
+All page, section, card and dialog headings use `components/heading.tsx`:
+Manrope Bold, 20 points, 30-point line height and dark indigo (`#1B1A2E`).
+The static font and its SIL Open Font License are bundled in `assets/fonts`.
+`HeadingFontProvider` loads it once with the existing Expo Font library; native
+bold text remains available during loading or a font error. Telugu glyphs use
+the platform's script fallback. Headings retain system text scaling and wrapping;
+the virtualized question drawer reserves two scaled lines per subject heading.
+Use Heading for new titles and keep screen styles limited to layout/alignment.
+
 ## Mock tests and question navigation
 
 The mock library uses compact module cards, medium tabs, search, completion status
@@ -480,10 +491,19 @@ has been removed so Expo generates native projects using its SDK 57 template.
 
 ## In-app updates
 
-The replacement APK is version **1.0.1**, Android version code **2**, and uses
+The replacement APK is version **1.0.2**, Android version code **3**, and uses
 the existing EAS project `e277917c-28a9-463f-91ec-2f6cace259ae`. The direct APK
 profile receives the `preview` update channel; store builds use `production`.
 No update is published and no cloud build is started merely by adding this code.
+
+The website and mobile app share the indigo/gold book logo in
+`../public/rsd-logo.svg`. From this directory, run
+`node ../scripts/create-brand-assets.mjs` to regenerate the website favicon,
+mobile header/sign-in/opening mark and both launcher icon assets. The existing
+Python helper delegates to this generator, so it cannot restore the old logo.
+Android adaptive icons use a transparent book/sun foreground with an indigo
+background. The launcher icon change requires installing the new 1.0.2 APK;
+publishing JavaScript alone cannot replace an installed phone launcher icon.
 
 Build and install the replacement APK once:
 
@@ -524,7 +544,7 @@ mock start, active exams and results/submission routes. Returning to a main tab
 after saving or completing an exam allows the pending update prompt to appear.
 This is an in-app prompt, not a push notification while the app is closed.
 
-Runtime compatibility uses Expo's `appVersion` policy. Keep version 1.0.1 for
+Runtime compatibility uses Expo's `appVersion` policy. Keep version 1.0.2 for
 compatible UI/JavaScript updates to this APK. Changes to native modules, plugins,
 permissions, SDK or native authentication code require a version/versionCode
 bump and another APK. Do not send those changes to the old runtime.

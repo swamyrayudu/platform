@@ -1,3 +1,4 @@
+import { Heading } from '@/components/heading';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -41,7 +42,7 @@ export default function MockInstructions() {
           {paper.module_number!=null ? <View style={styles.module}><Text style={styles.moduleText}>Module {String(paper.module_number).padStart(2,'0')}</Text></View> : null}
           <View style={[styles.access,!paper.is_free&&styles.pro]}><Text style={[styles.accessText,!paper.is_free&&styles.proText]}>{paper.is_free?'Free':'Pro'}</Text></View>
         </View>
-        <Text accessibilityRole="header" style={styles.title}>{paper.title}</Text>
+        <Heading style={styles.title}>{paper.title}</Heading>
         <View style={styles.stats}>
           {[
             {label:'Questions',value:paper.total_questions},
@@ -57,7 +58,7 @@ export default function MockInstructions() {
         </View>
       </View>
       <View style={styles.panel}>
-        <Text accessibilityRole="header" style={styles.sectionTitle}>Quick guide</Text>
+        <Heading style={styles.sectionTitle}>Quick guide</Heading>
         <GuideRow icon="radio-button-on-outline" label="Choose one answer."/>
         <GuideRow icon="grid-outline" label="Use the grid to jump questions."/>
         <GuideRow icon="arrow-back" label="Back pauses and saves."/>
@@ -65,7 +66,7 @@ export default function MockInstructions() {
       </View>
       {paper.description?.trim() ? <View style={styles.panel}>
         <Pressable accessibilityRole="button" accessibilityState={{expanded:detailsOpen}} onPress={()=>setDetailsOpen(value=>!value)} style={({pressed})=>[styles.detailToggle,pressed&&styles.pressed]}>
-          <Text style={styles.sectionTitle}>Details</Text><Ionicons name={detailsOpen?'chevron-up':'chevron-down'} size={18} color={colors.muted}/>
+          <Heading style={styles.sectionTitle}>Details</Heading><Ionicons name={detailsOpen?'chevron-up':'chevron-down'} size={18} color={colors.muted}/>
         </Pressable>
         {detailsOpen ? <Body>{paper.description}</Body> : null}
       </View> : null}
@@ -85,8 +86,8 @@ function GuideRow({icon,label}:{icon:'radio-button-on-outline'|'grid-outline'|'a
 const styles=StyleSheet.create({
   topbar:{flexDirection:'row',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:8},back:{minHeight:44,maxWidth:'100%',flexDirection:'row',alignItems:'center',gap:7,paddingHorizontal:8,paddingVertical:8,borderRadius:12},backText:{flexShrink:1,fontSize:14,lineHeight:21,fontWeight:'600',color:colors.primary},context:{fontSize:12,lineHeight:19,color:colors.muted},
   panel:{padding:16,borderWidth:1,borderColor:colors.border,borderRadius:20,backgroundColor:colors.card,gap:12},badges:{flexDirection:'row',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:8},module:{maxWidth:'100%',paddingHorizontal:8,paddingVertical:4,borderRadius:8,backgroundColor:colors.primarySoft},moduleText:{fontSize:12,lineHeight:18,fontWeight:'700',color:colors.primary},
-  access:{maxWidth:'100%',paddingHorizontal:9,paddingVertical:4,borderRadius:10,backgroundColor:colors.greenSoft},accessText:{fontSize:11,lineHeight:17,fontWeight:'600',color:colors.green},pro:{backgroundColor:'#FCF4E6'},proText:{color:'#805717'},title:{fontSize:21,lineHeight:31,fontWeight:'700',color:colors.ink},
+  access:{maxWidth:'100%',paddingHorizontal:9,paddingVertical:4,borderRadius:10,backgroundColor:colors.greenSoft},accessText:{fontSize:11,lineHeight:17,fontWeight:'600',color:colors.green},pro:{backgroundColor:'#FCF4E6'},proText:{color:'#805717'},title:{},
   stats:{flexDirection:'row',flexWrap:'wrap',gap:8},stat:{paddingHorizontal:6,paddingVertical:12,borderRadius:12,backgroundColor:'#F7F6F3',alignItems:'center',justifyContent:'center',gap:4},statValue:{fontSize:18,lineHeight:26,fontWeight:'700',color:colors.ink,textAlign:'center'},statLabel:{fontSize:11,lineHeight:17,color:colors.muted,textAlign:'center'},
-  marking:{borderTopWidth:1,borderTopColor:colors.border,paddingTop:12,gap:5},ruleText:{fontSize:12,lineHeight:19,color:colors.muted},sectionTitle:{flexShrink:1,fontSize:14,lineHeight:21,fontWeight:'700',color:colors.ink},guide:{flexDirection:'row',alignItems:'center',gap:9},guideText:{flex:1,minWidth:0,fontSize:13,lineHeight:20,color:colors.muted},detailToggle:{minHeight:44,flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:8},
+  marking:{borderTopWidth:1,borderTopColor:colors.border,paddingTop:12,gap:5},ruleText:{fontSize:12,lineHeight:19,color:colors.muted},sectionTitle:{flexShrink:1},guide:{flexDirection:'row',alignItems:'center',gap:9},guideText:{flex:1,minWidth:0,fontSize:13,lineHeight:20,color:colors.muted},detailToggle:{minHeight:44,flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:8},
   plans:{maxWidth:'100%',minHeight:44,alignSelf:'flex-start',flexDirection:'row',alignItems:'center',gap:7,paddingVertical:8,paddingHorizontal:6},planText:{flexShrink:1,fontSize:13,lineHeight:20,fontWeight:'600',color:'#805717'},pressed:{opacity:.7},disabled:{opacity:.45},
 });

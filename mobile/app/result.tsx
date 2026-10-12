@@ -57,14 +57,14 @@ export default function Result() {
   const renderItem=useCallback(({item}:{item:(typeof review)[number]})=><QuestionReviewCard question={item.question} number={item.number} expanded={expanded.has(item.key)} onToggle={()=>toggle(item.key)} kind={examKind} testId={mock.data?.result.mock_test_id}/>,[expanded,toggle,examKind,mock.data?.result.mock_test_id]);
   const goBack=()=>router.replace(kind==='mock'?'/(tabs)/mocks':'/(tabs)/practice');
   return <ListScreen key={`${kind}:${id}`} listRef={listRef} onHeaderLayout={event=>{headerHeight.current=event.nativeEvent.layout.height;}} title="Results" batchSize={4} windowSize={5}
-    pageHeader={<View style={styles.header}><Pressable accessibilityRole="button" accessibilityLabel={kind==='mock'?'Back to Mock Tests':'Back to Practice'} accessibilityState={{disabled:submitting}} disabled={submitting} onPress={goBack} style={[styles.back,submitting&&{opacity:.4}]}><Ionicons name="arrow-back" size={22} color={colors.primary}/></Pressable><Text accessibilityRole="header" style={styles.heading}>{submitting?'Submitting':'Results'}</Text></View>}
+    pageHeader={<View style={styles.header}><Pressable accessibilityRole="button" accessibilityLabel={kind==='mock'?'Back to Mock Tests':'Back to Practice'} accessibilityState={{disabled:submitting}} disabled={submitting} onPress={goBack} style={[styles.back,submitting&&{opacity:.4}]}><Ionicons name="arrow-back" size={22} color={colors.primary}/></Pressable><Heading style={styles.heading}>{submitting?'Submitting':'Results'}</Heading></View>}
     data={page.items} keyExtractor={row=>row.key} extraData={expanded}
     refreshing={ready&&active.isRefetching} onRefresh={ready?()=>void active.refetch():undefined}
     renderItem={renderItem}
     header={<>
       {!ready?<View style={styles.status}>
-        {submitting?<><ActivityIndicator size="large" color={colors.primary}/><Text style={styles.statusTitle}>Submitting your answers…</Text><Text style={styles.statusText}>Your timer is stopped. Results will appear here when submission finishes.</Text></>:<>
-          <Ionicons name="cloud-offline-outline" size={32} color={colors.red}/><Text style={styles.statusTitle}>Submission needs a retry</Text><Text style={styles.statusText}>{submission.error instanceof Error?submission.error.message:'Could not finish submitting. Please try again.'}</Text><Button label="Retry submission" onPress={()=>void submission.refetch()}/><Button secondary label="Open saved exam" onPress={()=>router.replace({pathname:'/exam',params:{kind:examKind,id}})}/>
+        {submitting?<><ActivityIndicator size="large" color={colors.primary}/><Heading style={styles.statusTitle}>Submitting your answers…</Heading><Text style={styles.statusText}>Your timer is stopped. Results will appear here when submission finishes.</Text></>:<>
+          <Ionicons name="cloud-offline-outline" size={32} color={colors.red}/><Heading style={styles.statusTitle}>Submission needs a retry</Heading><Text style={styles.statusText}>{submission.error instanceof Error?submission.error.message:'Could not finish submitting. Please try again.'}</Text><Button label="Retry submission" onPress={()=>void submission.refetch()}/><Button secondary label="Open saved exam" onPress={()=>router.replace({pathname:'/exam',params:{kind:examKind,id}})}/>
         </>}
       </View>:null}
       {ready&&active.error ? <ErrorState error={active.error} retry={()=>void active.refetch()}/> : null}
@@ -75,8 +75,8 @@ export default function Result() {
         {retry.error ? <ErrorState error={retry.error}/> : null}
         <Button secondary icon={breakdown?'chevron-up-outline':'chevron-down-outline'} label={kind==='mock'?'Section scores':'Topic scores'} onPress={()=>setBreakdown(value=>!value)}/>
         {breakdown?<View style={styles.breakdown}>
-          {mock.data?.result.section_scores.map(section=><View key={section.section_id} style={styles.section}><Text style={styles.sectionTitle}>{section.section_name}</Text><Text style={styles.sectionDetail}>Marks {resultNumber(section.score)} / {resultNumber(section.total_marks)} · {section.correct}/{section.total} correct</Text><Bar value={section.total?100*section.correct/section.total:0}/></View>)}
-          {practice.data?.results.topic_breakdown.map(topic=><View key={topic.topic} style={styles.section}><Text style={styles.sectionTitle}>{topic.topic}</Text><Text style={styles.sectionDetail}>{topic.correct}/{topic.total_questions} correct · {resultNumber(topic.accuracy_pct)}% · {topic.is_weak?'Needs practice':topic.is_mastered?'Mastered':'Progressing'}</Text><Bar value={topic.accuracy_pct}/></View>)}
+          {mock.data?.result.section_scores.map(section=><View key={section.section_id} style={styles.section}><Heading style={styles.sectionTitle}>{section.section_name}</Heading><Text style={styles.sectionDetail}>Marks {resultNumber(section.score)} / {resultNumber(section.total_marks)} · {section.correct}/{section.total} correct</Text><Bar value={section.total?100*section.correct/section.total:0}/></View>)}
+          {practice.data?.results.topic_breakdown.map(topic=><View key={topic.topic} style={styles.section}><Heading style={styles.sectionTitle}>{topic.topic}</Heading><Text style={styles.sectionDetail}>{topic.correct}/{topic.total_questions} correct · {resultNumber(topic.accuracy_pct)}% · {topic.is_weak?'Needs practice':topic.is_mastered?'Mastered':'Progressing'}</Text><Bar value={topic.accuracy_pct}/></View>)}
           {practice.data?.results.weak_recommendations.map(recommendation=><Button key={recommendation.topic} secondary label={recommendation.action_label} disabled={retry.isPending} onPress={()=>retry.mutate(recommendation.topic)}/>)}
         </View>:null}
         {mock.data ? <><Button secondary icon={leaderboard?'chevron-up-outline':'chevron-down-outline'} label="Ranking" onPress={()=>setLeaderboard(value=>!value)}/>
@@ -94,9 +94,9 @@ export default function Result() {
     footer={result?<><ReviewPagination {...page} onChange={changePage}/><Button secondary label={kind==='mock'?'Back to Mock Tests':'Back to Practice'} onPress={goBack}/></>:undefined}/>;
 }
 const styles=StyleSheet.create({
-  header:{flexDirection:'row',alignItems:'center',gap:8},back:{width:44,minHeight:44,alignItems:'center',justifyContent:'center',borderRadius:12,backgroundColor:colors.card},heading:{flex:1,minWidth:0,fontSize:22,lineHeight:31,fontWeight:'700',color:colors.ink},
-  status:{padding:22,gap:14,borderRadius:20,borderWidth:1,borderColor:colors.border,backgroundColor:colors.card},statusTitle:{fontSize:20,lineHeight:29,fontWeight:'700',color:colors.ink},statusText:{fontSize:14,lineHeight:23,color:colors.muted},
-  breakdown:{padding:16,gap:16,borderRadius:18,borderWidth:1,borderColor:colors.border,backgroundColor:colors.card},section:{gap:6},sectionTitle:{fontSize:14,lineHeight:22,fontWeight:'600',color:colors.ink},sectionDetail:{fontSize:12,lineHeight:20,color:colors.muted},
+  header:{flexDirection:'row',alignItems:'center',gap:8},back:{width:44,minHeight:44,alignItems:'center',justifyContent:'center',borderRadius:12,backgroundColor:colors.card},heading:{flex:1,minWidth:0},
+  status:{padding:22,gap:14,borderRadius:20,borderWidth:1,borderColor:colors.border,backgroundColor:colors.card},statusTitle:{},statusText:{fontSize:14,lineHeight:23,color:colors.muted},
+  breakdown:{padding:16,gap:16,borderRadius:18,borderWidth:1,borderColor:colors.border,backgroundColor:colors.card},section:{gap:6},sectionTitle:{},sectionDetail:{fontSize:12,lineHeight:20,color:colors.muted},
   rankRow:{padding:10,gap:3,borderRadius:12,backgroundColor:'#F5F4F1'},rankText:{fontSize:13,lineHeight:21,fontWeight:'600',color:colors.primary},
   reviewControls:{gap:12},
 });

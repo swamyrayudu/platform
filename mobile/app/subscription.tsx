@@ -1,3 +1,4 @@
+import { Heading } from '@/components/heading';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
@@ -96,14 +97,14 @@ export default function Subscription() {
       <Pressable accessibilityRole="button" accessibilityLabel="Back" disabled={working} onPress={back} style={({pressed})=>[styles.headerButton,pressed&&styles.pressed,working&&styles.disabled]}>
         <Ionicons name="arrow-back" size={22} color={colors.primary}/>
       </Pressable>
-      <View style={styles.copy}><Text accessibilityRole="header" style={styles.title}>Plans</Text><Text style={styles.caption}>RSD Pro access</Text></View>
+      <View style={styles.copy}><Heading style={styles.title}>Plans</Heading><Text style={styles.caption}>RSD Pro access</Text></View>
       <Pressable accessibilityRole="button" accessibilityLabel="Refresh plans and payment status" accessibilityState={{disabled:working||refreshing,busy:refreshing}} disabled={working||refreshing} onPress={()=>void refresh()} style={({pressed})=>[styles.headerButton,pressed&&styles.pressed,working&&styles.disabled]}>
         {refreshing?<ActivityIndicator size="small" color={colors.primary}/>:<Ionicons name="refresh-outline" size={20} color={colors.primary}/>}
       </Pressable>
     </View>
   }>
     <View style={styles.intro}>
-      <Text accessibilityRole="header" style={styles.introTitle}>Choose your plan</Text>
+      <Heading style={styles.introTitle}>Choose your plan</Heading>
       <Text style={styles.caption}>One-time payment. No automatic renewal.</Text>
       {canCheckout?<View style={styles.hint}><Ionicons name="pricetag-outline" size={15} color={colors.gold}/><Text style={styles.hintText}>Have a coupon? Apply it below before paying.</Text></View>:null}
     </View>
@@ -113,7 +114,7 @@ export default function Subscription() {
     {recover.error?<ErrorState error={recover.error}/>:null}
     {pending.error?<ErrorState error={pending.error} retry={()=>void refetchPending()}/>:null}
     {pending.data?<View style={[styles.panel,styles.notice]}>
-      <View style={styles.sectionHeader}><Ionicons name="time-outline" size={20} color={colors.gold}/><Text accessibilityRole="header" style={styles.sectionTitle}>Check your previous payment</Text></View>
+      <View style={styles.sectionHeader}><Ionicons name="time-outline" size={20} color={colors.gold}/><Heading style={styles.sectionTitle}>Check your previous payment</Heading></View>
       <Body>A payment is awaiting confirmation. Check its status before paying again.</Body>
       <Button label="Check payment status" busy={recover.isPending} disabled={buy.isPending} onPress={checkPayment}/>
     </View>:null}
@@ -133,7 +134,7 @@ export default function Subscription() {
       onToggle={()=>setExpandedPlan(expandedPlan===plan.id?null:plan.id)}/>)}
 
     {canCheckout?<View style={styles.panel}>
-      <View style={styles.sectionHeader}><View style={styles.sectionIcon}><Ionicons name="pricetag-outline" size={18} color={colors.primary}/></View><Text accessibilityRole="header" style={styles.sectionTitle}>Have a coupon?</Text><Badge label="Optional" color={colors.muted}/></View>
+      <View style={styles.sectionHeader}><View style={styles.sectionIcon}><Ionicons name="pricetag-outline" size={18} color={colors.primary}/></View><Heading style={styles.sectionTitle}>Have a coupon?</Heading><Badge label="Optional" color={colors.muted}/></View>
       <Text style={styles.caption}>Apply before paying. Updated prices appear on the plans above.</Text>
       <View style={styles.couponControls}>
         <TextInput accessibilityLabel="Coupon code" placeholder="Enter coupon code" placeholderTextColor={colors.muted}
@@ -154,7 +155,7 @@ export default function Subscription() {
     <View style={styles.panel}>
       <Pressable accessibilityRole="button" accessibilityLabel={showHistory?'Hide payment history':'Show payment history'} accessibilityState={{expanded:showHistory}} onPress={()=>{setShowHistory(value=>!value);setHistoryLimit(5);}} style={({pressed})=>[styles.historyToggle,pressed&&styles.pressed]}>
         <View style={styles.sectionIcon}><Ionicons name="receipt-outline" size={18} color={colors.primary}/></View>
-        <View style={styles.copy}><Text accessibilityRole="header" style={styles.sectionTitle}>Payment history</Text><Text style={styles.caption}>{history.isLoading?'Loading payments…':history.error?'Unable to load payments':orders.length===0?'No payments yet':String(orders.length)+' payments'}</Text></View>
+        <View style={styles.copy}><Heading style={styles.sectionTitle}>Payment history</Heading><Text style={styles.caption}>{history.isLoading?'Loading payments…':history.error?'Unable to load payments':orders.length===0?'No payments yet':String(orders.length)+' payments'}</Text></View>
         <Ionicons name={showHistory?'chevron-up':'chevron-down'} size={18} color={colors.primary}/>
       </Pressable>
       {showHistory?<View style={styles.historyList}>
@@ -171,11 +172,11 @@ export default function Subscription() {
 }
 const styles=StyleSheet.create({
   header:{flexDirection:'row',alignItems:'center',gap:12},headerButton:{width:44,height:44,borderRadius:14,borderWidth:1,borderColor:colors.border,backgroundColor:colors.card,alignItems:'center',justifyContent:'center'},
-  copy:{flex:1,minWidth:0,gap:3},title:{fontSize:23,lineHeight:31,fontWeight:'700',color:colors.ink},caption:{fontSize:12,lineHeight:19,color:colors.muted,flexShrink:1},
-  intro:{gap:6},introTitle:{fontSize:19,lineHeight:27,fontWeight:'700',color:colors.ink},
+  copy:{flex:1,minWidth:0,gap:3},title:{},caption:{fontSize:12,lineHeight:19,color:colors.muted,flexShrink:1},
+  intro:{gap:6},introTitle:{},
   hint:{flexDirection:'row',alignItems:'center',gap:7},hintText:{flex:1,minWidth:0,fontSize:12,lineHeight:20,color:colors.muted},
   panel:{padding:16,borderRadius:20,borderWidth:1,borderColor:colors.border,backgroundColor:colors.card,gap:12},
-  sectionHeader:{flexDirection:'row',flexWrap:'wrap',alignItems:'center',gap:8},sectionTitle:{fontSize:14,lineHeight:22,fontWeight:'700',color:colors.ink,flex:1,minWidth:110},
+  sectionHeader:{flexDirection:'row',flexWrap:'wrap',alignItems:'center',gap:8},sectionTitle:{flex:1,minWidth:110},
   sectionIcon:{width:30,height:30,borderRadius:10,backgroundColor:colors.primarySoft,alignItems:'center',justifyContent:'center'},
   notice:{backgroundColor:'#FCF6EA',borderColor:'#E4CFA9'},message:{backgroundColor:colors.primarySoft,borderColor:'#D7D1E8'},loading:{flexDirection:'row',alignItems:'center',gap:10},
   couponControls:{flexDirection:'row',flexWrap:'wrap',gap:10},couponInput:{flexGrow:1,flexBasis:180,minWidth:0,minHeight:50,borderWidth:1,borderColor:colors.border,borderRadius:14,paddingHorizontal:12,paddingVertical:10,fontSize:16,color:colors.ink,backgroundColor:'#FAF9F7'},couponApply:{flexGrow:1,flexBasis:80,minWidth:0},

@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 import BloomField from './BloomField'
 import DashboardIllustration from './DashboardIllustration'
-import { BloomMark } from './LandingHeader'
+import { BrandMark } from '@/components/brand-logo'
 
 const FEATURE_BOXES = [
   { icon: FileText, title: 'Mock Tests', desc: 'Full-length, exam-style papers under real timing.' },
@@ -71,7 +71,7 @@ export default function HeroContent({ heroGsiRef, googleEnabled = false }: HeroC
               three seconds needs to know this is theirs — the old hero opened
               with a metaphor and never named the paper at all. */}
           <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-bloom-lavender backdrop-blur-sm">
-            <BloomMark className="h-3 w-3" />
+            <BrandMark className="h-4 w-4" />
             AP DSC · SGT
           </span>
 

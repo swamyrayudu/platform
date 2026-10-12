@@ -1,3 +1,4 @@
+import { Heading } from '@/components/heading';
 import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -52,7 +53,7 @@ function PracticeBuilder({params}:{params:{subject?:string;topic?:string}}) {
   return <Screen title="DSC Practice Zone" pageHeader={null} footer={footer} footerSafeArea={false}>
     <View style={styles.intro}>
       <View style={styles.headingRow}>
-        <View style={styles.titleRow}><Text accessibilityRole="header" style={styles.title}>DSC Practice Zone</Text>{premium?<Badge label="PRO" color={colors.gold}/>:null}</View>
+        <View style={styles.titleRow}><Heading style={styles.title}>DSC Practice Zone</Heading>{premium?<Badge label="PRO" color={colors.gold}/>:null}</View>
         <Pressable accessibilityRole="button" accessibilityLabel="Practice history" onPress={()=>router.push('/history')} style={({pressed})=>[styles.history,pressed&&styles.pressed]}><Ionicons name="time-outline" size={21} color={colors.primary}/></Pressable>
       </View>
       {quota.data ? <View style={[styles.quota,exhausted&&styles.quotaExhausted]}>
@@ -83,17 +84,17 @@ function PracticeBuilder({params}:{params:{subject?:string;topic?:string}}) {
       <PracticeChoices compact columns={2} items={modes.map(mode=>({value:mode.value,label:mode.label}))} selected={filter.mode} onSelect={mode=>update({mode})}/>
       <Text style={styles.hint}>{modes.find(mode=>mode.value===filter.mode)?.description}</Text>
       <View style={styles.switchRow}>
-        <View style={styles.switchCopy}><Text style={styles.label}>Instant answers</Text><Text style={styles.hint}>{filter.feedback_mode==='instant'?'Answers & explanations after each question.':'Review answers at the end.'}</Text></View>
+        <View style={styles.switchCopy}><Heading style={styles.label}>Instant answers</Heading><Text style={styles.hint}>{filter.feedback_mode==='instant'?'Answers & explanations after each question.':'Review answers at the end.'}</Text></View>
         <Switch accessibilityLabel="Instant answers and explanations" trackColor={{true:colors.primary}} value={filter.feedback_mode==='instant'} onValueChange={instant=>update({feedback_mode:instant?'instant':'end'})}/>
       </View>
     </PracticeSection>
     <View style={styles.panel}>
       <PracticeDisclosure title="More options" detail="Class, difficulty & timer" icon="options-outline" open={advanced} onPress={()=>setAdvanced(value=>!value)}/>
       {advanced&&data ? <View style={styles.options}>
-      <Text accessibilityRole="header" style={styles.label}>Class / chapter</Text><PracticeChoices compact items={data.available_classes.map(value=>({value,label:value}))} selected={filter.class_levels} onSelect={value=>toggle('class_levels',value)}/>
-      {premium&&customTopics ? <><Text accessibilityRole="header" style={styles.label}>Subtopics</Text><PracticeChoices items={[...new Set(data.available_topics.filter(topic=>!filter.topics.length||filter.topics.includes(topic.name)).flatMap(topic=>topic.subtopics))].map(value=>({value,label:value}))} selected={filter.subtopics} onSelect={value=>toggle('subtopics',value)}/></> : null}
-      <Text accessibilityRole="header" style={styles.label}>Difficulty</Text><PracticeChoices compact items={data.available_difficulties.map(level=>({value:level.name,label:level.name,detail:`${level.count} questions`}))} selected={filter.difficulty} onSelect={value=>toggle('difficulty',value)}/>
-      <View style={styles.switchRow}><Text style={[styles.label,styles.flex]}>Timer</Text><Switch accessibilityLabel="Use a practice timer" trackColor={{true:colors.primary}} value={filter.has_timer} onValueChange={has_timer=>update({has_timer})}/></View>
+      <Heading style={styles.label}>Class / chapter</Heading><PracticeChoices compact items={data.available_classes.map(value=>({value,label:value}))} selected={filter.class_levels} onSelect={value=>toggle('class_levels',value)}/>
+      {premium&&customTopics ? <><Heading style={styles.label}>Subtopics</Heading><PracticeChoices items={[...new Set(data.available_topics.filter(topic=>!filter.topics.length||filter.topics.includes(topic.name)).flatMap(topic=>topic.subtopics))].map(value=>({value,label:value}))} selected={filter.subtopics} onSelect={value=>toggle('subtopics',value)}/></> : null}
+      <Heading style={styles.label}>Difficulty</Heading><PracticeChoices compact items={data.available_difficulties.map(level=>({value:level.name,label:level.name,detail:`${level.count} questions`}))} selected={filter.difficulty} onSelect={value=>toggle('difficulty',value)}/>
+      <View style={styles.switchRow}><Heading style={[styles.label,styles.flex]}>Timer</Heading><Switch accessibilityLabel="Use a practice timer" trackColor={{true:colors.primary}} value={filter.has_timer} onValueChange={has_timer=>update({has_timer})}/></View>
       {filter.has_timer ? <Input label="Duration in minutes" numeric value={String(filter.duration_minutes)} onChangeText={text=>update({duration_minutes:Number(text)||0})}/> : null}
       <Text style={styles.hint}>Leave filters empty to include all.</Text>
       </View> : advanced ? <Text style={styles.hint}>{options.error?'Filters unavailable. Retry above.':'Loading filters…'}</Text> : null}
@@ -109,25 +110,25 @@ function PracticeBuilder({params}:{params:{subject?:string;topic?:string}}) {
 
 function PracticeSection({title,step,children}:{title:string;step:number;children:ReactNode}) {
   return <View style={styles.panel}>
-    <View style={styles.sectionHeading}><View style={styles.step}><Text style={styles.stepText}>{step}</Text></View><Text accessibilityRole="header" style={styles.sectionTitle}>{title}</Text></View>
+    <View style={styles.sectionHeading}><View style={styles.step}><Text style={styles.stepText}>{step}</Text></View><Heading style={styles.sectionTitle}>{title}</Heading></View>
     {children}
   </View>;
 }
 function PracticeDisclosure({title,detail,icon,open,onPress}:{title:string;detail?:string;icon?:'options-outline'|'locate-outline';open:boolean;onPress:()=>void}) {
   return <Pressable accessibilityRole="button" accessibilityState={{expanded:open}} onPress={onPress} style={({pressed})=>[styles.disclosure,pressed&&styles.pressed]}>
     {icon ? <Ionicons name={icon} size={19} color={colors.primary}/> : null}
-    <View style={styles.switchCopy}><Text style={styles.label}>{title}</Text>{detail ? <Text style={styles.hint}>{detail}</Text> : null}</View>
+    <View style={styles.switchCopy}><Heading style={styles.label}>{title}</Heading>{detail ? <Text style={styles.hint}>{detail}</Text> : null}</View>
     <Ionicons name={open?'chevron-up':'chevron-down'} size={17} color={colors.muted}/>
   </Pressable>;
 }
 const styles=StyleSheet.create({
   intro:{gap:12},headingRow:{flexDirection:'row',alignItems:'center',gap:10},titleRow:{flex:1,minWidth:0,flexDirection:'row',flexWrap:'wrap',alignItems:'center',gap:8},
-  title:{minWidth:0,maxWidth:'100%',flexShrink:1,fontSize:20,lineHeight:28,fontWeight:'700',color:colors.ink},history:{width:44,minHeight:44,borderRadius:12,borderWidth:1,borderColor:colors.border,backgroundColor:colors.card,alignItems:'center',justifyContent:'center'},
+  title:{minWidth:0,maxWidth:'100%',flexShrink:1},history:{width:44,minHeight:44,borderRadius:12,borderWidth:1,borderColor:colors.border,backgroundColor:colors.card,alignItems:'center',justifyContent:'center'},
   quota:{flexDirection:'row',flexWrap:'wrap',alignItems:'center',gap:8,paddingHorizontal:12,paddingVertical:4,borderWidth:1,borderColor:colors.border,borderRadius:14,backgroundColor:colors.card},quotaExhausted:{backgroundColor:colors.soft},quotaText:{flexGrow:1,flexBasis:150,minWidth:0,fontSize:12,lineHeight:19,color:colors.muted,paddingVertical:6},
   plans:{minHeight:44,maxWidth:'100%',flexShrink:1,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:5,paddingHorizontal:6,paddingVertical:8},linkText:{flexShrink:1,fontSize:12,lineHeight:19,fontWeight:'700',color:colors.primary},
-  panel:{padding:14,borderRadius:18,borderWidth:1,borderColor:colors.border,backgroundColor:colors.card,gap:12},sectionHeading:{flexDirection:'row',alignItems:'center',gap:8},sectionTitle:{flex:1,fontSize:15,lineHeight:22,fontWeight:'700',color:colors.ink},
+  panel:{padding:14,borderRadius:18,borderWidth:1,borderColor:colors.border,backgroundColor:colors.card,gap:12},sectionHeading:{flexDirection:'row',alignItems:'center',gap:8},sectionTitle:{flex:1},
   step:{minWidth:23,minHeight:23,padding:3,borderRadius:8,backgroundColor:colors.primarySoft,alignItems:'center',justifyContent:'center'},stepText:{fontSize:11,lineHeight:16,fontWeight:'700',color:colors.primary},
-  label:{fontSize:13,lineHeight:20,fontWeight:'600',color:colors.ink},hint:{fontSize:12,lineHeight:19,color:colors.muted},options:{gap:12},
+  label:{},hint:{fontSize:12,lineHeight:19,color:colors.muted},options:{gap:12},
   switchRow:{flexDirection:'row',alignItems:'center',gap:12,paddingTop:12,borderTopWidth:1,borderTopColor:colors.border},switchCopy:{flex:1,minWidth:0,gap:3},flex:{flex:1,minWidth:0},
   disclosure:{minHeight:44,flexDirection:'row',alignItems:'center',gap:8,paddingVertical:4},pressed:{opacity:.7},
   methodologyHint:{fontSize:12,lineHeight:20,color:'#805717',backgroundColor:'#FCF4E6',padding:10,borderRadius:12},

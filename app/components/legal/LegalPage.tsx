@@ -17,7 +17,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Mail } from 'lucide-react'
-import { BloomMark } from '@/app/components/landing/LandingHeader'
+import { BrandLogo } from '@/components/brand-logo'
 
 export interface LegalSection {
   heading: string
@@ -55,10 +55,7 @@ export default function LegalPage({ english, telugu }: LegalPageProps) {
         </Link>
 
         <div className="mt-6 flex items-center gap-2.5">
-          <BloomMark className="h-5 w-5" />
-          <span className="text-sm font-semibold tracking-tight">
-            rsd<span className="font-normal text-muted-foreground">education</span>
-          </span>
+          <BrandLogo />
         </div>
 
         <h1 className="mt-5 text-2xl font-bold tracking-tight sm:text-3xl">{doc.title}</h1>
