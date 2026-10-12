@@ -24,6 +24,8 @@ function snapshot() {
 
 function serverSnapshot() { return '' }
 
+export function readTopicCompletion() { return parseTopicCompletion(snapshot()) }
+
 export function useTopicCompletion() {
   const raw = useSyncExternalStore(subscribe, snapshot, serverSnapshot)
   const completion = useMemo(() => parseTopicCompletion(raw), [raw])

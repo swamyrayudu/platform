@@ -18,7 +18,7 @@
 // justify a table.
 // ============================================================
 
-import React, { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
@@ -39,7 +39,8 @@ import { LoadingScreen } from '@/components/ui/loading-screen'
 import { QUESTION_TABLES } from '@/lib/questions/tables'
 import { toCsv, type CsvRow } from '@/lib/questions/csv'
 import { isTopicCompleted, topicCompletionKey } from '@/lib/questions/topic-completion'
-import { useTopicCompletion } from '@/app/components/admin/useTopicCompletion'
+import { readTopicCompletion, useTopicCompletion } from '@/app/components/admin/useTopicCompletion'
+import { canAdvanceTopic, findUnreviewedTopicBatch, nextUnfinishedTopic } from '@/lib/questions/topic-workflow'
 import TopicQuestionImport from '@/app/components/admin/TopicQuestionImport'
 import {
   BULK_CSV_COLUMNS,
@@ -154,6 +155,8 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
   const [error, setError] = useState<string | null>(null)
   const [showAddQuestions, setShowAddQuestions] = useState(false)
   const [importBusy, setImportBusy] = useState(false)
+  const [workflowMessage, setWorkflowMessage] = useState<string | null>(null)
+  const reviewedByTopic = useRef(new Map<string, Set<string>>())
   const busy = exporting || previewing || applying || importBusy
   const { completion, setCompleted } = useTopicCompletion()
   const completionKey = selectedTopic === undefined ? ''
@@ -205,6 +208,7 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
     setCsv('')
     setTotal(null)
     setError(null)
+    setWorkflowMessage(null)
   }
 
   function changeTable(nextTable: string) {
@@ -229,11 +233,13 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
   function toggleTopicCompleted() {
     if (!completionKey || busy || topicsLoading || selectedCount === 0) return
     const saved = setCompleted(completionKey, topicCompleted ? null : selectedCount)
+    if (saved && topicCompleted) reviewedByTopic.current.delete(completionKey)
     if (saved) toast.success(topicCompleted ? 'Topic reopened for review' : 'Topic marked as completed')
     else toast.error('Could not save completion status in this browser.')
   }
 
   function questionsAdded() {
+    reviewedByTopic.current.delete(completionKey)
     if (!setCompleted(completionKey, null)) {
       toast.error('Questions added, but completion status could not be cleared in this browser.')
     }
@@ -298,13 +304,90 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
     return toCsv(BULK_CSV_COLUMNS, exported.rows as unknown as CsvRow[])
   }, [exported])
 
+  async function readTopicBatch(topic: string | null, from: number, to: number): Promise<BulkExportResponse> {
+    const params = new URLSearchParams({ table, from: String(from), to: String(to) })
+    if (topic === null) params.set('topicMissing', '1')
+    else params.set('topic', topic)
+    const res = await fetch(`/api/admin/questions/bulk?${params}`, { credentials: 'include' })
+    const data = await res.json()
+    if (!res.ok || !data.success) throw new Error(data.error ?? 'Could not load the next batch')
+    return data as BulkExportResponse
+  }
+
+  function openAutomaticBatch(batch: BulkExportResponse) {
+    resetBatch()
+    setShowAddQuestions(false)
+    setTopicKey(JSON.stringify(batch.topic))
+    setFrom(batch.from)
+    setTo(batch.to)
+    setExported(batch)
+    setTotal(batch.total)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  async function advanceAfterTopicApply(result: BulkPreviewResponse, loaded: BulkExportResponse) {
+    const currentTopic = loaded.topic
+    if (currentTopic === undefined) return
+    if (!canAdvanceTopic(result)) {
+      setError('Some changes were not saved. This topic remains open; review the result before continuing.')
+      return
+    }
+    const key = topicCompletionKey(user?.id ?? '', table, currentTopic)
+    const reviewed = new Set(reviewedByTopic.current.get(key) ?? [])
+    for (const row of result.rows) reviewed.add(row.questionId)
+    reviewedByTopic.current.set(key, reviewed)
+    // A successful rewrite reopens a previously completed topic until every
+    // question currently assigned to it has appeared in an applied CSV.
+    if (!setCompleted(key, null)) {
+      setError('Questions were updated, but completion could not be saved in this browser. The topic was not advanced.')
+      return
+    }
+    try {
+      const response = await fetch(`/api/admin/questions/bulk?table=${encodeURIComponent(table)}&topics=1`, { credentials: 'include' })
+      const refreshed = await response.json()
+      if (!response.ok || !refreshed.success) throw new Error(refreshed.error ?? 'Could not refresh topics')
+      const remaining = await findUnreviewedTopicBatch(reviewed, (from, to) => readTopicBatch(currentTopic, from, to))
+      const freshTopics = (refreshed as BulkTopicsResponse).topics.filter((entry) => entry.topic !== currentTopic)
+      if (remaining.total > 0) freshTopics.push({ topic: currentTopic, count: remaining.total })
+      freshTopics.sort((a, b) => (a.topic ?? '').localeCompare(b.topic ?? ''))
+      setTopicsState({ table, revision: topicsRevision, topics: freshTopics })
+      if (remaining.batch) {
+        openAutomaticBatch(remaining.batch)
+        setWorkflowMessage('Changes saved. The next unreviewed batch in this topic is loaded. Apply it to continue.')
+        return
+      }
+      if (!setCompleted(key, remaining.total > 0 ? remaining.total : null)) {
+        setError('Questions were updated, but completion could not be saved in this browser. The topic was not advanced.')
+        return
+      }
+      const next = nextUnfinishedTopic(freshTopics, currentTopic, readTopicCompletion(), user?.id ?? '', table)
+      if (!next) {
+        setWorkflowMessage('Topic completed. All topics in this subject and medium are now completed.')
+        toast.success('All topics completed')
+        return
+      }
+      const nextBatch = await readTopicBatch(next.topic, 1, Math.min(next.count, BULK_MAX_ROWS))
+      if (!nextBatch.rows.length) throw new Error('The next topic changed. Reload its questions to continue.')
+      // This newly opened topic is a fresh review pass.
+      reviewedByTopic.current.delete(topicCompletionKey(user?.id ?? '', table, next.topic))
+      openAutomaticBatch(nextBatch)
+      setWorkflowMessage(`Topic completed. Next topic loaded: ${next.topic || 'No topic'}.`)
+      toast.success('Topic completed', { description: `Next topic: ${next.topic || 'No topic'}` })
+    } catch (err) {
+      setError(`Questions were updated, but automatic navigation could not finish. ${err instanceof Error ? err.message : 'Reload the topics to continue.'}`)
+    }
+  }
+
   async function runPreview(apply: boolean) {
     if (!exported?.rows.length || (apply && !preview)) return
     if (!csv.trim()) {
       setError('Paste the rewritten CSV first.')
       return
     }
-    if (apply) setApplying(true)
+    if (apply) {
+      setApplying(true)
+      setWorkflowMessage(null)
+    }
     else setPreviewing(true)
     setError(null)
     try {
@@ -344,10 +427,7 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
               : 'Live in practice now.',
         })
         if (topicMode) {
-          if (written > 0 && exported.topic !== undefined) {
-            setCompleted(topicCompletionKey(user?.id ?? '', table, exported.topic), null)
-          }
-          setTopicsRevision((revision) => revision + 1)
+          await advanceAfterTopicApply(data as BulkPreviewResponse, exported)
         } else {
           const current = readProgress()
           const reached = exported?.to ?? 0
@@ -407,6 +487,12 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
         <div className="mb-6 flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>{error}</span>
+        </div>
+      )}
+
+      {workflowMessage && (
+        <div role="status" className="mb-5 flex items-start gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-700 dark:text-emerald-300">
+          <Check className="mt-0.5 h-4 w-4 shrink-0" />{workflowMessage}
         </div>
       )}
 
@@ -777,7 +863,7 @@ Q000001,"Rewritten stem","opt A","opt B","opt C","opt D",B,"why B is right","జ
                     ? summary.invalid > 0
                       ? 'Fix the invalid rows above — nothing can be written until they are valid.'
                       : 'Nothing to write.'
-                    : `${summary.changed} question(s) will be updated. Their question IDs will stay the same.`}
+                    : `${summary.changed} question(s) will be updated. Their question IDs will stay the same.${topicMode ? ' When every question in this topic is reviewed, it will be marked completed and the next unfinished topic will load automatically.' : ''}`}
               </p>
               {/* Not merely disabled: a paste from the wrong range is not
                   something to nudge past, so the control is not offered. */}
@@ -806,11 +892,6 @@ Q000001,"Rewritten stem","opt A","opt B","opt C","opt D",B,"why B is right","జ
                 `, ${summary.modulesInvalidated} mock module(s) refreshed`}
               .
             </div>
-          )}
-          {applied && topicMode && summary.taxonomyChanges > 0 && (
-            <p className="mt-3 text-xs text-muted-foreground">
-              Classification changed. Topic row positions may have shifted; reload the topic from row 1 before choosing the next batch.
-            </p>
           )}
         </section>
       )}

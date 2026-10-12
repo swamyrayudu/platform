@@ -337,3 +337,71 @@ test('completion persists by admin, subject/medium and topic, and count changes 
   assert.deepEqual(parseTopicCompletion('[8]'), {})
   assert.deepEqual(parseTopicCompletion('{"bad":true,"negative":-1}'), {})
 })
+
+test('a successful full topic apply is eligible for completion and moves past completed topics', async () => {
+  const h = harness([row('Q001', 'Biology'), row('Q003', 'Biology')])
+  const workflow = h.load(path.join(root, 'lib/questions/topic-workflow.ts'))
+  const { topicCompletionKey } = h.load(path.join(root, 'lib/questions/topic-completion.ts'))
+  const { data: exported } = await h.get({ topic: 'Biology', from: '1', to: '2' })
+  const { data: result } = await h.post(batch(exported, csv(['Q001', 'Improved one'], ['Q003', 'Improved three']), true))
+  assert.equal(workflow.canAdvanceTopic(result), true)
+  const remaining = await workflow.findUnreviewedTopicBatch(new Set(result.rows.map((r) => r.questionId)),
+    async (from, to) => (await h.get({ topic: 'Biology', from: String(from), to: String(to) })).data)
+  assert.equal(remaining.batch, null)
+  assert.equal(remaining.total, 2)
+  const completed = { [topicCompletionKey('admin', table, 'Biology')]: 2, [topicCompletionKey('admin', table, 'Chemistry')]: 1 }
+  const topics = [{ topic: 'Biology', count: 2 }, { topic: 'Chemistry', count: 1 }, { topic: 'Physics', count: 1 }]
+  assert.equal(workflow.nextUnfinishedTopic(topics, 'Biology', completed, 'admin', table).topic, 'Physics')
+})
+
+test('a paste missing a loaded question keeps the same topic and returns that question', async () => {
+  const h = harness([row('Q001', 'Biology'), row('Q003', 'Biology')])
+  const workflow = h.load(path.join(root, 'lib/questions/topic-workflow.ts'))
+  const { data: exported } = await h.get({ topic: 'Biology', from: '1', to: '2' })
+  const { data: result } = await h.post(batch(exported, csv(['Q001', 'Improved one']), true))
+  assert.equal(result.summary.missing, 1)
+  const remaining = await workflow.findUnreviewedTopicBatch(new Set(result.rows.map((r) => r.questionId)),
+    async (from, to) => (await h.get({ topic: 'Biology', from: String(from), to: String(to) })).data)
+  assert.deepEqual(remaining.batch.rows.map((r) => r.question_id), ['Q003'])
+  assert.equal(remaining.batch.to, 2)
+})
+
+test('large topics continue to later batches before completion, including server row limits', async () => {
+  const h = harness(Array.from({ length: 501 }, (_, i) => row(`Q${String(i + 1).padStart(4, '0')}`, 'Biology')), 123)
+  const workflow = h.load(path.join(root, 'lib/questions/topic-workflow.ts'))
+  const reviewed = new Set(Array.from({ length: 500 }, (_, i) => `Q${String(i + 1).padStart(4, '0')}`))
+  const read = async (from, to) => (await h.get({ topic: 'Biology', from: String(from), to: String(to) })).data
+  const remaining = await workflow.findUnreviewedTopicBatch(reviewed, read)
+  assert.deepEqual(remaining.batch.rows.map((r) => r.question_id), ['Q0501'])
+  reviewed.add('Q0501')
+  assert.equal((await workflow.findUnreviewedTopicBatch(reviewed, read)).batch, null)
+})
+
+test('moved IDs cannot make a different, unreviewed question look completed', async () => {
+  const h = harness([row('Q001', 'Physics'), row('Q003', 'Biology')])
+  const workflow = h.load(path.join(root, 'lib/questions/topic-workflow.ts'))
+  const remaining = await workflow.findUnreviewedTopicBatch(new Set(['Q001']),
+    async (from, to) => (await h.get({ topic: 'Biology', from: String(from), to: String(to) })).data)
+  assert.equal(remaining.total, 1)
+  assert.deepEqual(remaining.batch.rows.map((r) => r.question_id), ['Q003'])
+})
+
+test('previews, partial writes and database errors cannot advance a topic', () => {
+  const workflow = harness([]).load(path.join(root, 'lib/questions/topic-workflow.ts'))
+  assert.equal(workflow.canAdvanceTopic({ applied: false, summary: { changed: 1, written: 1 }, rows: [] }), false)
+  assert.equal(workflow.canAdvanceTopic({ applied: true, summary: { changed: 2, written: 1 }, rows: [{ status: 'changed' }] }), false)
+  assert.equal(workflow.canAdvanceTopic({ applied: true, summary: { changed: 1, written: 1 }, rows: [{ status: 'invalid' }] }), false)
+})
+
+test('next topic wraps, handles removed topics and stops when all are completed', () => {
+  const h = harness([])
+  const workflow = h.load(path.join(root, 'lib/questions/topic-workflow.ts'))
+  const { topicCompletionKey } = h.load(path.join(root, 'lib/questions/topic-completion.ts'))
+  const topics = [{ topic: 'A', count: 1 }, { topic: 'B', count: 1 }, { topic: 'D', count: 1 }]
+  assert.equal(workflow.nextUnfinishedTopic(topics, 'D', {}, 'admin', table).topic, 'A')
+  assert.equal(workflow.nextUnfinishedTopic(topics, 'C', {}, 'admin', table).topic, 'D')
+  assert.equal(workflow.nextUnfinishedTopic(topics, 'Z', {}, 'admin', table).topic, 'A')
+  const completed = Object.fromEntries(topics.map((t) => [topicCompletionKey('admin', table, t.topic), 1]))
+  assert.equal(workflow.nextUnfinishedTopic(topics, 'B', completed, 'admin', table), null)
+  assert.equal(workflow.nextUnfinishedTopic([{ topic: null, count: 1 }, { topic: '', count: 1 }], null, {}, 'admin', table).topic, '')
+})
