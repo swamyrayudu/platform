@@ -41,6 +41,7 @@ import { toCsv, type CsvRow } from '@/lib/questions/csv'
 import { isTopicCompleted, topicCompletionKey } from '@/lib/questions/topic-completion'
 import { readTopicCompletion, useTopicCompletion } from '@/app/components/admin/useTopicCompletion'
 import { canAdvanceTopic, findUnreviewedTopicBatch, nextUnfinishedTopic } from '@/lib/questions/topic-workflow'
+import { sortTopicsByCount } from '@/lib/questions/topic-order'
 import TopicQuestionImport from '@/app/components/admin/TopicQuestionImport'
 import {
   BULK_CSV_COLUMNS,
@@ -140,7 +141,7 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
   } | null>(null)
   const topicsLoading = topicMode &&
     (topicsState?.table !== table || topicsState?.revision !== topicsRevision)
-  const topics = topicsLoading ? [] : topicsState?.topics ?? []
+  const topics = topicsLoading ? [] : sortTopicsByCount(topicsState?.topics ?? [])
   const selectedCount = topics.find((entry) => entry.topic === selectedTopic)?.count ?? 0
 
   const [total, setTotal] = useState<number | null>(null)
@@ -349,8 +350,7 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
       const remaining = await findUnreviewedTopicBatch(reviewed, (from, to) => readTopicBatch(currentTopic, from, to))
       const freshTopics = (refreshed as BulkTopicsResponse).topics.filter((entry) => entry.topic !== currentTopic)
       if (remaining.total > 0) freshTopics.push({ topic: currentTopic, count: remaining.total })
-      freshTopics.sort((a, b) => (a.topic ?? '').localeCompare(b.topic ?? ''))
-      setTopicsState({ table, revision: topicsRevision, topics: freshTopics })
+      setTopicsState({ table, revision: topicsRevision, topics: sortTopicsByCount(freshTopics) })
       if (remaining.batch) {
         openAutomaticBatch(remaining.batch)
         setWorkflowMessage('Changes saved. The next unreviewed batch in this topic is loaded. Apply it to continue.')
@@ -565,7 +565,7 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
             )}
             {!topicsLoading && topics.length > 0 && (
               <p className="mt-2 text-[11px] text-muted-foreground">
-                {completedCount} of {topics.length} topics completed. Completion is remembered in this browser.
+                {completedCount} of {topics.length} topics completed. Largest topics first. Completion is remembered in this browser.
               </p>
             )}
             {topicKey !== '' && selectedCount > 0 && (

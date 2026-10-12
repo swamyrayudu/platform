@@ -1,4 +1,5 @@
 import { isTopicCompleted, topicCompletionKey, type TopicCompletion } from './topic-completion'
+import { sortTopicsByCount } from './topic-order'
 import { BULK_MAX_ROWS, type BulkExportResponse, type BulkPreviewResponse, type BulkTopicOption } from '@/types/bulk-update'
 
 /** Partial database writes must never complete a topic or discard its preview. */
@@ -30,12 +31,11 @@ export function nextUnfinishedTopic(
   topics: readonly BulkTopicOption[], current: string | null,
   completion: TopicCompletion, adminId: string, table: string
 ): BulkTopicOption | null {
-  let index = topics.findIndex((entry) => entry.topic === current)
-  // A reclassification may have removed the current topic altogether.
-  if (index < 0) index = topics.findIndex((entry) => (entry.topic ?? '').localeCompare(current ?? '') > 0) - 1
-  if (index < -1) index = topics.length - 1
-  for (let offset = 1; offset <= topics.length; offset++) {
-    const entry = topics[(index + offset) % topics.length]!
+  const ordered = sortTopicsByCount(topics)
+  // If the current topic was removed, continue with the largest unfinished one.
+  const index = ordered.findIndex((entry) => entry.topic === current)
+  for (let offset = 1; offset <= ordered.length; offset++) {
+    const entry = ordered[(index + offset) % ordered.length]!
     if (entry.topic !== current && entry.count > 0 &&
       !isTopicCompleted(completion, topicCompletionKey(adminId, table, entry.topic), entry.count)) return entry
   }

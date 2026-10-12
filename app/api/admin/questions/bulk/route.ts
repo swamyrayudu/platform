@@ -33,6 +33,7 @@ import { invalidateMockTestCache } from '@/lib/mock-tests/cache'
 import { parseCsv } from '@/lib/questions/csv'
 import { getQuestionTable, buildQuestionUid } from '@/lib/questions/tables'
 import { collectIds, diffPastedRows, presentEditableColumns } from '@/lib/questions/bulk-diff'
+import { sortTopicsByCount } from '@/lib/questions/topic-order'
 import { findLiveAttempts } from '@/lib/mock-tests/live-attempts'
 import { matchDifficulty } from '@/lib/mock-tests/question-bank'
 import {
@@ -81,8 +82,7 @@ async function listTopics(table: string): Promise<BulkTopicOption[]> {
     }
     offset += data.length
   }
-  return [...counts].map(([topic, count]) => ({ topic, count }))
-    .sort((a, b) => (a.topic ?? '').localeCompare(b.topic ?? ''))
+  return sortTopicsByCount([...counts].map(([topic, count]) => ({ topic, count })))
 }
 
 /** Reject anything that is not a real question table before it reaches a query. */

@@ -399,9 +399,26 @@ test('next topic wraps, handles removed topics and stops when all are completed'
   const { topicCompletionKey } = h.load(path.join(root, 'lib/questions/topic-completion.ts'))
   const topics = [{ topic: 'A', count: 1 }, { topic: 'B', count: 1 }, { topic: 'D', count: 1 }]
   assert.equal(workflow.nextUnfinishedTopic(topics, 'D', {}, 'admin', table).topic, 'A')
-  assert.equal(workflow.nextUnfinishedTopic(topics, 'C', {}, 'admin', table).topic, 'D')
+  assert.equal(workflow.nextUnfinishedTopic(topics, 'C', {}, 'admin', table).topic, 'A')
   assert.equal(workflow.nextUnfinishedTopic(topics, 'Z', {}, 'admin', table).topic, 'A')
   const completed = Object.fromEntries(topics.map((t) => [topicCompletionKey('admin', table, t.topic), 1]))
   assert.equal(workflow.nextUnfinishedTopic(topics, 'B', completed, 'admin', table), null)
   assert.equal(workflow.nextUnfinishedTopic([{ topic: null, count: 1 }, { topic: '', count: 1 }], null, {}, 'admin', table).topic, '')
+})
+
+test('topics are shown largest first and automatic navigation skips completed topics from the middle', async () => {
+  const h = harness([row('Q001', 'Alpha'), row('Q002', 'Zulu'), row('Q003', 'Zulu'), row('Q004', 'Zulu'), row('Q005', 'Middle'), row('Q006', 'Middle')])
+  const { data } = await h.get({ topics: '1' })
+  assert.deepEqual(data.topics.map((t) => [t.topic, t.count]), [['Zulu', 3], ['Middle', 2], ['Alpha', 1]])
+  const workflow = h.load(path.join(root, 'lib/questions/topic-workflow.ts'))
+  const { topicCompletionKey } = h.load(path.join(root, 'lib/questions/topic-completion.ts'))
+  const completed = { [topicCompletionKey('admin', table, 'Alpha')]: 1 }
+  assert.equal(workflow.nextUnfinishedTopic(data.topics, 'Middle', completed, 'admin', table).topic, 'Zulu')
+  const more = [{ topic: 'Largest', count: 100 }, { topic: 'Middle', count: 50 }, { topic: 'Done', count: 20 }, { topic: 'Next', count: 10 }]
+  completed[topicCompletionKey('admin', table, 'Done')] = 20
+  assert.equal(workflow.nextUnfinishedTopic(more, 'Middle', completed, 'admin', table).topic, 'Next')
+  const { sortTopicsByCount } = h.load(path.join(root, 'lib/questions/topic-order.ts'))
+  const tied = [{ topic: 'B', count: 5 }, { topic: 'A', count: 5 }]
+  assert.deepEqual(sortTopicsByCount(tied).map((t) => t.topic), ['A', 'B'])
+  assert.deepEqual(tied.map((t) => t.topic), ['B', 'A'])
 })
