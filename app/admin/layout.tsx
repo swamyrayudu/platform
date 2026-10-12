@@ -31,6 +31,8 @@ import {
   Replace,
   ShieldCheck,
   FileSpreadsheet,
+  ListFilter,
+  Users,
 } from 'lucide-react'
 import { useAuth } from '@/app/contexts/AuthContext'
 import { LoadingScreen } from '@/components/ui/loading-screen'
@@ -38,11 +40,13 @@ import TopNav from '@/app/components/home/TopNav'
 
 const ADMIN_NAV = [
   { href: '/admin', label: 'Overview', icon: LayoutDashboard },
+  { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/payments', label: 'Payments', icon: CreditCard },
   { href: '/admin/question-bank', label: 'Question bank', icon: Database },
   { href: '/admin/mock-tests', label: 'Mock modules', icon: FileCheck2 },
   { href: '/admin/module-questions', label: 'Module questions', icon: Replace },
   { href: '/admin/bulk-update', label: 'Bulk update', icon: FileSpreadsheet },
+  { href: '/admin/topic-update', label: 'Topic update', icon: ListFilter },
   { href: '/admin/import-questions', label: 'Import', icon: Plus },
   { href: '/admin/question-feedback', label: 'Reports', icon: Flag },
 ] as const

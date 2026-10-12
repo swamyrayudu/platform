@@ -176,4 +176,18 @@ export interface BulkExportResponse {
   from: number
   to: number
   rows: BulkExportRow[]
+  /** Omitted for a whole-table range; null selects questions with no topic. */
+  topic?: string | null
+}
+
+export interface BulkTopicOption {
+  topic: string | null
+  count: number
+}
+
+export interface BulkTopicsResponse {
+  success: true
+  table: string
+  total: number
+  topics: BulkTopicOption[]
 }

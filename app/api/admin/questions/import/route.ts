@@ -63,7 +63,8 @@ async function loadExisting(
   const ids = new Set<string>()
   const text = new Set<string>()
 
-  for (let from = 0; ; from += PAGE) {
+  let from = 0
+  while (true) {
     const { data, error } = await supabaseAdmin
       .from(table)
       .select('question_id, question')
@@ -76,7 +77,8 @@ async function loadExisting(
       if (row.question_id) ids.add(row.question_id)
       if (row.question) text.add(normaliseText(row.question))
     }
-    if (rows.length < PAGE) break
+    if (rows.length === 0) break
+    from += rows.length
   }
 
   return { ids, text }
@@ -122,7 +124,15 @@ export const POST = requireAdmin(async (request) => {
       return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 })
     }
 
-    const { table: tableInput, csv, apply } = body as Record<string, unknown>
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 })
+    }
+    const { table: tableInput, csv, apply, topic } = body as Record<string, unknown>
+    const topicImport = topic !== undefined
+    if (topicImport && topic !== null && (typeof topic !== 'string' || topic.length > 1000)) {
+      return NextResponse.json({ success: false, error: 'Invalid topic' }, { status: 400 })
+    }
+    const selectedTopic = topic as string | null | undefined
 
     const table = resolveTable(typeof tableInput === 'string' ? tableInput : null)
     if (!table) {
@@ -152,6 +162,18 @@ export const POST = requireAdmin(async (request) => {
     }
 
     const presentColumns = presentImportColumns(parsed.headers)
+    if (topicImport) {
+      // This entry point always creates new identities. A copied update CSV
+      // must not accidentally become an import of existing questions.
+      if (parsed.rows.some((row) => row.question_id?.trim())) {
+        return NextResponse.json(
+          { success: false, error: 'Leave question_id empty or remove that column. New IDs are generated automatically when adding questions to a topic.' },
+          { status: 400 }
+        )
+      }
+      if (!presentColumns.includes('topic')) presentColumns.push('topic')
+      for (const row of parsed.rows) row.topic = selectedTopic ?? ''
+    }
     const missingRequired = ['question', 'option_a', 'option_b', 'option_c', 'option_d', 'correct_answer']
       .filter((c) => !parsed.headers.includes(c))
     if (missingRequired.length > 0) {
@@ -242,7 +264,12 @@ export const POST = requireAdmin(async (request) => {
     // the insert fails rather than duplicating a question.
     let inserted = 0
     for (let i = 0; i < inserts.length; i += 100) {
-      const chunk = inserts.slice(i, i + 100).map((row) => row.values)
+      const chunk = inserts.slice(i, i + 100).map((row) => ({
+        ...row.values,
+        // Preserve the selected topic exactly, including null, empty and
+        // whitespace spellings. CSV topic cells cannot move these new rows.
+        ...(topicImport ? { topic: selectedTopic } : {}),
+      }))
       const { data, error } = await supabaseAdmin.from(table).insert(chunk).select('question_id')
       if (error) {
         console.error('[AdminImport] insert failed:', error)

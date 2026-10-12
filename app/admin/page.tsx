@@ -23,6 +23,7 @@ import {
   Database,
   FileCheck2,
   FileSpreadsheet,
+  ListFilter,
   Flag,
   Plus,
   Replace,
@@ -34,6 +35,12 @@ import { useAuth } from '@/app/contexts/AuthContext'
 import { StatCard, formatDateTime, type UserStats } from '@/app/components/admin/shared'
 
 const SHORTCUTS = [
+  {
+    href: '/admin/users',
+    icon: Users,
+    title: 'Users',
+    body: 'Profiles, activity, practice usage and payment history.',
+  },
   {
     href: '/admin/payments',
     icon: CreditCard,
@@ -63,6 +70,12 @@ const SHORTCUTS = [
     icon: FileSpreadsheet,
     title: 'Bulk update',
     body: 'Rewrite a range of questions through a CSV round trip.',
+  },
+  {
+    href: '/admin/topic-update',
+    icon: ListFilter,
+    title: 'Topic update',
+    body: 'Rewrite questions by subject and topic, keeping their existing IDs.',
   },
   {
     href: '/admin/import-questions',

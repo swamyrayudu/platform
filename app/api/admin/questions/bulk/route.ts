@@ -42,6 +42,7 @@ import {
   BULK_TAXONOMY_CHECKED_COLUMNS,
   type BulkEditableColumn,
   type BulkExportRow,
+  type BulkTopicOption,
 } from '@/types/bulk-update'
 
 /** Hard cap on the request body. 500 rows of Telugu is comfortably under this. */
@@ -55,6 +56,34 @@ const MAX_CSV_BYTES = 8 * 1024 * 1024
 const ORDER_COLUMN = 'question_id'
 
 const SELECT_COLUMNS = ['question_id', ...BULK_EDITABLE_COLUMNS].join(', ')
+
+/** undefined is a table range, null is an unassigned topic, '' is an empty topic. */
+function topicQuery(table: string, columns: string, topic: string | null | undefined) {
+  const query = supabaseAdmin.from(table).select(columns)
+  if (topic === undefined) return query
+  return topic === null ? query.is('topic', null) : query.eq('topic', topic)
+}
+
+async function listTopics(table: string): Promise<BulkTopicOption[]> {
+  const counts = new Map<string | null, number>()
+  // Paginate: PostgREST caps responses, so one select can miss later topics.
+  let offset = 0
+  while (true) {
+    const { data, error } = await supabaseAdmin.from(table)
+      .select('question_id, topic')
+      .order(ORDER_COLUMN, { ascending: true })
+      .range(offset, offset + 999)
+    if (error) throw error
+    if (!data?.length) break
+    for (const row of data) {
+      const topic = row.topic as string | null
+      counts.set(topic, (counts.get(topic) ?? 0) + 1)
+    }
+    offset += data.length
+  }
+  return [...counts].map(([topic, count]) => ({ topic, count }))
+    .sort((a, b) => (a.topic ?? '').localeCompare(b.topic ?? ''))
+}
 
 /** Reject anything that is not a real question table before it reaches a query. */
 function resolveTable(name: string | null): string | null {
@@ -100,6 +129,18 @@ export const GET = requireAdmin(async (request) => {
       return NextResponse.json({ success: false, error: 'Unknown question table' }, { status: 400 })
     }
 
+    if (url.searchParams.get('topics') === '1') {
+      const topics = await listTopics(table)
+      return NextResponse.json({ success: true, table, topics,
+        total: topics.reduce((total, entry) => total + entry.count, 0) })
+    }
+
+    const topic = url.searchParams.get('topicMissing') === '1'
+      ? null : url.searchParams.has('topic') ? url.searchParams.get('topic')! : undefined
+    if (typeof topic === 'string' && topic.length > 1000) {
+      return NextResponse.json({ success: false, error: 'Topic is too long' }, { status: 400 })
+    }
+
     const from = Number(url.searchParams.get('from') ?? '1')
     const to = Number(url.searchParams.get('to') ?? '100')
 
@@ -108,15 +149,17 @@ export const GET = requireAdmin(async (request) => {
       return NextResponse.json({ success: false, error: badRange }, { status: 400 })
     }
 
-    const { count, error: countError } = await supabaseAdmin
+    let countQuery = supabaseAdmin
       .from(table)
       .select('question_id', { count: 'exact', head: true })
+    if (topic !== undefined) {
+      countQuery = topic === null ? countQuery.is('topic', null) : countQuery.eq('topic', topic)
+    }
+    const { count, error: countError } = await countQuery
 
     if (countError) throw countError
 
-    const { data, error } = await supabaseAdmin
-      .from(table)
-      .select(SELECT_COLUMNS)
+    const { data, error } = await topicQuery(table, SELECT_COLUMNS, topic)
       .order(ORDER_COLUMN, { ascending: true })
       // PostgREST range is inclusive and 0-based; the UI counts from 1.
       .range(from - 1, to - 1)
@@ -139,6 +182,7 @@ export const GET = requireAdmin(async (request) => {
       from,
       to,
       rows,
+      ...(topic !== undefined ? { topic } : {}),
     })
   } catch (err) {
     console.error('[AdminBulk] export failed:', err)
@@ -268,11 +312,28 @@ export const POST = requireAdmin(async (request) => {
       allowAnswerChange,
       from: fromInput,
       to: toInput,
+      topic,
+      questionIds,
     } = body as Record<string, unknown>
 
     const table = resolveTable(typeof tableInput === 'string' ? tableInput : null)
     if (!table) {
       return NextResponse.json({ success: false, error: 'Unknown question table' }, { status: 400 })
+    }
+
+    if (topic !== undefined && topic !== null &&
+      (typeof topic !== 'string' || topic.length > 1000)) {
+      return NextResponse.json({ success: false, error: 'Invalid topic' }, { status: 400 })
+    }
+    const selectedTopic = topic as string | null | undefined
+    if (selectedTopic !== undefined && (!Array.isArray(questionIds) ||
+      questionIds.length === 0 || questionIds.length > BULK_MAX_ROWS ||
+      questionIds.some((id) => typeof id !== 'string' || !id.trim()) ||
+      new Set(questionIds).size !== questionIds.length)) {
+      return NextResponse.json(
+        { success: false, error: 'Load a topic batch first — its original question IDs are required' },
+        { status: 400 }
+      )
     }
 
     // A paste is only ever checked against a range that was actually loaded.
@@ -347,7 +408,29 @@ export const POST = requireAdmin(async (request) => {
     // ---- The paste must belong to the range that was loaded ------
     // Without this, loading rows 1-100 and pasting the file from 101-200
     // would quietly update a hundred questions the admin never looked at.
-    const allowedIds = await idsInRange(table, from, to)
+    // Topic offsets can shift when earlier rows are reclassified. Keep the
+    // exact exported IDs, and recheck that they still belong to this topic.
+    let allowedIds: Set<string>
+    if (selectedTopic !== undefined) {
+      const loadedIds = questionIds as string[]
+      allowedIds = new Set<string>()
+      for (let i = 0; i < loadedIds.length; i += 200) {
+        const { data, error } = await topicQuery(table, 'question_id', selectedTopic)
+          .in('question_id', loadedIds.slice(i, i + 200))
+        if (error) throw error
+        for (const row of (data ?? []) as unknown as { question_id: string }[]) {
+          allowedIds.add(String(row.question_id))
+        }
+      }
+      if (allowedIds.size !== loadedIds.length) {
+        return NextResponse.json(
+          { success: false, error: 'Some loaded questions were removed or moved to another topic. Reload the batch and preview again — nothing was written.' },
+          { status: 409 }
+        )
+      }
+    } else {
+      allowedIds = await idsInRange(table, from, to)
+    }
     const pastedInRange = new Set(ids.filter((id) => allowedIds.has(id)))
     const outOfRangeIds = new Set(ids.filter((id) => !allowedIds.has(id)))
 
@@ -427,7 +510,9 @@ export const POST = requireAdmin(async (request) => {
       if (outOfRangeIds.has(result.questionId)) {
         result.status = 'out_of_range'
         result.diffs = []
-        result.errors = [`Not part of rows ${from}–${to} — this row came from a different range`]
+        result.errors = [selectedTopic !== undefined
+          ? 'Not part of the loaded topic batch — keep the original question IDs'
+          : `Not part of rows ${from}–${to} — this row came from a different range`]
         result.warnings = []
         result.changesAnswer = false
       }
@@ -515,7 +600,7 @@ export const POST = requireAdmin(async (request) => {
       return NextResponse.json(
         {
           success: false,
-          error: `${outOfRangeIds.size} pasted row(s) are not part of rows ${from}–${to}. Load the range those rows came from, or re-copy this one — nothing was written.`,
+          error: `${outOfRangeIds.size} pasted row(s) are not part of the loaded ${selectedTopic !== undefined ? 'topic batch' : `rows ${from}–${to}`}. Re-copy this batch and keep its original IDs — nothing was written.`,
         },
         { status: 400 }
       )
@@ -547,9 +632,13 @@ export const POST = requireAdmin(async (request) => {
     for (let i = 0; i < writable.length; i += 20) {
       const chunk = writable.slice(i, i + 20)
       const outcomes = await Promise.all(
-        chunk.map(({ id, update }) =>
-          supabaseAdmin.from(table).update(update).eq('question_id', id).select('question_id')
-        )
+        chunk.map(({ id, update }) => {
+          let query = supabaseAdmin.from(table).update(update).eq('question_id', id)
+          if (selectedTopic !== undefined) {
+            query = selectedTopic === null ? query.is('topic', null) : query.eq('topic', selectedTopic)
+          }
+          return query.select('question_id')
+        })
       )
       outcomes.forEach((outcome, index) => {
         if (outcome.error) {
