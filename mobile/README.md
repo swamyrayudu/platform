@@ -491,6 +491,13 @@ has been removed so Expo generates native projects using its SDK 57 template.
 
 ## In-app updates
 
+On 12 October 2026, compatible mobile UI/heading and in-app logo changes were
+published to Android `preview` runtime **1.0.1**, group
+`76773028-8d13-4152-9a8b-68e9e81b6a0a`, for existing configured release APKs.
+Open Home while online and choose **Update now** when prompted. This does not
+change the installed launcher icon or add update support to an older APK.
+The source configuration below remains 1.0.2 for the replacement APK.
+
 The replacement APK is version **1.0.2**, Android version code **3**, and uses
 the existing EAS project `e277917c-28a9-463f-91ec-2f6cace259ae`. The direct APK
 profile receives the `preview` update channel; store builds use `production`.

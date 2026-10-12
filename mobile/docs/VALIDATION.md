@@ -1,5 +1,34 @@
 # Google sign-in investigation — 10 October 2026
 
+## Android preview update published — 12 October 2026
+
+Published the tested mobile UI, heading typography and in-app branding to the
+existing Android `preview` channel/environment for runtime **1.0.1**. Recent
+completed EAS preview APKs are version 1.0.1/code 2; no 1.0.2 APK was listed.
+This supersedes the unpublished status in earlier entries for compatible
+JavaScript and assets only. The 1.0.2 launcher icon still requires an APK build.
+
+- Group: `76773028-8d13-4152-9a8b-68e9e81b6a0a`.
+- Android update: `01a12de7-dad4-72e6-bd24-f091989ee57f`.
+- Message: `Consistent headings and refreshed in-app branding`.
+- EAS publication time: `2026-10-12T02:18:51.988Z` (07:48 IST).
+- Authenticated Expo owner and checked the existing channel mapping. Preview
+  environment validation confirmed the existing HTTPS API, Google web client and
+  direct distribution; EAS has no preview plain-text/sensitive variables, so the
+  tested public configuration defaults apply.
+- Compared the known 1.0.1 update baseline: package configuration is identical
+  apart from app version; EAS config, native modules, plugins, Metro/Babel and
+  dynamic app config are unchanged. Export/publication temporarily used its
+  static native config, then restored the local 1.0.2/code 3 config byte for byte.
+- EAS exported 1,458 modules with the bundled Manrope font and new in-app mark,
+  uploaded successfully, and `update:view` confirmed runtime 1.0.1 and preview.
+- Previous checks remain green (TypeScript, ESLint, 157 tests). No website
+  deployment, Git push, new APK or additional EAS project was created.
+- Actual phone delivery is not verified. A compatible release APK should offer
+  Update available after sign-in on Home/main tabs while online; restart with
+  Update now. Active exams defer the prompt. APKs without Expo Updates cannot
+  receive it; install the replacement 1.0.2 preview APK in that case.
+
 ## Consistent mobile headings — 12 October 2026
 
 Page, section, card and dialog headings now share `components/heading.tsx` and
