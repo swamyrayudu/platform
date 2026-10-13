@@ -30,6 +30,7 @@ import {
 import { toast } from 'sonner'
 import { useAuth } from '@/app/contexts/AuthContext'
 import { LoadingScreen } from '@/components/ui/loading-screen'
+import CsvFilePicker from '@/app/components/admin/CsvFilePicker'
 import { QUESTION_TABLES } from '@/lib/questions/tables'
 import type {
   ImportPreviewResponse,
@@ -52,6 +53,8 @@ export default function ImportQuestionsPage() {
   const [preview, setPreview] = useState<ImportPreviewResponse | null>(null)
   const [previewing, setPreviewing] = useState(false)
   const [applying, setApplying] = useState(false)
+  const [fileReading, setFileReading] = useState(false)
+  const busy = previewing || applying || fileReading
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -69,10 +72,10 @@ export default function ImportQuestionsPage() {
     setError(null)
   }
 
-  const [lastCsv, setLastCsv] = useState(csv)
-  if (lastCsv !== csv) {
-    setLastCsv(csv)
-    if (preview) setPreview(null)
+  function changeCsv(text: string) {
+    setCsv(text)
+    setPreview(null)
+    setError(null)
   }
 
   const loadInfo = useCallback(async (target: string) => {
@@ -97,9 +100,9 @@ export default function ImportQuestionsPage() {
   }, [table, loadInfo])
 
   const run = useCallback(
-    async (apply: boolean) => {
-      if (!csv.trim()) {
-        setError('Paste the new questions first.')
+    async (apply: boolean, inputCsv = csv) => {
+      if (!inputCsv.trim()) {
+        setError('Paste or upload the new questions first.')
         return
       }
       if (apply) setApplying(true)
@@ -110,7 +113,7 @@ export default function ImportQuestionsPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ table, csv, apply }),
+          body: JSON.stringify({ table, csv: inputCsv, apply }),
         })
         const data = await res.json()
         if (!res.ok || !data.success) {
@@ -181,6 +184,7 @@ export default function ImportQuestionsPage() {
           <select
             value={table}
             onChange={(e) => setTable(e.target.value)}
+            disabled={busy}
             className="w-full max-w-md rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
           >
             {TABLES.map((t) => (
@@ -215,7 +219,7 @@ export default function ImportQuestionsPage() {
 
       {/* ── Step 2: paste ── */}
       <section className="mb-5 rounded-2xl border border-border bg-card p-5">
-        <StepHeading n={2} title="Paste the new questions" />
+        <StepHeading n={2} title="Paste or upload the new questions" />
         <p className="mt-1.5 text-[11px] text-muted-foreground">
           Required: <code className="rounded bg-muted px-1 py-0.5">question</code>,{' '}
           <code className="rounded bg-muted px-1 py-0.5">option_a…d</code>,{' '}
@@ -231,6 +235,7 @@ export default function ImportQuestionsPage() {
         </p>
 
         <button
+          disabled={busy}
           onClick={async () => {
             await navigator.clipboard.writeText(HEADER)
             toast.success('Header row copied')
@@ -240,9 +245,17 @@ export default function ImportQuestionsPage() {
           Copy the header row
         </button>
 
+        <CsvFilePicker key={table} value={csv} disabled={busy}
+          onBusyChange={(reading) => {
+            setFileReading(reading)
+            if (reading) { setPreview(null); setError(null) }
+          }}
+          onLoad={async (text) => { changeCsv(text); await run(false, text) }} />
         <textarea
           value={csv}
-          onChange={(e) => setCsv(e.target.value)}
+          onChange={(e) => changeCsv(e.target.value)}
+          disabled={busy}
+          aria-label="New question CSV"
           spellCheck={false}
           placeholder={`${HEADER}\n"కొత్త ప్రశ్న?","opt A","opt B","opt C","opt D",C,"why C","topic","subtopic","chapter","Medium","Class 8"`}
           className="mt-3 h-56 w-full resize-y rounded-xl border border-border bg-background p-3 font-mono text-[11px] leading-relaxed text-foreground placeholder:text-muted-foreground/50"
@@ -251,7 +264,7 @@ export default function ImportQuestionsPage() {
         <div className="mt-3 flex justify-end">
           <button
             onClick={() => run(false)}
-            disabled={previewing || !csv.trim()}
+            disabled={busy || !csv.trim()}
             className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
           >
             {previewing ? (
@@ -313,7 +326,7 @@ export default function ImportQuestionsPage() {
               </p>
               <button
                 onClick={() => run(true)}
-                disabled={applying || blocked}
+                disabled={busy || blocked}
                 className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
               >
                 {applying ? (

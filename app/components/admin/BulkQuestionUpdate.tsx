@@ -18,7 +18,7 @@
 // justify a table.
 // ============================================================
 
-import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import React, { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
@@ -38,11 +38,11 @@ import { useAuth } from '@/app/contexts/AuthContext'
 import { LoadingScreen } from '@/components/ui/loading-screen'
 import { QUESTION_TABLES } from '@/lib/questions/tables'
 import { toCsv, type CsvRow } from '@/lib/questions/csv'
-import { isTopicCompleted, topicCompletionKey } from '@/lib/questions/topic-completion'
-import { readTopicCompletion, useTopicCompletion } from '@/app/components/admin/useTopicCompletion'
-import { canAdvanceTopic, findUnreviewedTopicBatch, nextUnfinishedTopic } from '@/lib/questions/topic-workflow'
+import { canAdvanceTopic, findUnreviewedTopicBatch, isTopicReviewed, nextUnfinishedTopic } from '@/lib/questions/topic-workflow'
 import { sortTopicsByCount } from '@/lib/questions/topic-order'
 import TopicQuestionImport from '@/app/components/admin/TopicQuestionImport'
+import CsvFilePicker from '@/app/components/admin/CsvFilePicker'
+import { userDate } from '@/app/components/admin/UserDataUI'
 import {
   BULK_CSV_COLUMNS,
   BULK_MAX_ROWS,
@@ -142,7 +142,8 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
   const topicsLoading = topicMode &&
     (topicsState?.table !== table || topicsState?.revision !== topicsRevision)
   const topics = topicsLoading ? [] : sortTopicsByCount(topicsState?.topics ?? [])
-  const selectedCount = topics.find((entry) => entry.topic === selectedTopic)?.count ?? 0
+  const selectedInfo = topics.find((entry) => entry.topic === selectedTopic)
+  const selectedCount = selectedInfo?.count ?? 0
 
   const [total, setTotal] = useState<number | null>(null)
   const [exported, setExported] = useState<BulkExportResponse | null>(null)
@@ -156,15 +157,12 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
   const [error, setError] = useState<string | null>(null)
   const [showAddQuestions, setShowAddQuestions] = useState(false)
   const [importBusy, setImportBusy] = useState(false)
+  const [fileReading, setFileReading] = useState(false)
   const [workflowMessage, setWorkflowMessage] = useState<string | null>(null)
-  const reviewedByTopic = useRef(new Map<string, Set<string>>())
-  const busy = exporting || previewing || applying || importBusy
-  const { completion, setCompleted } = useTopicCompletion()
-  const completionKey = selectedTopic === undefined ? ''
-    : topicCompletionKey(user?.id ?? '', table, selectedTopic)
-  const topicCompleted = isTopicCompleted(completion, completionKey, selectedCount)
-  const completedCount = topics.filter((entry) => isTopicCompleted(completion,
-    topicCompletionKey(user?.id ?? '', table, entry.topic), entry.count)).length
+  const [applyRequestId, setApplyRequestId] = useState<string | null>(null)
+  const busy = exporting || previewing || applying || importBusy || fileReading
+  const topicScopeKey = JSON.stringify([table, selectedTopic])
+  const updatedTopicCount = topics.filter((entry) => (entry.updateCount ?? 0) > 0).length
 
   const progressRaw = useSyncExternalStore(
     subscribeProgress,
@@ -180,28 +178,35 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
   }, [authLoading, user, router])
 
   useEffect(() => {
-    if (!topicMode || user?.role !== 'admin') return
-    const controller = new AbortController()
+    if (!topicMode || user?.role !== 'admin' || busy) return
+    let controller: AbortController | null = null
     async function loadTopics() {
+      controller?.abort()
+      const activeController = new AbortController()
+      controller = activeController
       try {
         const res = await fetch(`/api/admin/questions/bulk?table=${encodeURIComponent(table)}&topics=1`, {
-          credentials: 'include', signal: controller.signal,
+          credentials: 'include', cache: 'no-store', signal: activeController.signal,
         })
         const data = await res.json()
         if (!res.ok || !data.success) throw new Error(data.error ?? 'Could not load topics')
-        if (!controller.signal.aborted) {
+        if (!activeController.signal.aborted) {
           setTopicsState({ table, revision: topicsRevision, topics: (data as BulkTopicsResponse).topics })
         }
       } catch (err) {
-        if (!controller.signal.aborted) {
-          setTopicsState({ table, revision: topicsRevision, topics: [],
-            error: err instanceof Error ? err.message : 'Could not load topics' })
+        if (!activeController.signal.aborted) {
+          setTopicsState((previous) => ({ table, revision: topicsRevision,
+            topics: previous?.table === table ? previous.topics : [],
+            error: err instanceof Error ? err.message : 'Could not refresh shared topic counts' }))
         }
       }
     }
     void loadTopics()
-    return () => controller.abort()
-  }, [table, topicMode, topicsRevision, user?.role])
+    const timer = window.setInterval(() => { void loadTopics() }, 30000)
+    const onFocus = () => { void loadTopics() }
+    window.addEventListener('focus', onFocus)
+    return () => { controller?.abort(); window.clearInterval(timer); window.removeEventListener('focus', onFocus) }
+  }, [table, topicMode, topicsRevision, user?.role, busy])
 
   function resetBatch() {
     setExported(null)
@@ -210,6 +215,7 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
     setTotal(null)
     setError(null)
     setWorkflowMessage(null)
+    setApplyRequestId(null)
   }
 
   function changeTable(nextTable: string) {
@@ -231,30 +237,16 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
     setTo(Math.min(count, 100))
   }
 
-  function toggleTopicCompleted() {
-    if (!completionKey || busy || topicsLoading || selectedCount === 0) return
-    const saved = setCompleted(completionKey, topicCompleted ? null : selectedCount)
-    if (saved && topicCompleted) reviewedByTopic.current.delete(completionKey)
-    if (saved) toast.success(topicCompleted ? 'Topic reopened for review' : 'Topic marked as completed')
-    else toast.error('Could not save completion status in this browser.')
-  }
-
   function questionsAdded() {
-    reviewedByTopic.current.delete(completionKey)
-    if (!setCompleted(completionKey, null)) {
-      toast.error('Questions added, but completion status could not be cleared in this browser.')
-    }
     setTopicsRevision((revision) => revision + 1)
     setTotal(null)
   }
 
-  // Editing the paste or the answer policy invalidates its preview.
-  const [lastCsv, setLastCsv] = useState(csv)
-  const [lastAnswerPolicy, setLastAnswerPolicy] = useState(allowAnswerChange)
-  if (lastCsv !== csv || lastAnswerPolicy !== allowAnswerChange) {
-    setLastCsv(csv)
-    setLastAnswerPolicy(allowAnswerChange)
-    if (preview) setPreview(null)
+  function changeCsv(text: string) {
+    setCsv(text)
+    setPreview(null)
+    setError(null)
+    setApplyRequestId(null)
   }
 
   const rangeSize = to - from + 1
@@ -281,7 +273,7 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
       }
       const res = await fetch(
         `/api/admin/questions/bulk?${params}`,
-        { credentials: 'include' }
+        { credentials: 'include', cache: 'no-store' }
       )
       const data = await res.json()
       if (!res.ok || !data.success) {
@@ -309,7 +301,7 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
     const params = new URLSearchParams({ table, from: String(from), to: String(to) })
     if (topic === null) params.set('topicMissing', '1')
     else params.set('topic', topic)
-    const res = await fetch(`/api/admin/questions/bulk?${params}`, { credentials: 'include' })
+    const res = await fetch(`/api/admin/questions/bulk?${params}`, { credentials: 'include', cache: 'no-store' })
     const data = await res.json()
     if (!res.ok || !data.success) throw new Error(data.error ?? 'Could not load the next batch')
     return data as BulkExportResponse
@@ -333,55 +325,43 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
       setError('Some changes were not saved. This topic remains open; review the result before continuing.')
       return
     }
-    const key = topicCompletionKey(user?.id ?? '', table, currentTopic)
-    const reviewed = new Set(reviewedByTopic.current.get(key) ?? [])
-    for (const row of result.rows) reviewed.add(row.questionId)
-    reviewedByTopic.current.set(key, reviewed)
-    // A successful rewrite reopens a previously completed topic until every
-    // question currently assigned to it has appeared in an applied CSV.
-    if (!setCompleted(key, null)) {
-      setError('Questions were updated, but completion could not be saved in this browser. The topic was not advanced.')
-      return
-    }
     try {
-      const response = await fetch(`/api/admin/questions/bulk?table=${encodeURIComponent(table)}&topics=1`, { credentials: 'include' })
+      const remaining = await findUnreviewedTopicBatch(new Set(), (from, to) => readTopicBatch(currentTopic, from, to))
+      const response = await fetch(`/api/admin/questions/bulk?table=${encodeURIComponent(table)}&topics=1`, { credentials: 'include', cache: 'no-store' })
       const refreshed = await response.json()
       if (!response.ok || !refreshed.success) throw new Error(refreshed.error ?? 'Could not refresh topics')
-      const remaining = await findUnreviewedTopicBatch(reviewed, (from, to) => readTopicBatch(currentTopic, from, to))
-      const freshTopics = (refreshed as BulkTopicsResponse).topics.filter((entry) => entry.topic !== currentTopic)
-      if (remaining.total > 0) freshTopics.push({ topic: currentTopic, count: remaining.total })
+      const freshTopics = (refreshed as BulkTopicsResponse).topics
       setTopicsState({ table, revision: topicsRevision, topics: sortTopicsByCount(freshTopics) })
       if (remaining.batch) {
         openAutomaticBatch(remaining.batch)
         setWorkflowMessage('Changes saved. The next unreviewed batch in this topic is loaded. Apply it to continue.')
         return
       }
-      if (!setCompleted(key, remaining.total > 0 ? remaining.total : null)) {
-        setError('Questions were updated, but completion could not be saved in this browser. The topic was not advanced.')
+      const current = freshTopics.find((entry) => entry.topic === currentTopic)
+      if (current && !isTopicReviewed(current)) {
+        setWorkflowMessage('Changes saved. More questions were added to this topic; reload its batch to review them.')
         return
       }
-      const next = nextUnfinishedTopic(freshTopics, currentTopic, readTopicCompletion(), user?.id ?? '', table)
+      const next = nextUnfinishedTopic(freshTopics, currentTopic)
       if (!next) {
-        setWorkflowMessage('Topic completed. All topics in this subject and medium are now completed.')
-        toast.success('All topics completed')
+        setWorkflowMessage('Update recorded. All current topics in this subject and medium have been reviewed.')
+        toast.success('All current topics reviewed')
         return
       }
-      const nextBatch = await readTopicBatch(next.topic, 1, Math.min(next.count, BULK_MAX_ROWS))
-      if (!nextBatch.rows.length) throw new Error('The next topic changed. Reload its questions to continue.')
-      // This newly opened topic is a fresh review pass.
-      reviewedByTopic.current.delete(topicCompletionKey(user?.id ?? '', table, next.topic))
-      openAutomaticBatch(nextBatch)
-      setWorkflowMessage(`Topic completed. Next topic loaded: ${next.topic || 'No topic'}.`)
-      toast.success('Topic completed', { description: `Next topic: ${next.topic || 'No topic'}` })
+      const pending = await findUnreviewedTopicBatch(new Set(), (from, to) => readTopicBatch(next.topic, from, to))
+      if (!pending.batch) throw new Error('The next topic changed. Refresh the shared counts to continue.')
+      openAutomaticBatch(pending.batch)
+      setWorkflowMessage(`Update recorded. Next topic loaded: ${next.topic || 'No topic'}.`)
+      toast.success('Topic update recorded', { description: `Next topic: ${next.topic || 'No topic'}` })
     } catch (err) {
       setError(`Questions were updated, but automatic navigation could not finish. ${err instanceof Error ? err.message : 'Reload the topics to continue.'}`)
     }
   }
 
-  async function runPreview(apply: boolean) {
+  async function runPreview(apply: boolean, inputCsv = csv) {
     if (!exported?.rows.length || (apply && !preview)) return
-    if (!csv.trim()) {
-      setError('Paste the rewritten CSV first.')
+    if (!inputCsv.trim()) {
+      setError('Paste or upload the rewritten CSV first.')
       return
     }
     if (apply) {
@@ -391,14 +371,17 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
     else setPreviewing(true)
     setError(null)
     try {
+      const requestId = apply ? applyRequestId ?? crypto.randomUUID() : undefined
+      if (apply && !applyRequestId) setApplyRequestId(requestId!)
       const res = await fetch('/api/admin/questions/bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           table,
-          csv,
+          csv: inputCsv,
           apply,
+          requestId,
           allowAnswerChange,
           // The range that was actually loaded, not whatever the number
           // boxes say now — editing them after copying must not move the
@@ -417,10 +400,11 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
         return
       }
       setPreview(data as BulkPreviewResponse)
+      if (!apply) setApplyRequestId(crypto.randomUUID())
 
       if (apply) {
         const { written = 0, modulesInvalidated = 0 } = data.summary
-        toast.success(`Updated ${written} question${written === 1 ? '' : 's'}`, {
+        toast.success(written > 0 ? `Updated ${written} question${written === 1 ? '' : 's'}` : 'Topic review saved', {
           description:
             modulesInvalidated > 0
               ? `${modulesInvalidated} mock module${modulesInvalidated === 1 ? '' : 's'} refreshed. Practice is already live.`
@@ -458,7 +442,8 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
   // Not a mistake in the paste — a timing problem. Applying is off until the
   // candidates sitting those modules are done.
   const liveBlocked = (summary?.liveLocked ?? 0) > 0
-  const blocked = (summary?.invalid ?? 0) > 0 || (summary?.changed ?? 0) === 0
+  const reviewOnly = topicMode && (summary?.changed ?? 0) === 0 && (summary?.unchanged ?? 0) > 0
+  const blocked = (summary?.invalid ?? 0) > 0 || ((summary?.changed ?? 0) === 0 && !reviewOnly)
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
@@ -540,6 +525,7 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
 
         {topicMode && (
           <div className="mt-4">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem]">
             <label className="block">
               <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Topic</span>
               <select value={topicKey} onChange={(e) => changeTopic(e.target.value)}
@@ -549,11 +535,25 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
                 {topics.map((entry) => (
                   <option key={JSON.stringify(entry.topic)} value={JSON.stringify(entry.topic)}>
                     {entry.topic === null ? 'No topic (unassigned)' : entry.topic === '' ? 'No topic (empty)' : entry.topic} · {entry.count} questions
-                    {isTopicCompleted(completion, topicCompletionKey(user.id, table, entry.topic), entry.count) ? ' · ✓ Completed' : ''}
+                    {' · Updated '}{entry.updateCount ?? 0}{(entry.updateCount ?? 0) === 1 ? ' time' : ' times'}
                   </option>
                 ))}
               </select>
             </label>
+            <aside className="rounded-xl border border-primary/20 bg-primary/5 p-3" aria-label="Shared topic update activity" aria-live="polite">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Shared topic activity</p>
+              {selectedInfo ? (
+                <>
+                  <p className="mt-1 text-lg font-bold text-primary">Updated {selectedInfo.updateCount ?? 0} {(selectedInfo.updateCount ?? 0) === 1 ? 'time' : 'times'}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{selectedInfo.reviewedCount ?? 0} / {selectedInfo.count} questions reviewed</p>
+                  {selectedInfo.lastUpdatedAt ? (
+                    <p className="mt-2 text-[11px] text-muted-foreground">Last update: {userDate(selectedInfo.lastUpdatedAt)}<br />By {selectedInfo.lastUpdatedBy || 'Admin'}</p>
+                  ) : <p className="mt-2 text-[11px] text-muted-foreground">No updates recorded yet.</p>}
+                </>
+              ) : <p className="mt-2 text-xs text-muted-foreground">Select a topic to see its activity.</p>}
+              <p className="mt-2 text-[10px] text-muted-foreground">One count per successful Apply. Tracking starts with this feature.</p>
+            </aside>
+            </div>
             {!topicsLoading && topicsState?.error && (
               <p className="mt-2 text-xs text-destructive" role="alert">
                 {topicsState.error}{' '}
@@ -565,7 +565,7 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
             )}
             {!topicsLoading && topics.length > 0 && (
               <p className="mt-2 text-[11px] text-muted-foreground">
-                {completedCount} of {topics.length} topics completed. Largest topics first. Completion is remembered in this browser.
+                {topics.length} topics · {updatedTopicCount} with recorded updates · Largest topics first. Shared counts refresh every 30 seconds.
               </p>
             )}
             {topicKey !== '' && selectedCount > 0 && (
@@ -584,17 +584,14 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
             )}
             {topicKey !== '' && selectedCount > 0 && !topicsLoading && (
               <div className="mt-3 flex flex-wrap items-center gap-3">
-                <button onClick={toggleTopicCompleted} disabled={busy}
-                  className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-semibold disabled:opacity-50 ${topicCompleted
-                    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                    : 'border-border bg-background text-foreground hover:bg-accent'}`}>
-                  <Check className="h-3.5 w-3.5" />
-                  {topicCompleted ? 'Completed · Reopen topic' : 'Mark as completed'}
-                </button>
                 <button onClick={() => setShowAddQuestions((show) => !show)} disabled={busy}
                   aria-expanded={showAddQuestions}
                   className="inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3.5 py-2 text-xs font-semibold text-primary hover:bg-primary/20 disabled:opacity-50">
                   <Plus className="h-3.5 w-3.5" /> {showAddQuestions ? 'Close new questions' : 'Add new questions'}
+                </button>
+                <button onClick={() => setTopicsRevision((revision) => revision + 1)} disabled={busy}
+                  className="inline-flex items-center gap-2 rounded-xl border border-border px-3.5 py-2 text-xs font-semibold disabled:opacity-50">
+                  <RefreshCw className="h-3.5 w-3.5" /> Refresh shared counts
                 </button>
               </div>
             )}
@@ -647,13 +644,13 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
       </section>
 
       {topicMode && showAddQuestions && selectedTopic !== undefined && (
-        <TopicQuestionImport key={completionKey} table={table} topic={selectedTopic}
-          disabled={exporting || previewing || applying} onBusyChange={setImportBusy} onAdded={questionsAdded} />
+        <TopicQuestionImport key={topicScopeKey} table={table} topic={selectedTopic}
+          disabled={exporting || previewing || applying || fileReading} onBusyChange={setImportBusy} onAdded={questionsAdded} />
       )}
 
       {/* ── Step 2: paste it back ── */}
       <section className="mb-5 rounded-2xl border border-border bg-card p-5">
-        <StepHeading n={2} title="Paste the rewritten CSV" />
+        <StepHeading n={2} title="Paste or upload the rewritten CSV" />
         <p className="mt-1.5 text-[11px] text-muted-foreground">
           Keep the header row and the{' '}
           <code className="rounded bg-muted px-1 py-0.5">question_id</code> column. Only{' '}
@@ -670,9 +667,17 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
           still works.
         </p>
 
+        <CsvFilePicker key={JSON.stringify([table, topicKey, exported?.from, exported?.to])}
+          value={csv} disabled={busy || !rangeLoaded}
+          onBusyChange={(reading) => {
+            setFileReading(reading)
+            if (reading) { setPreview(null); setError(null) }
+          }}
+          onLoad={async (text) => { changeCsv(text); await runPreview(false, text) }} />
+
         <textarea
           value={csv}
-          onChange={(e) => setCsv(e.target.value)}
+          onChange={(e) => changeCsv(e.target.value)}
           disabled={busy}
           aria-label="Rewritten question CSV"
           spellCheck={false}
@@ -686,11 +691,11 @@ Q000001,"Rewritten stem","opt A","opt B","opt C","opt D",B,"why B is right","జ
             <input
               type="checkbox"
               checked={allowAnswerChange}
-              onChange={(e) => setAllowAnswerChange(e.target.checked)}
+              onChange={(e) => { setAllowAnswerChange(e.target.checked); setPreview(null) }}
               disabled={busy}
               className="h-3.5 w-3.5 accent-primary"
             />
-            Allow the paste to change{' '}
+            Allow the CSV to change{' '}
             <code className="rounded bg-muted px-1 py-0.5">correct_answer</code>
           </label>
 
@@ -863,7 +868,8 @@ Q000001,"Rewritten stem","opt A","opt B","opt C","opt D",B,"why B is right","జ
                     ? summary.invalid > 0
                       ? 'Fix the invalid rows above — nothing can be written until they are valid.'
                       : 'Nothing to write.'
-                    : `${summary.changed} question(s) will be updated. Their question IDs will stay the same.${topicMode ? ' When every question in this topic is reviewed, it will be marked completed and the next unfinished topic will load automatically.' : ''}`}
+                    : reviewOnly ? 'These questions already match. Apply records their review and continues automatically; the update count stays the same.'
+                    : `${summary.changed} question(s) will be updated. Their question IDs will stay the same.${topicMode ? ' This save will increase the shared topic update count. When all questions are reviewed, the next pending topic loads automatically.' : ''}`}
               </p>
               {/* Not merely disabled: a paste from the wrong range is not
                   something to nudge past, so the control is not offered. */}
@@ -878,7 +884,7 @@ Q000001,"Rewritten stem","opt A","opt B","opt C","opt D",B,"why B is right","జ
                   ) : (
                     <Upload className="h-3.5 w-3.5" />
                   )}
-                  Apply {summary.changed} change{summary.changed === 1 ? '' : 's'}
+                  {reviewOnly ? 'Apply review & continue' : `Apply ${summary.changed} change${summary.changed === 1 ? '' : 's'}`}
                 </button>
               )}
             </div>

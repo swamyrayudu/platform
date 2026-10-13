@@ -27,6 +27,7 @@
 // ============================================================
 
 import { NextResponse } from 'next/server'
+import { createHash, randomUUID } from 'node:crypto'
 import { requireAdmin } from '@/lib/auth/session'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { invalidateMockTestCache } from '@/lib/mock-tests/cache'
@@ -34,6 +35,7 @@ import { parseCsv } from '@/lib/questions/csv'
 import { getQuestionTable, buildQuestionUid } from '@/lib/questions/tables'
 import { collectIds, diffPastedRows, presentEditableColumns } from '@/lib/questions/bulk-diff'
 import { sortTopicsByCount } from '@/lib/questions/topic-order'
+import { sharedReviewedIds, sharedTopicOptions } from '@/lib/questions/topic-tracking'
 import { findLiveAttempts } from '@/lib/mock-tests/live-attempts'
 import { matchDifficulty } from '@/lib/mock-tests/question-bank'
 import {
@@ -44,6 +46,7 @@ import {
   type BulkEditableColumn,
   type BulkExportRow,
   type BulkTopicOption,
+  type BulkPreviewResponse,
 } from '@/types/bulk-update'
 
 /** Hard cap on the request body. 500 rows of Telugu is comfortably under this. */
@@ -66,7 +69,7 @@ function topicQuery(table: string, columns: string, topic: string | null | undef
 }
 
 async function listTopics(table: string): Promise<BulkTopicOption[]> {
-  const counts = new Map<string | null, number>()
+  const questions: { question_id: string; topic: string | null }[] = []
   // Paginate: PostgREST caps responses, so one select can miss later topics.
   let offset = 0
   while (true) {
@@ -76,13 +79,10 @@ async function listTopics(table: string): Promise<BulkTopicOption[]> {
       .range(offset, offset + 999)
     if (error) throw error
     if (!data?.length) break
-    for (const row of data) {
-      const topic = row.topic as string | null
-      counts.set(topic, (counts.get(topic) ?? 0) + 1)
-    }
+    questions.push(...data as { question_id: string; topic: string | null }[])
     offset += data.length
   }
-  return sortTopicsByCount([...counts].map(([topic, count]) => ({ topic, count })))
+  return sortTopicsByCount(await sharedTopicOptions(table, questions))
 }
 
 /** Reject anything that is not a real question table before it reaches a query. */
@@ -132,7 +132,7 @@ export const GET = requireAdmin(async (request) => {
     if (url.searchParams.get('topics') === '1') {
       const topics = await listTopics(table)
       return NextResponse.json({ success: true, table, topics,
-        total: topics.reduce((total, entry) => total + entry.count, 0) })
+        total: topics.reduce((total, entry) => total + entry.count, 0) }, { headers: { 'Cache-Control': 'private, no-store' } })
     }
 
     const topic = url.searchParams.get('topicMissing') === '1'
@@ -183,7 +183,9 @@ export const GET = requireAdmin(async (request) => {
       to,
       rows,
       ...(topic !== undefined ? { topic } : {}),
-    })
+      ...(topic !== undefined ? { reviewedIds: await sharedReviewedIds(table,
+        (data ?? []) as unknown as { question_id: string; topic: string | null }[]) } : {}),
+    }, { headers: { 'Cache-Control': 'private, no-store' } })
   } catch (err) {
     console.error('[AdminBulk] export failed:', err)
     return NextResponse.json({ success: false, error: 'Could not read that range' }, { status: 500 })
@@ -296,7 +298,7 @@ async function liveAttemptScope(
   return { lockedUids, attempts }
 }
 
-export const POST = requireAdmin(async (request) => {
+export const POST = requireAdmin(async (request, _context, { user }) => {
   try {
     let body: unknown
     try {
@@ -305,6 +307,9 @@ export const POST = requireAdmin(async (request) => {
       return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 })
     }
 
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 })
+    }
     const {
       table: tableInput,
       csv,
@@ -314,6 +319,7 @@ export const POST = requireAdmin(async (request) => {
       to: toInput,
       topic,
       questionIds,
+      requestId: requestIdInput,
     } = body as Record<string, unknown>
 
     const table = resolveTable(typeof tableInput === 'string' ? tableInput : null)
@@ -357,6 +363,26 @@ export const POST = requireAdmin(async (request) => {
 
     const shouldApply = apply === true
     const answersAllowed = allowAnswerChange !== false
+    const requestId = typeof requestIdInput === 'string' ? requestIdInput : randomUUID()
+    if (shouldApply && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestId)) {
+      return NextResponse.json({ success: false, error: 'Invalid update request ID' }, { status: 400 })
+    }
+    const fingerprint = createHash('sha256').update(JSON.stringify({ table, csv, from, to, selectedTopic,
+      questionIds: Array.isArray(questionIds) ? [...questionIds].sort() : undefined, answersAllowed })).digest('hex')
+    if (shouldApply) {
+      const { data: previous, error } = await supabaseAdmin.from('admin_question_update_batches')
+        .select('fingerprint, actor_id, result').eq('request_id', requestId).maybeSingle()
+      if (error) throw error
+      if (previous) {
+        if (previous.fingerprint !== fingerprint || previous.actor_id !== user.id) {
+          return NextResponse.json({ success: false, error: 'This update request ID belongs to another batch. Preview again.' }, { status: 409 })
+        }
+        const receipt = previous.result as BulkPreviewResponse
+        const modules = await findModulesUsingAny(receipt.rows.map((row) => buildQuestionUid(table, row.questionId)))
+        await Promise.all(modules.map((module) => invalidateMockTestCache(module.id, module.version)))
+        return NextResponse.json({ ...receipt, summary: { ...receipt.summary, modulesInvalidated: modules.length } })
+      }
+    }
 
     // ---- Parse ---------------------------------------------------
     const parsed = parseCsv(csv)
@@ -617,7 +643,7 @@ export const POST = requireAdmin(async (request) => {
         { status: 400 }
       )
     }
-    if (writable.length === 0) {
+    if (writable.length === 0 && (selectedTopic === undefined || summary.unchanged === 0)) {
       return NextResponse.json(
         { success: false, error: 'Nothing to write — every row already matches the database.' },
         { status: 400 }
@@ -625,34 +651,22 @@ export const POST = requireAdmin(async (request) => {
     }
 
     // ---- Write ---------------------------------------------------
-    // One statement per row: only the columns that actually differ are sent,
-    // which an upsert could not express. Chunked so a hundred rows is a few
-    // parallel batches rather than a hundred serial round trips.
-    let written = 0
-    for (let i = 0; i < writable.length; i += 20) {
-      const chunk = writable.slice(i, i + 20)
-      const outcomes = await Promise.all(
-        chunk.map(({ id, update }) => {
-          let query = supabaseAdmin.from(table).update(update).eq('question_id', id)
-          if (selectedTopic !== undefined) {
-            query = selectedTopic === null ? query.is('topic', null) : query.eq('topic', selectedTopic)
-          }
-          return query.select('question_id')
-        })
-      )
-      outcomes.forEach((outcome, index) => {
-        if (outcome.error) {
-          console.error('[AdminBulk] write failed for', chunk[index]!.id, outcome.error)
-          const target = results.find((r) => r.questionId === chunk[index]!.id)
-          if (target) {
-            target.status = 'invalid'
-            target.errors.push('Database rejected this write')
-          }
-        } else {
-          written += outcome.data?.length ?? 0
-        }
-      })
+    // One database transaction includes the writes, shared counters and review
+    // coverage. The request receipt prevents a retried save from counting twice.
+    const { data: saved, error: saveError } = await supabaseAdmin.rpc('apply_admin_question_updates', {
+      p_request_id: requestId, p_fingerprint: fingerprint, p_actor_id: user.id, p_table: table,
+      p_topic_scoped: selectedTopic !== undefined, p_topic: selectedTopic ?? null, p_writes: writable,
+      p_reviewed_ids: results.filter((row) => row.status === 'changed' || row.status === 'unchanged').map((row) => row.questionId),
+      p_response: { success: true, table, applied: true, rangeFrom: from, rangeTo: to,
+        summary: { ...summary, written: writable.length, modulesInvalidated: 0 },
+        rows: results.map((row) => ({ ...row, diffs: [] })), fileErrors },
+    })
+    if (saveError) {
+      console.error('[AdminBulk] atomic save failed:', saveError)
+      return NextResponse.json({ success: false, error: 'The batch could not be saved. Nothing was written; reload and preview again.' },
+        { status: saveError.code === '40001' ? 409 : 500 })
     }
+    const written = (saved as BulkPreviewResponse).summary.written ?? 0
 
     // ---- Make it visible to mock candidates ----------------------
     // Practice needs nothing: its providers read the table on every request.

@@ -1,6 +1,8 @@
 // Exercise the real route, CSV parser and diff against an in-memory Data API.
 // No credentials or database writes are needed: node --test scripts/test-topic-bulk-update.mjs
 import assert from 'node:assert/strict'
+import { randomUUID } from 'node:crypto'
+import { File } from 'node:buffer'
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
@@ -12,6 +14,7 @@ import ts from 'typescript'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
 const table = 'english_medium_science'
+const adminId = '00000000-0000-4000-8000-000000000001'
 const row = (id, topic) => ({
   question_id: id, topic, question: `Original ${id}`, option_a: 'First',
   option_b: 'Second', option_c: 'Third', option_d: 'Fourth', correct_answer: 'A',
@@ -23,6 +26,7 @@ function harness(rows, pageLimit = 1000, live = false) {
     [table]: structuredClone(rows),
     mock_test_questions: [{ question_uid: `${table}:Q003`, mock_test_id: 'mock-1' }],
     mock_tests: [{ id: 'mock-1', version: 1 }],
+    admin_question_topic_updates: [], admin_question_reviews: [], admin_question_update_batches: [],
   }
   const writes = []
   const added = []
@@ -36,6 +40,7 @@ function harness(rows, pageLimit = 1000, live = false) {
     order(column) { this.orderColumn = column; return this }
     range(from, to) { this.slice = [from, to + 1]; return this }
     limit(limit) { this.slice = [0, limit]; return this }
+    maybeSingle() { this.single = true; return this }
     update(update) { this.patch = update; return this }
     insert(values) { this.newRows = values; return this }
     then(resolve, reject) {
@@ -61,16 +66,55 @@ function harness(rows, pageLimit = 1000, live = false) {
             Object.assign(existing, this.patch)
           }
         }
-        const columns = this.columns.split(',').map((s) => s.trim())
-        const data = this.options?.head ? null : selected.map((r) =>
-          Object.fromEntries(columns.map((column) => [column, r[column]])))
+        const columns = this.columns.replace('editor:users(name, email)', 'editor').split(',').map((s) => s.trim())
+        let data = this.options?.head ? null : selected.map((r) =>
+          this.columns === '*' ? structuredClone(r) : Object.fromEntries(columns.map((column) => [column, r[column]])))
+        if (this.single) data = data[0] ?? null
         return Promise.resolve({ data, count, error: null }).then(resolve, reject)
       } catch (error) { return Promise.reject(error).then(resolve, reject) }
     }
   }
+  // Real SQL transaction behavior is also verified against Postgres with rollback.
+  async function rpc(name, args) {
+    assert.equal(name, 'apply_admin_question_updates')
+    const existing = db.admin_question_update_batches.find((r) => r.request_id === args.p_request_id)
+    if (existing) return { data: existing.result, error: null }
+    const affected = new Set()
+    for (const id of args.p_reviewed_ids) {
+      const current = db[args.p_table].find((r) => r.question_id === id)
+      if (!current || (args.p_topic_scoped && current.topic !== args.p_topic)) {
+        return { data: null, error: { code: '40001' } }
+      }
+    }
+    for (const { id, update } of args.p_writes) {
+      const current = db[args.p_table].find((r) => r.question_id === id)
+      affected.add(JSON.stringify(current.topic))
+      writes.push({ id, update: structuredClone(update) })
+      Object.assign(current, update)
+      affected.add(JSON.stringify(current.topic))
+    }
+    for (const id of args.p_reviewed_ids) {
+      const current = db[args.p_table].find((r) => r.question_id === id)
+      let review = db.admin_question_reviews.find((r) => r.question_table === args.p_table && r.question_id === id)
+      if (!review) { review = { question_table: args.p_table, question_id: id }; db.admin_question_reviews.push(review) }
+      review.topic_key = JSON.stringify(current.topic)
+    }
+    for (const key of affected) {
+      let stat = db.admin_question_topic_updates.find((r) => r.question_table === args.p_table && r.topic_key === key)
+      if (!stat) { stat = { question_table: args.p_table, topic_key: key, topic: JSON.parse(key), update_count: 0 }; db.admin_question_topic_updates.push(stat) }
+      stat.update_count++
+      stat.last_updated_at = new Date().toISOString()
+      stat.editor = { name: 'Shared admin', email: 'admin@example.test' }
+    }
+    const result = structuredClone(args.p_response)
+    result.summary.written = args.p_writes.length
+    db.admin_question_update_batches.push({ request_id: args.p_request_id, fingerprint: args.p_fingerprint,
+      actor_id: args.p_actor_id, result })
+    return { data: result, error: null }
+  }
   const overrides = {
-    '@/lib/auth/session': { requireAdmin: (handler) => handler },
-    '@/lib/supabase-admin': { supabaseAdmin: { from: (name) => new Query(name) } },
+    '@/lib/auth/session': { requireAdmin: (handler) => (request) => handler(request, {}, { user: { id: adminId } }) },
+    '@/lib/supabase-admin': { supabaseAdmin: { from: (name) => new Query(name), rpc } },
     '@/lib/mock-tests/cache': { invalidateMockTestCache: async (...args) => invalidations.push(args) },
     '@/lib/mock-tests/live-attempts': { findLiveAttempts: async () => live ? [{ mockTestId: 'mock-1' }] : [] },
     '@/lib/mock-tests/question-bank': { matchDifficulty: (value) => ['Easy', 'Medium', 'Hard'].includes(value) ? value : null },
@@ -320,38 +364,73 @@ test('ordinary imports still accept an explicit new ID and a CSV topic', async (
   assert.equal(h.added[0].topic, 'Physics')
 })
 
-test('completion persists by admin, subject/medium and topic, and count changes reopen it', () => {
-  const h = harness([])
-  const { topicCompletionKey, parseTopicCompletion, isTopicCompleted } = h.load(path.join(root, 'lib/questions/topic-completion.ts'))
-  const key = topicCompletionKey('admin-1', table, 'Biology')
-  const saved = parseTopicCompletion(JSON.stringify({ [key]: 8 }))
-  assert.equal(isTopicCompleted(saved, key, 8), true)
-  assert.equal(isTopicCompleted(saved, key, 9), false)
-  assert.equal(isTopicCompleted(saved, topicCompletionKey('admin-2', table, 'Biology'), 8), false)
-  assert.equal(isTopicCompleted(saved, topicCompletionKey('admin-1', 'telugu_medium_science', 'Biology'), 8), false)
-  assert.equal(isTopicCompleted(saved, topicCompletionKey('admin-1', table, 'Physics'), 8), false)
-  assert.notEqual(topicCompletionKey('admin-1', table, null), topicCompletionKey('admin-1', table, ''))
-  delete saved[key]
-  assert.equal(isTopicCompleted(saved, key, 8), false)
-  assert.deepEqual(parseTopicCompletion('invalid'), {})
-  assert.deepEqual(parseTopicCompletion('[8]'), {})
-  assert.deepEqual(parseTopicCompletion('{"bad":true,"negative":-1}'), {})
+test('shared counts increase once per save, survive retries and include the last editor', async () => {
+  const h = harness([row('Q001', 'Biology'), row('Q002', 'Biology')])
+  const { data: exported } = await h.get({ topic: 'Biology', from: '1', to: '2' })
+  for (let i = 1; i <= 3; i++) {
+    const payload = { ...batch(exported, csv(['Q001', `Rewrite ${i}`], ['Q002', `Rewrite ${i} second`]), true), requestId: randomUUID() }
+    assert.equal((await h.post(payload)).status, 200)
+    assert.equal((await h.post(payload)).status, 200)
+    const { data } = await h.get({ topics: '1' })
+    assert.equal(data.topics[0].updateCount, i)
+    assert.equal(data.topics[0].reviewedCount, 2)
+    assert.equal(data.topics[0].lastUpdatedBy, 'Shared admin')
+    assert.ok(data.topics[0].lastUpdatedAt)
+    assert.equal((await h.post({ ...payload, csv: csv(['Q001', 'Different batch']) })).status, 409)
+  }
+  assert.equal(h.writes.length, 6)
 })
 
-test('a successful full topic apply is eligible for completion and moves past completed topics', async () => {
+test('a successful full topic apply advances using shared reviews from another session', async () => {
   const h = harness([row('Q001', 'Biology'), row('Q003', 'Biology')])
   const workflow = h.load(path.join(root, 'lib/questions/topic-workflow.ts'))
-  const { topicCompletionKey } = h.load(path.join(root, 'lib/questions/topic-completion.ts'))
   const { data: exported } = await h.get({ topic: 'Biology', from: '1', to: '2' })
   const { data: result } = await h.post(batch(exported, csv(['Q001', 'Improved one'], ['Q003', 'Improved three']), true))
   assert.equal(workflow.canAdvanceTopic(result), true)
-  const remaining = await workflow.findUnreviewedTopicBatch(new Set(result.rows.map((r) => r.questionId)),
+  const remaining = await workflow.findUnreviewedTopicBatch(new Set(),
     async (from, to) => (await h.get({ topic: 'Biology', from: String(from), to: String(to) })).data)
   assert.equal(remaining.batch, null)
   assert.equal(remaining.total, 2)
-  const completed = { [topicCompletionKey('admin', table, 'Biology')]: 2, [topicCompletionKey('admin', table, 'Chemistry')]: 1 }
-  const topics = [{ topic: 'Biology', count: 2 }, { topic: 'Chemistry', count: 1 }, { topic: 'Physics', count: 1 }]
-  assert.equal(workflow.nextUnfinishedTopic(topics, 'Biology', completed, 'admin', table).topic, 'Physics')
+  const topics = [{ topic: 'Biology', count: 2, reviewedCount: 2 }, { topic: 'Chemistry', count: 1, reviewedCount: 1 }, { topic: 'Physics', count: 1 }]
+  assert.equal(workflow.nextUnfinishedTopic(topics, 'Biology').topic, 'Physics')
+})
+
+test('shared tracking stays scoped by subject and exact topic, and new or moved IDs remain pending', async () => {
+  const h = harness([row('Q001', 'Biology'), row('Q002', 'Biology'), row('Q003', 'Physics')])
+  const { data: exported } = await h.get({ topic: 'Biology', from: '1', to: '2' })
+  await h.post(batch(exported, csv(['Q001', 'Better first'], ['Q002', 'Better second']), true))
+  const workflow = h.load(path.join(root, 'lib/questions/topic-workflow.ts'))
+  let info = (await h.get({ topics: '1' })).data.topics.find((t) => t.topic === 'Biology')
+  assert.equal(workflow.isTopicReviewed(info), true)
+  // Same row count, different identity: browser completion counts used to miss this.
+  h.db[table][1].question_id = 'NEW-Q002'
+  info = (await h.get({ topics: '1' })).data.topics.find((t) => t.topic === 'Biology')
+  assert.equal(info.count, 2)
+  assert.equal(info.reviewedCount, 1)
+  assert.equal(workflow.isTopicReviewed(info), false)
+  h.db[table][0].topic = 'Physics'
+  const physics = (await h.get({ topic: 'Physics', from: '1', to: '100' })).data
+  assert.deepEqual(physics.reviewedIds, [])
+  const otherTable = 'telugu_medium_science'
+  h.db[otherTable] = [row('Q001', 'Biology')]
+  const other = (await h.get({ table: otherTable, topics: '1' })).data.topics[0]
+  assert.equal(other.updateCount, 0)
+  assert.equal(other.reviewedCount, 0)
+})
+
+test('unchanged topic applies record shared review without increasing the update count', async () => {
+  const h = harness([row('Q001', 'Biology')])
+  const { data: exported } = await h.get({ topic: 'Biology', from: '1', to: '1' })
+  await h.post(batch(exported, csv(['Q001', 'Preview only'])))
+  const review = await h.post(batch(exported, csv(['Q001', 'Original Q001']), true))
+  assert.equal(review.status, 200)
+  assert.equal(review.data.summary.written, 0)
+  const workflow = h.load(path.join(root, 'lib/questions/topic-workflow.ts'))
+  assert.equal(workflow.canAdvanceTopic(review.data), true)
+  assert.equal((await h.post({ ...batch(exported, csv(['Q001', 'Rewrite']), true), requestId: 'bad' })).status, 400)
+  assert.equal((await h.get({ topics: '1' })).data.topics[0].updateCount, 0)
+  assert.equal(h.db.admin_question_reviews.length, 1)
+  assert.equal(h.writes.length, 0)
 })
 
 test('a paste missing a loaded question keeps the same topic and returns that question', async () => {
@@ -396,13 +475,11 @@ test('previews, partial writes and database errors cannot advance a topic', () =
 test('next topic wraps, handles removed topics and stops when all are completed', () => {
   const h = harness([])
   const workflow = h.load(path.join(root, 'lib/questions/topic-workflow.ts'))
-  const { topicCompletionKey } = h.load(path.join(root, 'lib/questions/topic-completion.ts'))
   const topics = [{ topic: 'A', count: 1 }, { topic: 'B', count: 1 }, { topic: 'D', count: 1 }]
   assert.equal(workflow.nextUnfinishedTopic(topics, 'D', {}, 'admin', table).topic, 'A')
   assert.equal(workflow.nextUnfinishedTopic(topics, 'C', {}, 'admin', table).topic, 'A')
   assert.equal(workflow.nextUnfinishedTopic(topics, 'Z', {}, 'admin', table).topic, 'A')
-  const completed = Object.fromEntries(topics.map((t) => [topicCompletionKey('admin', table, t.topic), 1]))
-  assert.equal(workflow.nextUnfinishedTopic(topics, 'B', completed, 'admin', table), null)
+  assert.equal(workflow.nextUnfinishedTopic(topics.map((t) => ({ ...t, reviewedCount: 1 })), 'B'), null)
   assert.equal(workflow.nextUnfinishedTopic([{ topic: null, count: 1 }, { topic: '', count: 1 }], null, {}, 'admin', table).topic, '')
 })
 
@@ -411,14 +488,49 @@ test('topics are shown largest first and automatic navigation skips completed to
   const { data } = await h.get({ topics: '1' })
   assert.deepEqual(data.topics.map((t) => [t.topic, t.count]), [['Zulu', 3], ['Middle', 2], ['Alpha', 1]])
   const workflow = h.load(path.join(root, 'lib/questions/topic-workflow.ts'))
-  const { topicCompletionKey } = h.load(path.join(root, 'lib/questions/topic-completion.ts'))
-  const completed = { [topicCompletionKey('admin', table, 'Alpha')]: 1 }
-  assert.equal(workflow.nextUnfinishedTopic(data.topics, 'Middle', completed, 'admin', table).topic, 'Zulu')
-  const more = [{ topic: 'Largest', count: 100 }, { topic: 'Middle', count: 50 }, { topic: 'Done', count: 20 }, { topic: 'Next', count: 10 }]
-  completed[topicCompletionKey('admin', table, 'Done')] = 20
-  assert.equal(workflow.nextUnfinishedTopic(more, 'Middle', completed, 'admin', table).topic, 'Next')
+  const shared = data.topics.map((t) => ({ ...t, reviewedCount: t.topic === 'Alpha' ? 1 : 0 }))
+  assert.equal(workflow.nextUnfinishedTopic(shared, 'Middle').topic, 'Zulu')
+  const more = [{ topic: 'Largest', count: 100 }, { topic: 'Middle', count: 50 }, { topic: 'Done', count: 20, reviewedCount: 20 }, { topic: 'Next', count: 10 }]
+  assert.equal(workflow.nextUnfinishedTopic(more, 'Middle').topic, 'Next')
   const { sortTopicsByCount } = h.load(path.join(root, 'lib/questions/topic-order.ts'))
   const tied = [{ topic: 'B', count: 5 }, { topic: 'A', count: 5 }]
   assert.deepEqual(sortTopicsByCount(tied).map((t) => t.topic), ['A', 'B'])
   assert.deepEqual(tied.map((t) => t.topic), ['B', 'A'])
+})
+
+test('CSV file contents preview Telugu changes without writing or changing question IDs', async () => {
+  const h = harness([row('Q001', 'కణం')])
+  const { readCsvFile } = h.load(path.join(root, 'lib/questions/csv-upload.ts'))
+  const text = '\ufeffquestion_id,question,explanation\r\nQ001,"కణం, దాని నిర్మాణం?","మొదటి పంక్తి\nరెండవ పంక్తి"\r\n'
+  const file = new File([text], 'rewritten.CSV', { type: 'text/csv' })
+  const loaded = await readCsvFile(file)
+  const { data: exported } = await h.get({ topic: 'కణం', from: '1', to: '1' })
+  const preview = await h.post(batch(exported, loaded))
+  assert.equal(preview.status, 200)
+  assert.equal(preview.data.summary.changed, 1)
+  assert.equal(preview.data.rows[0].questionId, 'Q001')
+  assert.equal(preview.data.rows[0].diffs.find((diff) => diff.column === 'question').after, 'కణం, దాని నిర్మాణం?')
+  assert.equal(h.writes.length, 0)
+})
+
+test('Excel UTF-16 CSV files preserve Unicode text in both byte orders', async () => {
+  const { readCsvFile } = harness([]).load(path.join(root, 'lib/questions/csv-upload.ts'))
+  const text = 'question_id,question\r\nQ001,"తెలుగు ప్రశ్న"\r\n'
+  const little = Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, 'utf16le')])
+  const big = Buffer.concat([Buffer.from([0xfe, 0xff]), Buffer.from(text, 'utf16le').swap16()])
+  assert.equal(await readCsvFile(new File([little], 'excel.csv')), text)
+  assert.equal(await readCsvFile(new File([big], 'excel.csv')), text)
+})
+
+test('invalid, empty, unreadable and oversized files are refused before preview', async () => {
+  const { readCsvFile, MAX_CSV_FILE_BYTES } = harness([]).load(path.join(root, 'lib/questions/csv-upload.ts'))
+  await assert.rejects(readCsvFile(new File(['data'], 'workbook.xlsx')), /Choose a .csv/)
+  await assert.rejects(readCsvFile(new File([], 'empty.csv')), /empty/)
+  await assert.rejects(readCsvFile(new File(['\ufeff \r\n'], 'blank.csv')), /no content/)
+  await assert.rejects(readCsvFile(new File([new Uint8Array([0xff, 0xff, 0xff])], 'invalid.csv')), /UTF-8/)
+  await assert.rejects(readCsvFile(new File(['a\u0000b'], 'binary.csv')), /text CSV/)
+  await assert.rejects(readCsvFile({ name: 'large.csv', size: MAX_CSV_FILE_BYTES + 1,
+    arrayBuffer: async () => { assert.fail('Oversized file should not be read') } }), /8 MB/)
+  await assert.rejects(readCsvFile({ name: 'unreadable.csv', size: 1,
+    arrayBuffer: async () => { throw new Error('Read failed') } }), /Could not read this file/)
 })

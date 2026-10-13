@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Check, ClipboardCopy, Loader2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ImportPreviewResponse } from '@/types/bulk-import'
+import CsvFilePicker from './CsvFilePicker'
 
 const HEADER = 'question,option_a,option_b,option_c,option_d,correct_answer,explanation,subtopic,chapter,difficulty,class_level'
 
@@ -17,12 +18,13 @@ export default function TopicQuestionImport({ table, topic, disabled, onBusyChan
   const [csv, setCsv] = useState('')
   const [preview, setPreview] = useState<ImportPreviewResponse | null>(null)
   const [busy, setBusy] = useState(false)
+  const [fileReading, setFileReading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const applied = preview?.applied === true
   const refused = preview ? preview.summary.invalid + preview.summary.duplicateId + preview.summary.duplicateText : 0
 
-  async function run(apply: boolean) {
-    if (!csv.trim() || busy || disabled || applied) return
+  async function run(apply: boolean, inputCsv = csv) {
+    if (!inputCsv.trim() || busy || disabled || (apply && applied)) return
     if (apply && (!preview || refused > 0 || preview.summary.toInsert === 0)) return
     setBusy(true)
     onBusyChange(true)
@@ -30,7 +32,7 @@ export default function TopicQuestionImport({ table, topic, disabled, onBusyChan
     try {
       const res = await fetch('/api/admin/questions/import', {
         method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ table, topic, csv, apply }),
+        body: JSON.stringify({ table, topic, csv: inputCsv, apply }),
       })
       const data = await res.json()
       if (!res.ok || !data.success) {
@@ -60,9 +62,9 @@ export default function TopicQuestionImport({ table, topic, disabled, onBusyChan
       <p className="mt-2 text-xs text-muted-foreground">
         Add one or more questions to <strong className="text-foreground">{topic || 'No topic'}</strong>.
         New IDs are generated automatically, and the selected topic is assigned to every new row.
-        Paste only new questions here. Existing questions stay unchanged.
+        Paste or upload only new questions here. Existing questions stay unchanged.
       </p>
-      <button disabled={disabled || busy} onClick={async () => {
+      <button disabled={disabled || busy || fileReading} onClick={async () => {
         try {
           await navigator.clipboard.writeText(HEADER)
           toast.success('Copied new-question CSV header')
@@ -70,15 +72,22 @@ export default function TopicQuestionImport({ table, topic, disabled, onBusyChan
       }} className="mt-3 inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-semibold hover:bg-accent disabled:opacity-50">
         <ClipboardCopy className="h-3.5 w-3.5" /> Copy CSV header
       </button>
+      <CsvFilePicker value={csv} disabled={disabled || busy || fileReading}
+        onBusyChange={(reading) => {
+          setFileReading(reading)
+          onBusyChange(reading)
+          if (reading) { setPreview(null); setError(null) }
+        }}
+        onLoad={async (text) => { setCsv(text); setPreview(null); setError(null); await run(false, text) }} />
       <label className="mt-3 block">
         <span className="mb-1.5 block text-xs font-semibold">New question CSV (up to 500 rows)</span>
-        <textarea value={csv} disabled={disabled || busy} spellCheck={false}
+        <textarea value={csv} disabled={disabled || busy || fileReading} spellCheck={false}
           onChange={(e) => { setCsv(e.target.value); setPreview(null); setError(null) }}
           placeholder={`${HEADER}\n"New question","First option","Second option","Third option","Fourth option",B,"Explanation","Subtopic","Chapter","Medium","6"`}
           className="h-44 w-full resize-y rounded-xl border border-border bg-background p-3 font-mono text-[11px] leading-relaxed text-foreground placeholder:text-muted-foreground/50" />
       </label>
       {error && <p role="alert" className="mt-3 text-xs text-destructive">{error}</p>}
-      <button onClick={() => run(false)} disabled={disabled || busy || !csv.trim() || applied}
+      <button onClick={() => run(false)} disabled={disabled || busy || fileReading || !csv.trim() || applied}
         className="mt-3 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-50">
         {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
         Preview new questions
@@ -100,7 +109,7 @@ export default function TopicQuestionImport({ table, topic, disabled, onBusyChan
           </div>
           {preview.fileErrors.map((message) => <p key={message} className="mt-2 text-xs text-muted-foreground">{message}</p>)}
           {!applied ? (
-            <button onClick={() => run(true)} disabled={disabled || busy || refused > 0 || preview.summary.toInsert === 0}
+            <button onClick={() => run(true)} disabled={disabled || busy || fileReading || refused > 0 || preview.summary.toInsert === 0}
               className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-50">
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
               Add {preview.summary.toInsert} new question(s)
@@ -108,7 +117,7 @@ export default function TopicQuestionImport({ table, topic, disabled, onBusyChan
           ) : (
             <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
               <span className="inline-flex items-center gap-1.5 text-emerald-600"><Check className="h-3.5 w-3.5" /> Live in practice. Available for future mock modules.</span>
-              <button disabled={disabled || busy} onClick={() => { setCsv(''); setPreview(null); setError(null) }}
+              <button disabled={disabled || busy || fileReading} onClick={() => { setCsv(''); setPreview(null); setError(null) }}
                 className="rounded-lg border border-border px-3 py-2 font-semibold hover:bg-accent disabled:opacity-50">Add more questions</button>
             </div>
           )}

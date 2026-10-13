@@ -178,11 +178,17 @@ export interface BulkExportResponse {
   rows: BulkExportRow[]
   /** Omitted for a whole-table range; null selects questions with no topic. */
   topic?: string | null
+  /** Shared review markers for these current question IDs. */
+  reviewedIds?: string[]
 }
 
 export interface BulkTopicOption {
   topic: string | null
   count: number
+  updateCount?: number
+  reviewedCount?: number
+  lastUpdatedAt?: string | null
+  lastUpdatedBy?: string | null
 }
 
 export interface BulkTopicsResponse {
