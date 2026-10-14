@@ -37,11 +37,38 @@ test('both topics show a combined 37-question load control and can return to one
   const html = render(['చలనం', 'Next topic'])
   assert.match(html, /Load selected topics · 37 questions/)
   assert.match(html, /Use one topic/)
-  assert.match(html, /2 \/ 5 topics · 37 \/ 100 questions/)
+  assert.match(html, /2 topics · 37 \/ 100 questions/)
 })
 
 test('busy upload or save disables the topic list and combined load action', () => {
   const html = render(['చలనం', 'Next topic'], true)
   assert.match(html, /<fieldset disabled=""/)
   assert.match(html, /<button\b[^>]*disabled=""[^>]*>Load selected topics · 37 questions<\/button>/)
+})
+
+test('five topics totaling 49 questions still allow adding the sixth topic', () => {
+  const small = Array.from({ length: 6 }, (_, i) => ({ topic: `Small ${i}`, count: i < 4 ? 10 : 9 }))
+  const html = renderToStaticMarkup(createElement(Selector, {
+    topics: small, selected: small.slice(0, 5).map((t) => t.topic), disabled: false,
+    onChange: () => {}, onClose: () => {}, onLoad: () => {},
+  }))
+  const next = html.match(/<button\b[^>]*>Add next topic<\/button>/)?.[0]
+  assert.ok(next)
+  assert.doesNotMatch(next, /\sdisabled(?:=|\s|>)/)
+  assert.match(html, /5 topics · 49 \/ 100 questions/)
+  assert.match(html, /No topic limit/)
+  assert.doesNotMatch(html, /Maximum 5|5 \/ 5/)
+})
+
+test('a 90-question batch remains loadable when the next ordered topic would exceed 100', () => {
+  const ordered = [30, 25, 20, 15, 12, 10].map((count, i) => ({ topic: String(i), count }))
+  const html = renderToStaticMarkup(createElement(Selector, {
+    topics: ordered, selected: ['0', '1', '2', '3'], disabled: false,
+    onChange: () => {}, onClose: () => {}, onLoad: () => {},
+  }))
+  assert.match(html, /Keep this 90-question batch/)
+  const loadButton = html.match(/<button\b[^>]*>Load selected topics · 90 questions<\/button>/)?.[0]
+  assert.ok(loadButton)
+  assert.doesNotMatch(loadButton, /\sdisabled(?:=|\s|>)/)
+  assert.match(html, /<button\b[^>]*disabled=""[^>]*>Fill batch in topic order<\/button>/)
 })

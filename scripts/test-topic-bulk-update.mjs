@@ -203,12 +203,12 @@ test('five small topics export one ordered CSV, apply by immutable IDs and count
   assert.equal(h.db[table].find((r) => r.question_id === 'OTHER').question, 'Original OTHER')
 })
 
-test('combined batches accept exactly 100 questions and reject overflow or more than five topics', async () => {
+test('combined batches accept exactly 100 questions and reject overflow and invalid topic selections', async () => {
   const h = harness(Array.from({ length: 101 }, (_, i) => row(`Q${String(i).padStart(3, '0')}`, i < 50 ? 'A' : 'B')))
   assert.equal((await h.get({ batchTopics: JSON.stringify(['A', 'B']) })).status, 400)
   h.db[table].pop()
   assert.equal((await h.get({ batchTopics: JSON.stringify(['A', 'B']) })).data.rows.length, 100)
-  for (const selected of [['A'], ['A', 'A'], ['A', 'B', 'C', 'D', 'E', 'F'], [null, 3]]) {
+  for (const selected of [['A'], ['A', 'A'], [null, 3]]) {
     assert.equal((await h.get({ batchTopics: JSON.stringify(selected) })).status, 400)
   }
 })
@@ -250,17 +250,56 @@ test('mixed changed and unchanged topics share review progress, and missing past
   assert.deepEqual((await h.get({ topic: 'B', from: '1', to: '100' })).data.reviewedIds, ['Q002'])
 })
 
-test('batch suggestions follow displayed order, skip reviewed topics and fit five topics within 100 questions', () => {
+test('batch suggestions follow displayed order and stop at 100 questions without a topic cap', () => {
   const h = harness([])
   const { addNextBatchTopic, fillTopicBatch } = h.load(path.join(root, 'lib/questions/topic-batch.ts'))
-  const topics = [{ topic: 'Too large', count: 120 }, { topic: 'Next', count: 50 }, { topic: 'Fits', count: 30 },
+  const topics = [{ topic: 'Too large', count: 120, reviewedCount: 120 }, { topic: 'Next', count: 50 }, { topic: 'Fits', count: 30 },
     { topic: 'Reviewed', count: 20, reviewedCount: 20 }, { topic: 'Start', count: 15 }, { topic: 'Small', count: 5 }]
   assert.deepEqual(addNextBatchTopic(topics, ['Start']), ['Start', 'Small'])
   const filled = fillTopicBatch(topics, ['Start'])
   assert.deepEqual(filled, ['Start', 'Small', 'Next', 'Fits'])
   assert.equal(filled.reduce((sum, topic) => sum + topics.find((t) => t.topic === topic).count, 0), 100)
   const tiny = Array.from({ length: 10 }, (_, i) => ({ topic: String(i), count: 1 }))
-  assert.equal(fillTopicBatch(tiny, ['0']).length, 5)
+  assert.equal(fillTopicBatch(tiny, ['0']).length, 10)
+  const many = Array.from({ length: 150 }, (_, i) => ({ topic: String(i), count: 1 }))
+  assert.equal(fillTopicBatch(many, ['0']).length, 100)
+})
+
+test('ordered batches stop at 90 when the next topic exceeds 100 instead of skipping to a later fitting topic', () => {
+  const h = harness([])
+  const { addNextBatchTopic, fillTopicBatch } = h.load(path.join(root, 'lib/questions/topic-batch.ts'))
+  const topics = [30, 25, 20, 15, 12, 10].map((count, i) => ({ topic: String(i), count }))
+  const expected = ['0', '1', '2', '3']
+  assert.deepEqual(fillTopicBatch(topics, ['0']), expected)
+  assert.deepEqual(addNextBatchTopic(topics, expected), expected)
+  assert.deepEqual(fillTopicBatch(topics, expected), expected)
+  topics[4].reviewedCount = 12
+  assert.deepEqual(addNextBatchTopic(topics, expected), [...expected, '5'])
+})
+
+test('more than five topics export and apply together while retaining the 100-question ceiling', async () => {
+  const names = Array.from({ length: 12 }, (_, i) => `Small topic ${i}`)
+  const h = harness(names.map((topic, i) => row(`Q${String(i).padStart(3, '0')}`, topic)))
+  const { status, data: exported } = await h.get({ batchTopics: JSON.stringify(names) })
+  assert.equal(status, 200)
+  assert.equal(exported.rows.length, 12)
+  const result = await h.post(combinedBatch(exported, csv(...exported.rows.map((r) => [r.question_id, `Better ${r.question_id}`])), true))
+  assert.equal(result.status, 200)
+  assert.equal(result.data.summary.written, 12)
+  assert.equal(h.db.admin_question_topic_updates.length, 12)
+  assert.ok(h.db.admin_question_topic_updates.every((topic) => topic.update_count === 1))
+})
+
+test('body-based exports support 100 long Unicode topic names and reject the 101st question', async () => {
+  const names = Array.from({ length: 101 }, (_, i) => `${'చిన్న విషయం '.repeat(12)}${i}`)
+  const h = harness(names.map((topic, i) => row(`Q${String(i).padStart(3, '0')}`, topic)))
+  const good = await h.post({ action: 'export', batchTopics: names.slice(0, 100) })
+  assert.equal(good.status, 200)
+  assert.equal(good.data.rows.length, 100)
+  assert.equal(good.data.topics.length, 100)
+  assert.equal((await h.post({ action: 'export', batchTopics: names })).status, 400)
+  assert.equal((await h.post({ action: 'export', batchTopics: [names[0]] })).status, 400)
+  assert.equal(h.writes.length, 0)
 })
 
 test('unchanged combined reviews advance without counts; reclassified retries reuse the original receipt', async () => {

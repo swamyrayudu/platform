@@ -187,7 +187,6 @@ export interface BulkExportResponse {
 }
 
 export const TOPIC_BATCH_MAX_QUESTIONS = 100
-export const TOPIC_BATCH_MAX_TOPICS = 5
 
 export interface BulkTopicOption {
   topic: string | null

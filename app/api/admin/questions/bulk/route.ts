@@ -121,6 +121,42 @@ async function idsInRange(table: string, from: number, to: number): Promise<Set<
   return new Set((data ?? []).map((r) => String((r as { question_id: string }).question_id)))
 }
 
+async function exportCombinedTopics(table: string, batchTopics: unknown) {
+  if (!validateTopicBatch(batchTopics)) {
+    return NextResponse.json({ success: false, error: 'Choose two or more distinct topics containing at most 100 questions in total.' }, { status: 400 })
+  }
+  const combined: { question_id: string; topic: string | null }[] = []
+  for (const chosen of batchTopics) {
+    let query = supabaseAdmin.from(table).select('question_id', { count: 'exact', head: true })
+    query = chosen === null ? query.is('topic', null) : query.eq('topic', chosen)
+    const { count, error } = await query
+    if (error) throw error
+    if (!count) return NextResponse.json({ success: false, error: 'A selected topic no longer has questions. Refresh the topics.' }, { status: 409 })
+    if (combined.length + count > TOPIC_BATCH_MAX_QUESTIONS) {
+      return NextResponse.json({ success: false, error: 'Combined topics must contain at most 100 questions. Remove a topic and try again.' }, { status: 400 })
+    }
+    let offset = 0
+    while (true) {
+      const { data, error } = await topicQuery(table, SELECT_COLUMNS, chosen).order(ORDER_COLUMN)
+        .range(offset, offset + TOPIC_BATCH_MAX_QUESTIONS)
+      if (error) throw error
+      if (!data?.length) break
+      combined.push(...data as unknown as { question_id: string; topic: string | null }[])
+      offset += data.length
+      if (combined.length > TOPIC_BATCH_MAX_QUESTIONS) {
+        return NextResponse.json({ success: false, error: 'Questions were added while loading. The combined batch exceeds 100; refresh the topics.' }, { status: 409 })
+      }
+    }
+    if (offset !== count) return NextResponse.json({ success: false, error: 'The selected topics changed while loading. Please reload the batch.' }, { status: 409 })
+  }
+  const questionTopics = Object.fromEntries(combined.map((row) => [row.question_id, row.topic]))
+  const rows = combined.map((row) => Object.fromEntries(BULK_CSV_COLUMNS.map((column) =>
+    [column, (row as unknown as Record<string, string | null>)[column] ?? ''])))
+  return NextResponse.json({ success: true, table, total: rows.length, from: 1, to: rows.length,
+    rows, topics: batchTopics, questionTopics, reviewedIds: await sharedReviewedIds(table, combined) },
+  { headers: { 'Cache-Control': 'private, no-store' } })
+}
+
 // ---- GET: hand out a slice ---------------------------------------
 
 export const GET = requireAdmin(async (request) => {
@@ -140,39 +176,10 @@ export const GET = requireAdmin(async (request) => {
     if (url.searchParams.has('batchTopics')) {
       let batchTopics: unknown
       try { batchTopics = JSON.parse(url.searchParams.get('batchTopics')!) } catch { batchTopics = undefined }
-      if (!validateTopicBatch(batchTopics) || url.searchParams.has('topic') || url.searchParams.has('topicMissing')) {
-        return NextResponse.json({ success: false, error: 'Choose 2–5 distinct topics for a combined batch.' }, { status: 400 })
+      if (url.searchParams.has('topic') || url.searchParams.has('topicMissing')) {
+        return NextResponse.json({ success: false, error: 'Choose a single topic or a combined batch.' }, { status: 400 })
       }
-      const combined: { question_id: string; topic: string | null }[] = []
-      for (const chosen of batchTopics) {
-        let query = supabaseAdmin.from(table).select('question_id', { count: 'exact', head: true })
-        query = chosen === null ? query.is('topic', null) : query.eq('topic', chosen)
-        const { count, error } = await query
-        if (error) throw error
-        if (!count) return NextResponse.json({ success: false, error: 'A selected topic no longer has questions. Refresh the topics.' }, { status: 409 })
-        if (combined.length + count > TOPIC_BATCH_MAX_QUESTIONS) {
-          return NextResponse.json({ success: false, error: 'Combined topics must contain at most 100 questions. Remove a topic and try again.' }, { status: 400 })
-        }
-        let offset = 0
-        while (true) {
-          const { data, error } = await topicQuery(table, SELECT_COLUMNS, chosen).order(ORDER_COLUMN)
-            .range(offset, offset + TOPIC_BATCH_MAX_QUESTIONS)
-          if (error) throw error
-          if (!data?.length) break
-          combined.push(...data as unknown as { question_id: string; topic: string | null }[])
-          offset += data.length
-          if (combined.length > TOPIC_BATCH_MAX_QUESTIONS) {
-            return NextResponse.json({ success: false, error: 'Questions were added while loading. The combined batch exceeds 100; refresh the topics.' }, { status: 409 })
-          }
-        }
-        if (offset !== count) return NextResponse.json({ success: false, error: 'The selected topics changed while loading. Please reload the batch.' }, { status: 409 })
-      }
-      const questionTopics = Object.fromEntries(combined.map((row) => [row.question_id, row.topic]))
-      const rows = combined.map((row) => Object.fromEntries(BULK_CSV_COLUMNS.map((column) =>
-        [column, (row as unknown as Record<string, string | null>)[column] ?? ''])))
-      return NextResponse.json({ success: true, table, total: rows.length, from: 1, to: rows.length,
-        rows, topics: batchTopics, questionTopics, reviewedIds: await sharedReviewedIds(table, combined) },
-      { headers: { 'Cache-Control': 'private, no-store' } })
+      return await exportCombinedTopics(table, batchTopics)
     }
 
     const topic = url.searchParams.get('topicMissing') === '1'
@@ -362,12 +369,16 @@ export const POST = requireAdmin(async (request, _context, { user }) => {
       requestId: requestIdInput,
       batchTopics,
       questionTopics,
+      action,
     } = body as Record<string, unknown>
 
     const table = resolveTable(typeof tableInput === 'string' ? tableInput : null)
     if (!table) {
       return NextResponse.json({ success: false, error: 'Unknown question table' }, { status: 400 })
     }
+
+    // Body-based exports support many long Unicode topic names without URL limits.
+    if (action === 'export') return await exportCombinedTopics(table, batchTopics)
 
     if (topic !== undefined && topic !== null &&
       (typeof topic !== 'string' || topic.length > 1000)) {
@@ -376,7 +387,7 @@ export const POST = requireAdmin(async (request, _context, { user }) => {
     const selectedTopic = topic as string | null | undefined
     const combined = batchTopics !== undefined
     if (combined && (!validateTopicBatch(batchTopics) || selectedTopic !== undefined)) {
-      return NextResponse.json({ success: false, error: 'Choose 2–5 distinct topics for a combined batch.' }, { status: 400 })
+      return NextResponse.json({ success: false, error: 'Choose two or more distinct topics containing at most 100 questions in total.' }, { status: 400 })
     }
     const topicScoped = combined || selectedTopic !== undefined
     if (topicScoped && (!Array.isArray(questionIds) ||

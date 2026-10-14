@@ -21,10 +21,12 @@ let checked = 0
 for (const table of ['english_medium_science', 'telugu_medium_science']) {
   const listing = await api.GET(new Request(`http://localhost/api/admin/questions/bulk?table=${table}&topics=1`))
   assert.equal(listing.status, 200)
-  const topics = (await listing.json()).topics.filter((topic) => topic.count < 20).slice(0, 5).map((topic) => topic.topic)
-  assert.ok(topics.length >= 2)
-  const params = new URLSearchParams({ table, batchTopics: JSON.stringify(topics) })
-  const response = await api.GET(new Request(`http://localhost/api/admin/questions/bulk?${params}`))
+  const topics = (await listing.json()).topics.filter((topic) => topic.count <= 10).slice(0, 6).map((topic) => topic.topic)
+  assert.ok(topics.length > 5)
+  const response = await api.POST(new Request('http://localhost/api/admin/questions/bulk', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ table, action: 'export', batchTopics: topics }),
+  }))
   assert.equal(response.status, 200)
   const batch = await response.json()
   assert.ok(batch.rows.length <= 100)

@@ -285,9 +285,14 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
     setCsv('')
     setError(null)
     try {
+      if (groupTopics) {
+        const data = await readCombinedBatch(groupTopics)
+        setExported(data)
+        setTotal(data.total)
+        return
+      }
       const params = new URLSearchParams({ table, from: String(from), to: String(to) })
-      if (groupTopics) params.set('batchTopics', JSON.stringify(groupTopics))
-      else if (topicMode && selectedTopic !== undefined) {
+      if (topicMode && selectedTopic !== undefined) {
         if (selectedTopic === null) params.set('topicMissing', '1')
         else params.set('topic', selectedTopic)
       }
@@ -305,8 +310,8 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
       if (data.rows.length === 0) {
         toast.info(`That range is past the end of this ${topicMode ? 'topic' : 'table'}.`)
       }
-    } catch {
-      setError('Network error while reading the range.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Network error while reading the range.')
     } finally {
       setExporting(false)
     }
@@ -328,8 +333,10 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
   }
 
   async function readCombinedBatch(chosen: (string | null)[]): Promise<BulkExportResponse> {
-    const params = new URLSearchParams({ table, batchTopics: JSON.stringify(chosen) })
-    const res = await fetch(`/api/admin/questions/bulk?${params}`, { credentials: 'include', cache: 'no-store' })
+    const res = await fetch('/api/admin/questions/bulk', {
+      method: 'POST', credentials: 'include', cache: 'no-store', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ table, action: 'export', batchTopics: chosen }),
+    })
     const data = await res.json()
     if (!res.ok || !data.success) throw new Error(data.error ?? 'Could not load the combined batch')
     return data as BulkExportResponse
