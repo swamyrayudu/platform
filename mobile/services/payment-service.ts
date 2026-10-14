@@ -8,6 +8,12 @@ import { createPaymentFlow } from './payment-flow';
 export interface Plan {id:string;name:string;amountPaise:number;originalAmountPaise:number;period:string;durationDays:number;badge:string;popular:boolean;features:string[]}
 export interface PaymentOrder {id:string;planId:string;amount:number;currency:string;status:string;createdAt:string;paidAt:string|null;razorpayOrderId:string}
 export const canCheckout = !isRunningInExpoGo() && Platform.OS==='android' && Constants.expoConfig?.extra?.distribution==='direct';
+/**
+ * Store builds (Google Play, App Store) show no plans, prices or purchase prompts: both stores
+ * require their own billing for digital subscriptions, and pointing users to pay elsewhere breaks
+ * their rules. Pro bought on the website still works after signing in.
+ */
+export const showsPlans = Constants.expoConfig?.extra?.distribution==='direct';
 const flow=createPaymentFlow({
   request:api.request,storage:vault,canCheckout:()=>canCheckout,
   checkout:async order=>{

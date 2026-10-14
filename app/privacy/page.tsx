@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 
 const english: LegalDocument = {
   title: 'Privacy Policy',
-  updated: 'Last updated 15 September 2026',
+  updated: 'Last updated 14 October 2026',
   intro: [
     'This explains what rsdeducation collects about you, why, and what you can do about it. It describes what the application actually stores, not what a policy template would say.',
   ],
@@ -63,20 +63,22 @@ const english: LegalDocument = {
         'Razorpay — payment processing. They handle your payment details under their own policy.',
         'Vercel — hosting and delivery of the application.',
         'Upstash — a temporary cache used for rate limiting and to serve mock papers quickly.',
+        'Other learners — mock test leaderboards show your first name, the initial of your surname and your score.',
         'We will also disclose information if the law requires it.',
       ],
     },
     {
       heading: 'How long we keep it',
       body: [
-        'Your account and study history stay while your account exists, because that record is the point of the product — it is how your progress survives changing phones. Payment records are kept as long as required for accounting, and are kept even if you delete your account, because a purchase record is something both of us may need later. Sign-in sessions expire on their own, and security event logs are kept for a limited period.',
+        'Your account and study history stay while your account exists, because that record is the point of the product — it is how your progress survives changing phones. Payment records are kept as long as required for accounting. If you delete your account, we keep only the Razorpay payment reference and date of each purchase, no longer linked to you; Razorpay keeps its own record of the payment. Sign-in sessions expire on their own, and security event logs are kept for a limited period.',
       ],
     },
     {
       heading: 'Your choices',
       items: [
         'You can sign out of every device at once from your profile menu.',
-        'You can ask for a copy of your data, or ask us to delete your account and everything attached to it, by emailing us. Deletion is permanent and includes your practice history and scores.',
+        'You can delete your account and everything attached to it yourself: in the app under Profile → Account → Delete account, or on the website at /delete-account. Deletion is immediate and permanent and includes your practice history and scores.',
+        'You can also ask for a copy of your data, or for deletion, by emailing us.',
         'You can correct your name or medium from your profile.',
       ],
     },
@@ -109,7 +111,7 @@ const english: LegalDocument = {
 
 const telugu: LegalDocument = {
   title: 'గోప్యతా విధానం',
-  updated: 'చివరిగా నవీకరించబడింది: 15 సెప్టెంబర్ 2026',
+  updated: 'చివరిగా నవీకరించబడింది: 14 అక్టోబర్ 2026',
   intro: [
     'rsdeducation మీ గురించి ఏమి సేకరిస్తుంది, ఎందుకు సేకరిస్తుంది, మరియు మీరు ఏమి చేయగలరు అనేది ఇక్కడ వివరించబడింది. ఇది ఒక నమూనా పత్రం కాదు — అప్లికేషన్ నిజంగా ఏమి నిల్వ చేస్తుందో అదే ఇక్కడ ఉంది.',
   ],
@@ -153,20 +155,22 @@ const telugu: LegalDocument = {
         'Razorpay — చెల్లింపుల ప్రాసెసింగ్. మీ చెల్లింపు వివరాలను వారి సొంత విధానం ప్రకారం నిర్వహిస్తారు.',
         'Vercel — అప్లికేషన్ హోస్టింగ్.',
         'Upstash — రేట్ లిమిటింగ్ మరియు మాక్ పేపర్లను వేగంగా అందించడానికి తాత్కాలిక కాష్.',
+        'ఇతర అభ్యర్థులు — మాక్ టెస్ట్ లీడర్‌బోర్డులో మీ మొదటి పేరు, ఇంటి పేరులోని మొదటి అక్షరం మరియు మీ స్కోరు కనిపిస్తాయి.',
         'చట్టం కోరితే సమాచారాన్ని వెల్లడించాల్సి ఉంటుంది.',
       ],
     },
     {
       heading: 'ఎంతకాలం ఉంచుతాము',
       body: [
-        'మీ ఖాతా ఉన్నంత వరకు మీ ఖాతా మరియు చదువు చరిత్ర ఉంటాయి — ఫోన్ మారినా మీ పురోగతి నిలిచి ఉండటమే ఈ ఉత్పత్తి ఉద్దేశం. చెల్లింపు రికార్డులు లెక్కల అవసరం మేరకు ఉంచుతాము; మీరు ఖాతా తొలగించినా అవి ఉంటాయి, ఎందుకంటే కొనుగోలు రికార్డు ఇద్దరికీ తర్వాత అవసరం కావచ్చు. సైన్ ఇన్ సెషన్లు వాటంతట అవే గడువు ముగుస్తాయి; భద్రతా లాగ్‌లు పరిమిత కాలం ఉంచుతాము.',
+        'మీ ఖాతా ఉన్నంత వరకు మీ ఖాతా మరియు చదువు చరిత్ర ఉంటాయి — ఫోన్ మారినా మీ పురోగతి నిలిచి ఉండటమే ఈ ఉత్పత్తి ఉద్దేశం. చెల్లింపు రికార్డులు లెక్కల అవసరం మేరకు ఉంచుతాము. మీరు ఖాతా తొలగిస్తే, ప్రతి కొనుగోలుకు సంబంధించిన Razorpay చెల్లింపు గుర్తింపు మరియు తేదీ మాత్రమే మీతో సంబంధం లేకుండా ఉంచుతాము; Razorpay తన సొంత చెల్లింపు రికార్డును ఉంచుకుంటుంది. సైన్ ఇన్ సెషన్లు వాటంతట అవే గడువు ముగుస్తాయి; భద్రతా లాగ్‌లు పరిమిత కాలం ఉంచుతాము.',
       ],
     },
     {
       heading: 'మీ ఎంపికలు',
       items: [
         'ప్రొఫైల్ మెనూ నుండి అన్ని పరికరాల నుండి ఒకేసారి సైన్ అవుట్ చేయవచ్చు.',
-        'మీ డేటా కాపీ అడగవచ్చు, లేదా మీ ఖాతాను మరియు దానికి సంబంధించిన అన్నింటినీ తొలగించమని ఈమెయిల్ ద్వారా కోరవచ్చు. తొలగింపు శాశ్వతం — మీ ప్రాక్టీస్ చరిత్ర మరియు స్కోర్లు కూడా పోతాయి.',
+        'మీ ఖాతాను మరియు దానికి సంబంధించిన అన్నింటినీ మీరే తొలగించవచ్చు: యాప్‌లో ప్రొఫైల్ → ఖాతా → Delete account లో, లేదా వెబ్‌సైట్‌లో /delete-account పేజీలో. తొలగింపు వెంటనే జరుగుతుంది, శాశ్వతం — మీ ప్రాక్టీస్ చరిత్ర మరియు స్కోర్లు కూడా పోతాయి.',
+        'మీ డేటా కాపీ కావాలన్నా, తొలగింపు కోసమైనా ఈమెయిల్ ద్వారా కూడా కోరవచ్చు.',
         'మీ పేరు లేదా మాధ్యమాన్ని ప్రొఫైల్ నుండి సరిచేసుకోవచ్చు.',
       ],
     },

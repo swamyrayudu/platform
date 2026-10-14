@@ -42,9 +42,34 @@ export interface ImportPreviewResponse {
   success: true
   table: string
   applied: boolean
+  importBatchId?: string
   idPattern: string
   idDerived: boolean
   summary: ImportSummary
   rows: ImportRowResult[]
   fileErrors: string[]
+}
+
+export interface QuestionImportBatch {
+  id: string
+  origin: 'import' | 'recovery'
+  status: 'applied' | 'undone'
+  row_count: number
+  topics: (string | null)[]
+  created_at: string
+  changed_at: string
+  actor: { name: string | null; email: string } | null
+}
+
+export interface ImportUndoPreview {
+  success: true
+  applied: boolean
+  eligible: boolean
+  reason: string | null
+  status: 'applied' | 'undone'
+  count: number
+  rows: { question_id: string; question: string; topic: string | null }[]
+  batchId: string
+  action: 'undo' | 'restore'
+  snapshotHash?: string
 }

@@ -5,6 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import type { MockTestListItem } from '@/types/mock-tests';
 import { colors } from '@/utils/theme';
+import { showsPlans } from '@/services/payment-service';
 
 export const MockPaperCard = memo(function MockPaperCard({test,premium}: {test:MockTestListItem;premium?:boolean}) {
   const completed = test.progress_status === 'completed';
@@ -12,10 +13,10 @@ export const MockPaperCard = memo(function MockPaperCard({test,premium}: {test:M
   const proLocked=!test.is_free&&premium===false;
   const seriesLocked=!proLocked&&test.is_sequence_locked&&!completed;
   const percent=test.user_attempt?.percentage;
-  const label=proLocked?'Unlock with Pro':seriesLocked?`Finish ${test.module_number!=null?`Module ${String(test.module_number-1).padStart(2,'0')}`:'the previous module'} first`:completed?'Results & analysis':ongoing?'Continue':'Start';
+  const label=proLocked?(showsPlans?'Unlock with Pro':'Pro members only'):seriesLocked?`Finish ${test.module_number!=null?`Module ${String(test.module_number-1).padStart(2,'0')}`:'the previous module'} first`:completed?'Results & analysis':ongoing?'Continue':'Start';
   const color=proLocked?colors.gold:seriesLocked?colors.muted:completed?'#32966B':colors.primary;
   function open() {
-    if(proLocked){router.push('/subscription');return;}
+    if(proLocked){if(showsPlans)router.push('/subscription');return;}
     if(test.user_attempt?.status==='submitted')router.push({pathname:'/result',params:{kind:'mock',id:test.user_attempt.attempt_id}});
     else router.push({pathname:'/mock/[id]',params:{id:test.id}});
   }

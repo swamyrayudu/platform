@@ -5,13 +5,14 @@ import { useAuth } from '@/store/auth';
 import { colors } from '@/utils/theme';
 import { hasActiveSubscription } from '@/utils/subscription';
 import { BrandMark } from './brand-mark';
+import { showsPlans } from '@/services/payment-service';
 
 export function StudentHeader() {
   const {user}=useAuth();
   const subscribed=hasActiveSubscription(user);
   return <View style={styles.header}>
     <Pressable accessibilityRole="button" accessibilityLabel="RSD Education, go to home" onPress={()=>router.push('/')} style={styles.brand}><BrandMark size={34}/><Text style={styles.name}>DSC / SGT</Text><View style={styles.region}><Text style={styles.regionText}>AP</Text></View></Pressable>
-    <View style={styles.actions}><Pressable accessibilityRole="button" accessibilityLabel={subscribed?'Manage or renew your active subscription':'View subscription prices and pay'} onPress={()=>router.push('/subscription')} style={[styles.pro,styles.subscriptionAction]}><Ionicons name={subscribed?'checkmark-circle':'ribbon'} size={18} color={subscribed?colors.green:colors.gold}/><Text style={styles.proText}>{subscribed?'Manage':'Plans'}</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Open your profile" onPress={()=>router.push('/profile')} style={styles.action}><View style={styles.avatar}><Text maxFontSizeMultiplier={2} style={styles.initial}>{user?.name?.trim().charAt(0).toUpperCase()||'R'}</Text></View></Pressable></View>
+    <View style={styles.actions}>{showsPlans?<Pressable accessibilityRole="button" accessibilityLabel={subscribed?'Manage or renew your active subscription':'View subscription prices and pay'} onPress={()=>router.push('/subscription')} style={[styles.pro,styles.subscriptionAction]}><Ionicons name={subscribed?'checkmark-circle':'ribbon'} size={18} color={subscribed?colors.green:colors.gold}/><Text style={styles.proText}>{subscribed?'Manage':'Plans'}</Text></Pressable>:null}<Pressable accessibilityRole="button" accessibilityLabel="Open your profile" onPress={()=>router.push('/profile')} style={styles.action}><View style={styles.avatar}><Text maxFontSizeMultiplier={2} style={styles.initial}>{user?.name?.trim().charAt(0).toUpperCase()||'R'}</Text></View></Pressable></View>
   </View>;
 }
 const styles=StyleSheet.create({

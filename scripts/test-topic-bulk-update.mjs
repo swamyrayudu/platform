@@ -27,6 +27,7 @@ function harness(rows, pageLimit = 1000, live = false) {
     mock_test_questions: [{ question_uid: `${table}:Q003`, mock_test_id: 'mock-1' }],
     mock_tests: [{ id: 'mock-1', version: 1 }],
     admin_question_topic_updates: [], admin_question_reviews: [], admin_question_update_batches: [],
+    admin_question_import_batches: [], admin_question_import_ids: [],
   }
   const writes = []
   const added = []
@@ -77,6 +78,21 @@ function harness(rows, pageLimit = 1000, live = false) {
   }
   // Real SQL transaction behavior is also verified against Postgres with rollback.
   async function rpc(name, args) {
+    if (name === 'capture_admin_question_import') {
+      const previous = db.admin_question_import_batches.find((r) => r.id === args.p_request_id)
+      if (previous) return { data: previous.result, error: null }
+      hooks.beforeImport?.(db, args)
+      if (args.p_rows.some((r) => db[args.p_table].some((existing) => existing.question_id === r.question_id))) {
+        return { data: null, error: { code: '23505', message: 'ID already exists' } }
+      }
+      const created = structuredClone(args.p_rows)
+      db[args.p_table].push(...created); added.push(...created)
+      const result = { ...structuredClone(args.p_result), importBatchId: args.p_request_id }
+      db.admin_question_import_batches.push({ id: args.p_request_id, question_table: args.p_table,
+        fingerprint: args.p_fingerprint, status: 'applied', rows: created, result })
+      db.admin_question_import_ids.push(...created.map((r) => ({ question_table: args.p_table, question_id: r.question_id, batch_id: args.p_request_id })))
+      return { data: result, error: null }
+    }
     assert.ok(['apply_admin_question_updates', 'apply_admin_combined_topic_updates'].includes(name))
     const existing = db.admin_question_update_batches.find((r) => r.request_id === args.p_request_id)
     if (existing) return { data: existing.result, error: null }
@@ -516,6 +532,66 @@ test('ordinary imports still accept an explicit new ID and a CSV topic', async (
   assert.equal(result.status, 200)
   assert.equal(h.added[0].question_id, 'CUSTOM-1')
   assert.equal(h.added[0].topic, 'Physics')
+})
+
+test('an import receipt makes a network retry idempotent and stores every inserted ID', async () => {
+  const h = harness([row('Q001', 'Biology')])
+  const payload = { topic: 'Biology', csv: newCsv('Receipt question'), apply: true, requestId: randomUUID() }
+  const first = await h.postImport(payload)
+  assert.equal(first.status, 200)
+  assert.equal(first.data.importBatchId, payload.requestId)
+  assert.deepEqual((await h.postImport(payload)).data, first.data)
+  assert.equal(h.added.length, 1)
+  assert.equal(h.db.admin_question_import_batches.length, 1)
+  assert.equal(h.db.admin_question_import_ids[0].question_id, 'Q002')
+  h.db.admin_question_import_batches[0].status = 'undone'
+  assert.equal((await h.postImport(payload)).status, 409)
+})
+
+test('undone IDs remain reserved while an active table count excludes backed-up rows', async () => {
+  const h = harness([row('Q001', 'Biology')])
+  h.db.admin_question_import_ids.push({ question_table: table, question_id: 'Q009', batch_id: randomUUID() })
+  const preview = await h.postImport({ topic: 'Biology', csv: newCsv('After undone ID') })
+  assert.equal(preview.data.rows[0].questionId, 'Q010')
+  assert.equal((await h.postImport({ csv: newCsv('Explicit reserved ID', ',question_id', ',Q009'), apply: true })).status, 400)
+  const importRoute = h.load(path.join(root, 'app/api/admin/questions/import/route.ts'))
+  const info = await importRoute.GET(new Request(`http://localhost/api/admin/questions/import?table=${table}`))
+  assert.equal((await info.json()).total, 1)
+})
+
+test('an import conflict rolls back the entire requested batch and records no receipt', async () => {
+  const h = harness([row('Q001', 'Biology')])
+  h.hooks.beforeImport = (db, args) => db[table].push(row(args.p_rows[1].question_id, 'Biology'))
+  const data = await h.postImport({ topic: 'Biology', apply: true,
+    csv: 'question,option_a,option_b,option_c,option_d,correct_answer\nFirst new,One,Two,Three,Four,A\nSecond new,One,Two,Three,Four,B' })
+  assert.equal(data.status, 409)
+  assert.equal(h.added.length, 0)
+  assert.equal(h.db.admin_question_import_batches.length, 0)
+  assert.equal(h.db[table].some((r) => r.question === 'First new'), false)
+})
+
+test('legacy recovery matches original Telugu CSV content and ignores the intended CSV topic', () => {
+  const h = harness([])
+  const { matchOriginalImport, snapshotHash } = h.load(path.join(root, 'lib/questions/import-history.ts'))
+  const candidate = { ...row('Q001', 'Wrong topic'), question: 'తెలుగు ప్రశ్న', option_a: 'One', option_b: 'Two', option_c: 'Three', option_d: 'Four', correct_answer: 'B' }
+  const matched = matchOriginalImport(newCsv('తెలుగు ప్రశ్న', ',topic', ',Intended topic'), [candidate])
+  assert.equal(matched[0].question_id, 'Q001')
+  assert.equal(matched[0].topic, 'Wrong topic')
+  assert.equal(snapshotHash(matched), snapshotHash([{ ...candidate }]))
+  assert.notEqual(snapshotHash(matched), snapshotHash([{ ...candidate, updated_at: 'changed' }]))
+})
+
+test('legacy recovery refuses incomplete, missing, ambiguous, duplicated and changed questions', () => {
+  const h = harness([])
+  const { matchOriginalImport } = h.load(path.join(root, 'lib/questions/import-history.ts'))
+  const candidate = { ...row('Q001', 'Wrong'), question: 'Exact stem', option_a: 'One', option_b: 'Two', option_c: 'Three', option_d: 'Four', correct_answer: 'B' }
+  const original = newCsv('Exact stem')
+  assert.throws(() => matchOriginalImport('question_id,question\nQ001,Exact stem', [candidate]), /needs these columns/)
+  assert.throws(() => matchOriginalImport(original, []), /no unchanged question/)
+  assert.throws(() => matchOriginalImport(original, [candidate, { ...candidate, question_id: 'Q002' }]), /multiple questions match/)
+  assert.throws(() => matchOriginalImport(original, [{ ...candidate, option_a: 'Changed' }]), /no unchanged question/)
+  assert.throws(() => matchOriginalImport(original + '\nExact stem,One,Two,Three,Four,B', [candidate]), /repeats a question/)
+  assert.equal(matchOriginalImport(newCsv('Exact stem', ',question_id', ',Q001'), [candidate, { ...candidate, question_id: 'Q002' }]).length, 1)
 })
 
 test('shared counts increase once per save, survive retries and include the last editor', async () => {

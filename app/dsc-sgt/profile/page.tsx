@@ -9,6 +9,7 @@
 // ============================================================
 
 import React, { useState } from 'react'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import { LogOut } from 'lucide-react'
 import { useAuth } from '@/app/contexts/AuthContext'
@@ -123,6 +124,21 @@ export default function ProfilePage() {
             <LogOut className="h-3.5 w-3.5" strokeWidth={1.7} />
             Sign out
           </button>
+        </section>
+
+        <section className="rounded-2xl border border-border/70 bg-card p-6">
+          <p className="bloom-eyebrow">Account</p>
+          <h3 className="mt-1.5 text-lg font-medium text-foreground">Delete account</h3>
+          <p className="mt-2 max-w-md text-xs leading-relaxed text-muted-foreground">
+            Permanently deletes your profile, practice history, mock test results and
+            progress. This cannot be undone.
+          </p>
+          <Link
+            href="/delete-account"
+            className="mt-5 inline-flex items-center gap-2 rounded-full border border-destructive/40 px-4 py-2 text-xs font-medium text-destructive transition hover:bg-destructive/10"
+          >
+            Delete my account
+          </Link>
         </section>
       </div>
     </main>

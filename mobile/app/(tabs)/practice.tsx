@@ -10,6 +10,7 @@ import { PracticeMediumTabs, PracticeSubjects, PracticeDataStatus } from '@/comp
 import { PracticeChoices } from '@/components/practice-choices';
 import { usePracticeFilters } from '@/hooks/use-practice-filters';
 import { practiceService } from '@/services/question-service';
+import { showsPlans } from '@/services/payment-service';
 import { useAuth } from '@/store/auth';
 import { launchPractice } from '@/services/session-launch';
 import { colors } from '@/utils/theme';
@@ -49,7 +50,7 @@ function PracticeBuilder({params}:{params:{subject?:string;topic?:string}}) {
   const data=options.data?.data; const maxQuestions=quota.data?.maxQuestions??25;
   const invalidCount=filter.question_count<5||filter.question_count>maxQuestions||filter.question_count>(data?.total_matching_questions??0);
   const exhausted=!!quota.data&&!quota.data.canPractice;
-  const footer=<Button icon={exhausted?'lock-closed-outline':'play-outline'} label={options.checking?'Checking questions…':exhausted?'View Pro plans':data?.total_matching_questions===0?'No questions available':`Start practice · ${filter.question_count}`} busy={create.isPending} disabled={!quota.data||!options.ready||invalidCount||(filter.has_timer&&filter.duration_minutes<1)} onPress={()=>exhausted?router.push('/subscription'):create.mutate()}/>;
+  const footer=<Button icon={exhausted?'lock-closed-outline':'play-outline'} label={options.checking?'Checking questions…':exhausted?(showsPlans?'View Pro plans':'Practice limit reached'):data?.total_matching_questions===0?'No questions available':`Start practice · ${filter.question_count}`} busy={create.isPending} disabled={!quota.data||!options.ready||invalidCount||(filter.has_timer&&filter.duration_minutes<1)||(exhausted&&!showsPlans)} onPress={()=>{if(!exhausted)create.mutate();else if(showsPlans)router.push('/subscription');}}/>;
   return <Screen title="DSC Practice Zone" pageHeader={null} footer={footer} footerSafeArea={false}>
     <View style={styles.intro}>
       <View style={styles.headingRow}>
@@ -58,9 +59,10 @@ function PracticeBuilder({params}:{params:{subject?:string;topic?:string}}) {
       </View>
       {quota.data ? <View style={[styles.quota,exhausted&&styles.quotaExhausted]}>
         <Text style={styles.quotaText}>{premium?'Unlimited practice':`${quota.data.completedSessions}/${quota.data.allowedSessions} sessions used · Up to ${maxQuestions} questions`}</Text>
-        {!premium ? <Pressable accessibilityRole="button" accessibilityLabel="View Pro plans" onPress={()=>router.push('/subscription')} style={({pressed})=>[styles.plans,pressed&&styles.pressed]}><Ionicons name="ribbon-outline" size={16} color={colors.primary}/><Text style={styles.linkText}>Pro plans</Text><Ionicons name="chevron-forward" size={14} color={colors.primary}/></Pressable> : null}
+        {!premium&&showsPlans ? <Pressable accessibilityRole="button" accessibilityLabel="View Pro plans" onPress={()=>router.push('/subscription')} style={({pressed})=>[styles.plans,pressed&&styles.pressed]}><Ionicons name="ribbon-outline" size={16} color={colors.primary}/><Text style={styles.linkText}>Pro plans</Text><Ionicons name="chevron-forward" size={14} color={colors.primary}/></Pressable> : null}
       </View> : null}
-      {exhausted&&quota.data?.reason ? <Text style={styles.hint}>{quota.data.reason}</Text> : null}
+      {/* The server's reason invites an upgrade, which store builds must not do. */}
+      {exhausted&&quota.data?.reason ? <Text style={styles.hint}>{showsPlans?quota.data.reason:'You have used the free practice sessions on this account.'}</Text> : null}
       <PracticeMediumTabs value={filter.medium} onChange={medium=>{if(medium===filter.medium)return;update({medium,subject:medium==='telugu'?'Telugu':'English',topics:[],subtopics:[],class_levels:[],difficulty:[]});setCustomTopics(false);}}/>
     </View>
     {quota.error ? <ErrorState error={quota.error} retry={()=>void quota.refetch()}/> : null}
@@ -71,7 +73,7 @@ function PracticeBuilder({params}:{params:{subject?:string;topic?:string}}) {
     </PracticeSection>
     <PracticeSection step={2} title="Topics">
       {hasSubjectMethodology(filter.subject)?<Text style={styles.methodologyHint}>{filter.medium==='telugu'?'మెథడాలజీ అంటే ఈ విషయాన్ని బోధించే పద్ధతులు.':'Methodology means teaching methods for this subject.'}</Text>:null}
-      <PracticeChoices compact columns={2} items={[{value:'all',label:'All topics'},{value:'custom',label:premium?'Choose topics':'Choose topics · Pro',accent:premium?undefined:'gold'}]} selected={premium&&customTopics?'custom':'all'} onSelect={value=>{if(value==='custom'&&!premium){router.push('/subscription');return;}setCustomTopics(value==='custom');if(value==='all')update({topics:[],subtopics:[]});}}/>
+      <PracticeChoices compact columns={2} items={[{value:'all',label:'All topics'},{value:'custom',label:premium?'Choose topics':'Choose topics · Pro',accent:premium?undefined:'gold'}]} selected={premium&&customTopics?'custom':'all'} onSelect={value=>{if(value==='custom'&&!premium){if(showsPlans)router.push('/subscription');return;}setCustomTopics(value==='custom');if(value==='all')update({topics:[],subtopics:[]});}}/>
       {premium&&customTopics ? data?<TopicPicker key={`${filter.medium}:${filter.subject}`} topics={data.available_topics} selected={filter.topics} onToggle={topic=>toggle('topics',topic)} scope={`${filter.medium}:${filter.subject}:${filter.class_levels.join(',')}`}/>:<Text style={styles.hint}>Loading topics…</Text> : null}
     </PracticeSection>
     <PracticeSection step={3} title="Questions">

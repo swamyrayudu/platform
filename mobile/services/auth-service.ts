@@ -29,6 +29,12 @@ export const authService = {
   },
   onboarding: (learningGoals: LearningGoal[], educationMedium: EducationMedium) => api.request<{user: PublicUser}>('/api/auth/onboarding', 'POST', { learningGoals, educationMedium }),
   profile: (data: {name: string; learningGoals: LearningGoal[]; educationMedium: EducationMedium}) => api.request<{user: PublicUser}>('/api/auth/profile', 'PATCH', data),
+  /** Permanently deletes the account on the server, then signs this device out. Throws, still signed in, if the server refuses. */
+  async deleteAccount() {
+    await api.request('/api/auth/account', 'DELETE', { confirm: 'DELETE' });
+    await api.invalidate();
+    if(Platform.OS==='android')await clearNativeGoogleSession().catch(()=>undefined);
+  },
   async logout(all = false) {
     try { await api.request(`/api/auth/${all ? 'logout-all' : 'logout'}`, 'POST'); }
     catch (error) {

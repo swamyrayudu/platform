@@ -31,6 +31,7 @@ import { toast } from 'sonner'
 import { useAuth } from '@/app/contexts/AuthContext'
 import { LoadingScreen } from '@/components/ui/loading-screen'
 import CsvFilePicker from '@/app/components/admin/CsvFilePicker'
+import QuestionImportHistory from '@/app/components/admin/QuestionImportHistory'
 import { QUESTION_TABLES } from '@/lib/questions/tables'
 import type {
   ImportPreviewResponse,
@@ -54,7 +55,9 @@ export default function ImportQuestionsPage() {
   const [previewing, setPreviewing] = useState(false)
   const [applying, setApplying] = useState(false)
   const [fileReading, setFileReading] = useState(false)
-  const busy = previewing || applying || fileReading
+  const [historyBusy, setHistoryBusy] = useState(false)
+  const [requestId, setRequestId] = useState<string | null>(null)
+  const busy = previewing || applying || fileReading || historyBusy
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -108,12 +111,14 @@ export default function ImportQuestionsPage() {
       if (apply) setApplying(true)
       else setPreviewing(true)
       setError(null)
+      const id = apply ? requestId ?? crypto.randomUUID() : crypto.randomUUID()
+      setRequestId(id)
       try {
         const res = await fetch('/api/admin/questions/import', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ table, csv: inputCsv, apply }),
+          body: JSON.stringify({ table, csv: inputCsv, apply, requestId: id }),
         })
         const data = await res.json()
         if (!res.ok || !data.success) {
@@ -135,7 +140,7 @@ export default function ImportQuestionsPage() {
         else setPreviewing(false)
       }
     },
-    [table, csv, loadInfo]
+    [table, csv, loadInfo, requestId]
   )
 
   if (authLoading) return <LoadingScreen message="Checking access…" />
@@ -216,6 +221,10 @@ export default function ImportQuestionsPage() {
           </div>
         )}
       </section>
+
+      <QuestionImportHistory key={table} table={table} revision={preview?.importBatchId ?? ''}
+        disabled={previewing || applying || fileReading} onBusyChange={setHistoryBusy}
+        onChanged={() => { changeCsv(''); setRequestId(null); void loadInfo(table) }} />
 
       {/* ── Step 2: paste ── */}
       <section className="mb-5 rounded-2xl border border-border bg-card p-5">

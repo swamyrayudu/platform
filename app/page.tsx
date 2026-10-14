@@ -32,6 +32,18 @@ declare global {
   }
 }
 
+/**
+ * Pages that send a signed-out visitor here to sign in and expect them back.
+ * An allow-list, so `?next=` can never become an open redirect.
+ */
+const RETURN_PATHS = new Set(['/delete-account'])
+
+function destinationAfterSignIn(onboardingCompleted: boolean | undefined): string {
+  const next = new URLSearchParams(window.location.search).get('next')
+  if (next && RETURN_PATHS.has(next)) return next
+  return onboardingCompleted === false ? '/onboarding' : '/home'
+}
+
 export default function Home() {
   const router = useRouter()
   const { user, loading, updateUser } = useAuth()
@@ -55,7 +67,7 @@ export default function Home() {
     if (!loading && user) {
       // Must agree with the destination chosen right after sign-in below,
       // or the two send the same user to two different places at once.
-      router.replace(user.onboardingCompleted === false ? '/onboarding' : '/home')
+      router.replace(destinationAfterSignIn(user.onboardingCompleted))
     }
   }, [user, loading, router])
 
@@ -97,11 +109,7 @@ export default function Home() {
         if (data.user) updateUser(data.user)
         // Route based on onboarding status
         navigating = true
-        if (data.user && data.user.onboardingCompleted === false) {
-          router.replace('/onboarding')
-        } else {
-          router.replace('/home')
-        }
+        router.replace(destinationAfterSignIn(data.user?.onboardingCompleted))
         return
       }
 

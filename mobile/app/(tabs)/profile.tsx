@@ -11,7 +11,7 @@ import { PracticeChoices } from '@/components/practice-choices';
 import { PracticeMediumTabs } from '@/components/practice-selectors';
 import { useAuth } from '@/store/auth';
 import { authService } from '@/services/auth-service';
-import { paymentService } from '@/services/payment-service';
+import { paymentService, showsPlans } from '@/services/payment-service';
 import { api } from '@/services/api-client';
 import { API_BASE_URL } from '@/utils/config';
 import { colors } from '@/utils/theme';
@@ -77,6 +77,15 @@ export default function Profile() {
   });
   const revoke=useMutation({mutationFn:(id:string)=>api.request('/api/auth/devices/'+encodeURIComponent(id),'DELETE'),onSuccess:async()=>{await auth.reload();await cache.invalidateQueries();}});
   const logout=useMutation({mutationFn:(all:boolean)=>auth.logout(all)});
+  const remove=useMutation({mutationFn:()=>auth.deleteAccount()});
+  // Two confirmations: deletion is immediate and cannot be undone.
+  const confirmDelete=()=>Alert.alert('Delete account?','This permanently deletes your profile, practice history, mock test results and progress. Any remaining Pro access ends. This cannot be undone.',[
+    {text:'Cancel',style:'cancel'},
+    {text:'Continue',style:'destructive',onPress:()=>Alert.alert('Delete permanently?','Your account will be deleted now.',[
+      {text:'Cancel',style:'cancel'},
+      {text:'Delete account',style:'destructive',onPress:()=>remove.mutate()},
+    ])},
+  ]);
   const subscribed=hasActiveSubscription(user);
   const expires=subscriptionDate(user?.subscriptionExpiresAt);
   const currentPlan=plans.data?.plans.find(plan=>plan.id===user?.subscriptionPlan);
@@ -121,13 +130,13 @@ export default function Profile() {
     </View>
 
     <ProfileSection title="Your subscription" icon="ribbon-outline" action={<Badge label={status} color={subscribed?colors.green:colors.muted}/>}>
-      <Heading style={styles.planName}>{currentPlan?.name??(user?.subscriptionPlan?'RSD Pro plan':'Start with RSD Pro')}</Heading>
+      <Heading style={styles.planName}>{currentPlan?.name??(user?.subscriptionPlan?'RSD Pro plan':showsPlans?'Start with RSD Pro':'Free plan')}</Heading>
       <View style={styles.subscriptionDetail}>
         <Ionicons name={expires?'calendar-outline':'sparkles-outline'} size={16} color={colors.gold}/>
-        <Text style={styles.detailText}>{expires?(subscribed?'Valid until ':'Expiry date: ')+expires:subscribed?'Your Pro access is active.':'Unlock more practice and mock tests.'}</Text>
+        <Text style={styles.detailText}>{expires?(subscribed?'Valid until ':'Expiry date: ')+expires:subscribed?'Your Pro access is active.':showsPlans?'Unlock more practice and mock tests.':'You are on the free plan.'}</Text>
       </View>
-      {subscribed?<Text style={styles.caption}>Renewal adds days to your remaining access.</Text>:null}
-      <Button icon="card-outline" label={subscribed?'View plans & renew':'View plans & pay'} onPress={()=>router.push('/subscription')}/>
+      {showsPlans&&subscribed?<Text style={styles.caption}>Renewal adds days to your remaining access.</Text>:null}
+      {showsPlans?<Button icon="card-outline" label={subscribed?'View plans & renew':'View plans & pay'} onPress={()=>router.push('/subscription')}/>:null}
     </ProfileSection>
 
     <ProfileSection title="Study preferences" icon="options-outline" action={
@@ -198,13 +207,16 @@ export default function Profile() {
     <ProfileSection title="Account" icon="person-outline">
       <View>
         <ProfileAction label="Sign out" detail="On this device" icon="log-out-outline" danger busy={logout.isPending&&logout.variables===false} disabled={logout.isPending} onPress={()=>logout.mutate(false)}/>
-        <ProfileAction label="Sign out everywhere" detail="Sign out of all devices" icon="exit-outline" danger last busy={logout.isPending&&logout.variables===true} disabled={logout.isPending}
+        <ProfileAction label="Sign out everywhere" detail="Sign out of all devices" icon="exit-outline" danger busy={logout.isPending&&logout.variables===true} disabled={logout.isPending||remove.isPending}
           onPress={()=>Alert.alert('Sign out everywhere?','All sessions will be revoked.',[
             {text:'Cancel',style:'cancel'},
             {text:'Sign out',style:'destructive',onPress:()=>logout.mutate(true)},
           ])}/>
+        <ProfileAction label="Delete account" detail="Permanently delete your account and data" icon="trash-outline" danger last busy={remove.isPending} disabled={logout.isPending}
+          onPress={confirmDelete}/>
       </View>
       {logout.error?<ErrorState error={logout.error}/>:null}
+      {remove.error?<ErrorState error={remove.error}/>:null}
     </ProfileSection>
     <Text style={styles.footer}>RSD Education · AP DSC / SGT</Text>
   </Screen>;

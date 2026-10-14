@@ -9,7 +9,16 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "ios": { "bundleIdentifier": "com.rsdeducation.student", "supportsTablet": true },
-    "android": { "package": "com.rsdeducation.student", "versionCode": 3, "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#2E2B55" } },
+    "android": {
+      "package": "com.rsdeducation.student",
+      "versionCode": 3,
+      "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#2E2B55" },
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
+    },
     "plugins": ["expo-router", "expo-secure-store", "expo-web-browser", "expo-sqlite", "expo-status-bar", "expo-font"],
     "experiments": { "typedRoutes": true }
   }

@@ -22,6 +22,7 @@
 // ============================================================
 
 import { NextResponse } from 'next/server'
+import { randomUUID } from 'node:crypto'
 import { requireAdmin } from '@/lib/auth/session'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { parseCsv } from '@/lib/questions/csv'
@@ -34,6 +35,7 @@ import {
   validateImportRows,
 } from '@/lib/questions/bulk-insert'
 import type { ImportPreviewResponse, ImportTableInfo } from '@/types/bulk-import'
+import { importFingerprint, importReceipt, UUID_PATTERN } from '@/lib/questions/import-history'
 
 /** One import at a time; keeps a mistake small and the request sane. */
 const IMPORT_MAX_ROWS = 500
@@ -59,7 +61,7 @@ function resolveTable(name: string | null): string | null {
  */
 async function loadExisting(
   table: string
-): Promise<{ ids: Set<string>; text: Set<string> }> {
+): Promise<{ ids: Set<string>; text: Set<string>; total: number }> {
   const ids = new Set<string>()
   const text = new Set<string>()
 
@@ -81,7 +83,17 @@ async function loadExisting(
     from += rows.length
   }
 
-  return { ids, text }
+  const total = ids.size
+  from = 0
+  while (true) {
+    const { data, error } = await supabaseAdmin.from('admin_question_import_ids').select('question_id')
+      .eq('question_table', table).order('question_id').range(from, from + PAGE - 1)
+    if (error) throw error
+    for (const row of data ?? []) ids.add(row.question_id)
+    if (!data?.length) break
+    from += data.length
+  }
+  return { ids, text, total }
 }
 
 // ---- GET: describe the table -------------------------------------
@@ -94,13 +106,13 @@ export const GET = requireAdmin(async (request) => {
       return NextResponse.json({ success: false, error: 'Unknown question table' }, { status: 400 })
     }
 
-    const { ids } = await loadExisting(table)
+    const { ids, total } = await loadExisting(table)
     const family = resolveIdFamily(table, [...ids])
 
     const info: ImportTableInfo = {
       success: true,
       table,
-      total: ids.size,
+      total,
       idPattern: formatId(family, family.highest + 1),
       idDerived: family.derived,
       idCoverage: Math.round(family.coverage * 100),
@@ -115,7 +127,7 @@ export const GET = requireAdmin(async (request) => {
 
 // ---- POST: preview, or insert ------------------------------------
 
-export const POST = requireAdmin(async (request) => {
+export const POST = requireAdmin(async (request, _context, { user }) => {
   try {
     let body: unknown
     try {
@@ -127,7 +139,7 @@ export const POST = requireAdmin(async (request) => {
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
       return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 })
     }
-    const { table: tableInput, csv, apply, topic } = body as Record<string, unknown>
+    const { table: tableInput, csv, apply, topic, requestId } = body as Record<string, unknown>
     const topicImport = topic !== undefined
     if (topicImport && topic !== null && (typeof topic !== 'string' || topic.length > 1000)) {
       return NextResponse.json({ success: false, error: 'Invalid topic' }, { status: 400 })
@@ -146,6 +158,16 @@ export const POST = requireAdmin(async (request) => {
     }
 
     const shouldApply = apply === true
+    if (requestId !== undefined && (typeof requestId !== 'string' || !UUID_PATTERN.test(requestId))) {
+      return NextResponse.json({ success: false, error: 'Invalid import request ID' }, { status: 400 })
+    }
+    const batchId = typeof requestId === 'string' ? requestId : randomUUID()
+    const fingerprint = importFingerprint(table, csv, selectedTopic)
+    if (shouldApply) {
+      const receipt = await importReceipt(batchId, table, fingerprint)
+      if (receipt) return receipt.status === 'applied' ? NextResponse.json(receipt.result)
+        : NextResponse.json({ success: false, error: 'This import was undone. Use Restore in import history.' }, { status: 409 })
+    }
 
     // ---- Parse ---------------------------------------------------
     const parsed = parseCsv(csv)
@@ -258,40 +280,21 @@ export const POST = requireAdmin(async (request) => {
       return NextResponse.json({ success: false, error: 'Nothing to import' }, { status: 400 })
     }
 
-    // ---- Insert ---------------------------------------------------
-    // Chunked, and each chunk is one statement. The unique constraint on
-    // question_id is the backstop: if anything slipped past the checks above,
-    // the insert fails rather than duplicating a question.
-    let inserted = 0
-    for (let i = 0; i < inserts.length; i += 100) {
-      const chunk = inserts.slice(i, i + 100).map((row) => ({
+    // All rows and their backups commit together. Failed or retried requests
+    // cannot leave a partial import or create a second copy.
+    const newRows = inserts.map((row) => ({
         ...row.values,
-        // Preserve the selected topic exactly, including null, empty and
-        // whitespace spellings. CSV topic cells cannot move these new rows.
         ...(topicImport ? { topic: selectedTopic } : {}),
-      }))
-      const { data, error } = await supabaseAdmin.from(table).insert(chunk).select('question_id')
-      if (error) {
-        console.error('[AdminImport] insert failed:', error)
-        return NextResponse.json(
-          {
-            success: false,
-            error:
-              error.code === '23505'
-                ? `A question_id collided with an existing row. ${inserted} row(s) were imported before this; re-preview to see what is left.`
-                : `Import failed after ${inserted} row(s). ${error.message}`,
-          },
-          { status: 409 }
-        )
-      }
-      inserted += data?.length ?? 0
-    }
-
-    return NextResponse.json({
-      ...response,
-      applied: true,
-      summary: { ...summary, inserted },
+    }))
+    const { data, error } = await supabaseAdmin.rpc('capture_admin_question_import', {
+      p_request_id: batchId, p_fingerprint: fingerprint, p_actor_id: user.id,
+      p_table: table, p_rows: newRows, p_origin: 'import',
+      p_result: { ...response, applied: true, summary: { ...summary, inserted: newRows.length } },
     })
+    if (error) {
+      return NextResponse.json({ success: false, error: `Nothing was imported. ${error.message || 'Preview again; another admin may have added these questions.'}` }, { status: 409 })
+    }
+    return NextResponse.json(data)
   } catch (err) {
     console.error('[AdminImport] apply failed:', err)
     return NextResponse.json({ success: false, error: 'Import failed' }, { status: 500 })

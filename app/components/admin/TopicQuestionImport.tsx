@@ -20,6 +20,7 @@ export default function TopicQuestionImport({ table, topic, disabled, onBusyChan
   const [busy, setBusy] = useState(false)
   const [fileReading, setFileReading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [requestId, setRequestId] = useState<string | null>(null)
   const applied = preview?.applied === true
   const refused = preview ? preview.summary.invalid + preview.summary.duplicateId + preview.summary.duplicateText : 0
 
@@ -29,10 +30,12 @@ export default function TopicQuestionImport({ table, topic, disabled, onBusyChan
     setBusy(true)
     onBusyChange(true)
     setError(null)
+    const id = apply ? requestId ?? crypto.randomUUID() : crypto.randomUUID()
+    setRequestId(id)
     try {
       const res = await fetch('/api/admin/questions/import', {
         method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ table, topic, csv: inputCsv, apply }),
+        body: JSON.stringify({ table, topic, csv: inputCsv, apply, requestId: id }),
       })
       const data = await res.json()
       if (!res.ok || !data.success) {

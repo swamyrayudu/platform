@@ -530,6 +530,33 @@ export async function revokeAllUserSessions(
 }
 
 /**
+ * Permanently delete a user's account and personal data.
+ *
+ * Deleting the users row cascades to sessions, devices, attempts, progress,
+ * mock attempts, question usage, feedback and payment orders. Practice
+ * sessions reference users with ON DELETE SET NULL, so they are deleted first
+ * — otherwise they would survive, unowned. payment_activations also uses SET
+ * NULL and is kept on purpose: the Razorpay payment reference and date, no
+ * longer linked to anyone, stay for accounting as the privacy policy says.
+ */
+export async function deleteUserAccount(userId: string): Promise<void> {
+  const { error: practiceError } = await supabaseAdmin
+    .from('practice_sessions')
+    .delete()
+    .eq('user_id', userId)
+  if (practiceError) {
+    console.error('[DB] deleteUserAccount practice_sessions error:', practiceError)
+    throw new AuthError('INTERNAL_ERROR', 500)
+  }
+
+  const { error } = await supabaseAdmin.from('users').delete().eq('id', userId)
+  if (error) {
+    console.error('[DB] deleteUserAccount users error:', error)
+    throw new AuthError('INTERNAL_ERROR', 500)
+  }
+}
+
+/**
  * Find a session by ID.
  */
 export async function findSessionById(sessionId: string): Promise<DbSession | null> {

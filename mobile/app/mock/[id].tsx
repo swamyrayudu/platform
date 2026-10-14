@@ -8,6 +8,7 @@ import { usePreventRemove } from 'expo-router/react-navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Screen, Body, Button, ErrorState, Loading } from '@/components/ui';
 import { examService } from '@/services/exam-service';
+import { showsPlans } from '@/services/payment-service';
 import { colors } from '@/utils/theme';
 import { pageLayout, practiceChoiceLayout } from '@/utils/layout';
 
@@ -70,7 +71,7 @@ export default function MockInstructions() {
         </Pressable>
         {detailsOpen ? <Body>{paper.description}</Body> : null}
       </View> : null}
-      {!paper.is_free ? <Pressable accessibilityRole="button" accessibilityLabel="View Pro plans"
+      {!paper.is_free&&showsPlans ? <Pressable accessibilityRole="button" accessibilityLabel="View Pro plans"
         disabled={start.isPending} accessibilityState={{disabled:start.isPending}} onPress={()=>router.push('/subscription')}
         style={({pressed})=>[styles.plans,pressed&&styles.pressed,start.isPending&&styles.disabled]}>
         <Ionicons name="ribbon-outline" size={18} color={colors.gold}/><Text style={styles.planText}>Pro plans</Text><Ionicons name="chevron-forward" size={16} color={colors.gold}/>

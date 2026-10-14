@@ -41,6 +41,7 @@ import { toCsv, type CsvRow } from '@/lib/questions/csv'
 import { canAdvanceTopic, findUnreviewedTopicBatch, isTopicReviewed, nextUnfinishedTopic } from '@/lib/questions/topic-workflow'
 import { sortTopicsByCount } from '@/lib/questions/topic-order'
 import TopicQuestionImport from '@/app/components/admin/TopicQuestionImport'
+import QuestionImportHistory from '@/app/components/admin/QuestionImportHistory'
 import CsvFilePicker from '@/app/components/admin/CsvFilePicker'
 import TopicBatchSelector from '@/app/components/admin/TopicBatchSelector'
 import { fillTopicBatch } from '@/lib/questions/topic-batch'
@@ -165,10 +166,13 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
   const [error, setError] = useState<string | null>(null)
   const [showAddQuestions, setShowAddQuestions] = useState(false)
   const [importBusy, setImportBusy] = useState(false)
+  const [historyBusy, setHistoryBusy] = useState(false)
+  const [showImportHistory, setShowImportHistory] = useState(false)
+  const [importRevision, setImportRevision] = useState(0)
   const [fileReading, setFileReading] = useState(false)
   const [workflowMessage, setWorkflowMessage] = useState<string | null>(null)
   const [applyRequestId, setApplyRequestId] = useState<string | null>(null)
-  const busy = exporting || previewing || applying || importBusy || fileReading
+  const busy = exporting || previewing || applying || importBusy || fileReading || historyBusy
   const topicScopeKey = JSON.stringify([table, selectedTopic])
   const updatedTopicCount = topics.filter((entry) => (entry.updateCount ?? 0) > 0).length
 
@@ -231,6 +235,7 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
     setTopicKey('')
     setGroupTopics(null)
     setShowAddQuestions(false)
+    setShowImportHistory(false)
     resetBatch()
     const done = topicMode ? 0 : readProgress()[nextTable] ?? 0
     setFrom(done + 1)
@@ -259,6 +264,7 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
   function questionsAdded() {
     setTopicsRevision((revision) => revision + 1)
     setTotal(null)
+    setShowImportHistory(true)
   }
 
   function changeCsv(text: string) {
@@ -726,9 +732,22 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
         )}
       </section>
 
+      {topicMode && selectedTopic !== undefined && (
+        <div className="mb-5">
+          <button disabled={busy} onClick={() => setShowImportHistory(!showImportHistory)} aria-expanded={showImportHistory}
+            className="rounded-xl border border-border bg-card px-4 py-2 text-xs font-semibold disabled:opacity-50">
+            {showImportHistory ? 'Close import history' : 'Undo added questions · Import history'}
+          </button>
+        </div>
+      )}
+      {topicMode && showImportHistory && selectedTopic !== undefined && (
+        <QuestionImportHistory key={topicScopeKey} table={table} topic={selectedTopic} revision={topicsRevision}
+          disabled={exporting || previewing || applying || importBusy || fileReading} onBusyChange={setHistoryBusy}
+          onChanged={() => { resetBatch(); setTopicsRevision((n) => n + 1); setImportRevision((n) => n + 1) }} />
+      )}
       {topicMode && !groupTopics && showAddQuestions && selectedTopic !== undefined && (
-        <TopicQuestionImport key={topicScopeKey} table={table} topic={selectedTopic}
-          disabled={exporting || previewing || applying || fileReading} onBusyChange={setImportBusy} onAdded={questionsAdded} />
+        <TopicQuestionImport key={`${topicScopeKey}:${importRevision}`} table={table} topic={selectedTopic}
+          disabled={exporting || previewing || applying || fileReading || historyBusy} onBusyChange={setImportBusy} onAdded={questionsAdded} />
       )}
 
       {/* ── Step 2: paste it back ── */}
