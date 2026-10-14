@@ -3,8 +3,7 @@
 // ============================================================
 
 import { NextResponse } from 'next/server'
-import { getAllPracticeQuestions } from '@/lib/practice/db'
-import { extractFilterOptions } from '@/lib/practice/engine'
+import { loadFilterOptions } from '@/lib/practice/filter-options'
 import type { PracticeMedium } from '@/types/practice'
 
 export async function GET(request: Request) {
@@ -22,16 +21,7 @@ export async function GET(request: Request) {
     const diffParam = searchParams.get('difficulty')
     const difficulty = diffParam ? diffParam.split(',') : []
 
-    const allQuestions = await getAllPracticeQuestions(medium)
-
-    const filterOptions = extractFilterOptions(allQuestions, {
-      medium,
-      subject,
-      class_levels,
-      topics,
-      subtopics,
-      difficulty,
-    })
+    const filterOptions = await loadFilterOptions({ medium, subject, class_levels, topics, subtopics, difficulty })
 
     return NextResponse.json({
       success: true,

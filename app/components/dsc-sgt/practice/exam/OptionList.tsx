@@ -5,7 +5,7 @@
 // ============================================================
 
 import React from 'react'
-import { CheckCircle2, XCircle } from 'lucide-react'
+import { CheckCircle2, Loader2, XCircle } from 'lucide-react'
 import type { PracticeQuestion } from '@/types/practice'
 
 interface OptionListProps {
@@ -13,6 +13,8 @@ interface OptionListProps {
   currentAnswer: 'A' | 'B' | 'C' | 'D' | null | undefined
   isInstant: boolean
   currentFeedback: { is_correct: boolean; correct_answer: string; explanation: string | null } | null
+  /** The selected answer is on its way to the server. */
+  isChecking?: boolean
   onSelectOption: (optKey: 'A' | 'B' | 'C' | 'D') => void
 }
 
@@ -21,6 +23,7 @@ export default function OptionList({
   currentAnswer,
   isInstant,
   currentFeedback,
+  isChecking = false,
   onSelectOption,
 }: OptionListProps) {
   const options = [
@@ -78,6 +81,9 @@ export default function OptionList({
               {opt.text}
             </div>
 
+            {isInstant && isSelected && isChecking && !hasFeedback && (
+              <Loader2 className="h-5 w-5 text-primary shrink-0 mt-0.5 animate-spin" aria-label="Checking answer" />
+            )}
             {hasFeedback && isCorrectOpt && (
               <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
             )}

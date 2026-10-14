@@ -17,10 +17,11 @@
 //           ~330, and the query returns matches rather than the whole table.
 //   PASS 2  hydrate only the questions that were chosen.
 //
-// The JavaScript filter still runs over pass 1 and remains the authority on
-// what matches — SQL only narrows. Its `includes` semantics are deliberately
-// looser than anything expressed here, so pushing a filter down can only ever
-// return a superset, never drop a question the old path would have kept.
+// The JavaScript filter still runs over pass 1. Class and difficulty are only
+// narrowed here, with semantics looser than or equal to it. Topic and subtopic
+// match exactly: the names come from the filter options, and `includes` pulled
+// neighbours into a session ("Water" also served "Water Cycle"). The counts in
+// public.practice_filter_options use these same rules.
 // ============================================================
 
 import { supabaseAdmin } from '@/lib/supabase-admin'
@@ -57,21 +58,27 @@ function subjectKeyFor(subject?: string): string | null {
   return null
 }
 
+/** Language papers are written in every medium, so their banks serve both. */
+const LANGUAGE_SUBJECTS = new Set<string | null>(['english', 'telugu'])
+
 /** Tables worth querying for this subject and medium. */
-function tablesFor(medium: PracticeMedium | undefined, subject?: string): string[] {
+export function practiceTablesFor(medium: PracticeMedium | undefined, subject?: string): string[] {
   const key = subjectKeyFor(subject)
   return QUESTION_TABLES.filter((t) => {
     if (t.legacy) return false // unified/legacy tables are not the practice source
-    if (medium && t.medium && t.medium !== medium) return false
+    if (medium && t.medium && t.medium !== medium && !LANGUAGE_SUBJECTS.has(t.subjectKey)) return false
     if (key && t.subjectKey !== key) return false
     return true
   }).map((t) => t.table)
 }
 
-const meaningful = (values?: string[]) =>
+export const meaningful = (values?: string[]) =>
   (values ?? []).filter(
     (v) => v && !/^all($| classes| topics| subtopics)/i.test(v.trim())
   )
+
+/** A PostgREST filter value, double-quoted so commas and brackets stay literal. */
+const quoted = (v: string) => `"${v.replace(/["\\]/g, '\\$&')}"`
 
 interface LightRow {
   question_id: string
@@ -83,9 +90,9 @@ interface LightRow {
 }
 
 /**
- * Run one filtered, capped query. `%` and `,` are stripped from user values
- * because PostgREST's `or=` is comma separated and `ilike` treats `%` as a
- * wildcard — leaving them in would let a topic name reshape the filter.
+ * Run one filtered, capped query. Values inside `or=` are double-quoted:
+ * PostgREST separates conditions with commas, and stripping them instead left
+ * names such as "Memory, Forgetting and Assessment" matching nothing.
  */
 async function runFiltered(
   table: string,
@@ -96,23 +103,22 @@ async function runFiltered(
     let query = supabaseAdmin.from(table).select(columns).limit(POOL_PER_TABLE)
     if (withActive) query = query.eq('is_active', true)
 
-    const safe = (v: string) => v.replace(/[%,()*]/g, '').trim()
-
     const classes = meaningful(filter.class_levels)
     if (classes.length) {
-      query = query.or(classes.map((c) => `class_level.ilike.*${safe(c)}*`).join(','))
+      query = query.or(classes.map((c) => `class_level.ilike.${quoted(`*${c.trim()}*`)}`).join(','))
     }
+    // `in` quotes values that contain commas or brackets.
     const topics = meaningful(filter.topics)
-    if (topics.length) {
-      query = query.or(topics.map((t) => `topic.ilike.*${safe(t)}*`).join(','))
-    }
+    if (topics.length) query = query.in('topic', topics)
+    const subtopics = meaningful(filter.subtopics)
+    if (subtopics.length) query = query.in('subtopic', subtopics)
     // ilike, not `in`: the JavaScript filter compares difficulty
     // case-insensitively, and an exact `in` here would silently drop rows it
     // would have kept. Banks are also inconsistent between them — maths
     // stores "Difficult" where social studies stores "Hard".
     const difficulty = meaningful(filter.difficulty)
     if (difficulty.length) {
-      query = query.or(difficulty.map((d) => `difficulty.ilike.${safe(d)}`).join(','))
+      query = query.or(difficulty.map((d) => `difficulty.ilike.${quoted(d.trim())}`).join(','))
     }
 
     return query
@@ -171,7 +177,7 @@ async function loadLightFromTable(
 export async function loadCandidatePool(
   filter: Partial<PracticeFilterState> & { medium: PracticeMedium }
 ): Promise<{ pool: PracticeQuestion[]; alreadyHydrated: boolean }> {
-  const tables = tablesFor(filter.medium, filter.subject)
+  const tables = practiceTablesFor(filter.medium, filter.subject)
   if (tables.length === 0) return { pool: [], alreadyHydrated: false }
 
   if (tables.length === 1) {
@@ -192,7 +198,11 @@ async function loadFullFromTable(
   filter: Partial<PracticeFilterState>
 ): Promise<PracticeQuestion[]> {
   const rows = await runFiltered(table, FULL_COLUMNS, filter)
-  return rows.map((r) => ({
+  return rows.map((r) => toFullQuestion(table, medium, r))
+}
+
+function toFullQuestion(table: string, medium: PracticeMedium, r: Record<string, unknown>): PracticeQuestion {
+  return {
     id: String(r.question_id),
     question_id: String(r.question_id),
     question_uid: buildQuestionUid(table, String(r.question_id)),
@@ -213,7 +223,33 @@ async function loadFullFromTable(
     explanation: (r.explanation as string) ?? null,
     source_type: (r.source_type as string) ?? null,
     language: (r.language as string) ?? medium,
-  })) as PracticeQuestion[]
+  } as PracticeQuestion
+}
+
+/**
+ * A stored session's questions, fetched by id from the tables its subject
+ * uses. Loading the subject's whole bank instead moved ~900 KB per request
+ * and, cut off at 1,000 rows, lost questions past that point.
+ */
+export async function loadQuestionsByIds(
+  medium: PracticeMedium,
+  subject: string | undefined,
+  ids: string[]
+): Promise<PracticeQuestion[]> {
+  if (ids.length === 0) return []
+  const found = new Map<string, PracticeQuestion>()
+  await Promise.all(practiceTablesFor(medium, subject).map(async (table) => {
+    const { data, error } = await supabaseAdmin.from(table).select(FULL_COLUMNS).in('question_id', ids)
+    if (error) {
+      console.warn(`[practice] session question load failed for ${table}:`, error.message)
+      return
+    }
+    for (const row of (data ?? []) as unknown as Record<string, unknown>[]) {
+      const q = toFullQuestion(table, medium, row)
+      if (!found.has(q.question_id)) found.set(q.question_id, q)
+    }
+  }))
+  return ids.map((id) => found.get(id)).filter((q): q is PracticeQuestion => q !== undefined)
 }
 
 /**

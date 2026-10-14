@@ -52,10 +52,17 @@ async function validateSession(request: Request): Promise<AuthContext> {
   // Verify JWT — throws SESSION_EXPIRED or UNAUTHORIZED on failure
   const payload = await verifyAccessToken(token)
 
-  // Fetch session from DB (source of truth)
-  const session = await findSessionById(payload.sid)
+  // Fetch session (source of truth) and user together: the signed token names
+  // both, which saves a database round trip on every authenticated request.
+  const [session, user] = await Promise.all([
+    findSessionById(payload.sid),
+    getUserById(payload.sub),
+  ])
   if (!session) {
     throw new AuthError('SESSION_REVOKED', 401, 'Session not found')
+  }
+  if (session.user_id !== payload.sub) {
+    throw new AuthError('UNAUTHORIZED', 401, 'Session does not belong to this user')
   }
 
   // Check session status
@@ -71,8 +78,6 @@ async function validateSession(request: Request): Promise<AuthContext> {
     throw new AuthError('SESSION_EXPIRED', 401, 'Session has expired')
   }
 
-  // Fetch user
-  const user = await getUserById(session.user_id)
   if (!user) {
     throw new AuthError('UNAUTHORIZED', 401, 'User not found')
   }

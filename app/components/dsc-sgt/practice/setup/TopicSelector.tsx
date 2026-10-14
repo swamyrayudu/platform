@@ -182,6 +182,7 @@ export default function TopicSelector({
                 >
                   {isSelected && <Check className="h-3.5 w-3.5 stroke-[3]" />}
                   <span>{t.name}</span>
+                  <span className="text-[11px] font-semibold tabular-nums opacity-70">{t.count}</span>
                 </button>
               )
             })}

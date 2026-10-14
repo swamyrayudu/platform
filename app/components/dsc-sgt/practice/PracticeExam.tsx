@@ -8,6 +8,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { toast } from 'sonner'
 import { useHideBottomNav } from '@/app/components/dsc-sgt/DscBottomNav'
 import type { PracticeSession, UserAnswerRecord } from '@/types/practice'
 import {
@@ -65,6 +66,9 @@ export default function PracticeExam({
     Record<string, { is_correct: boolean; correct_answer: string; explanation: string | null }>
   >({})
 
+  // Answers sent to the server that have not been acknowledged yet
+  const [checkingIds, setCheckingIds] = useState<Set<string>>(new Set())
+
   const isInstant = session.feedback_mode === 'instant'
   const questions = session.questions || []
   const currentQ = questions[currentIndex] || questions[0]
@@ -102,18 +106,36 @@ export default function PracticeExam({
       marked_for_review: isMarked,
     }
 
+    const previousRecord = userAnswers[currentQId]
     setUserAnswers((prev) => ({
       ...prev,
       [currentQId]: updatedRecord,
     }))
 
     // Server-side validation
-    const res = await onAnswerQuestion(currentQId, optKey, timeSpent, isMarked)
+    const questionId = currentQId
+    setCheckingIds((prev) => new Set(prev).add(questionId))
+    const res = await onAnswerQuestion(questionId, optKey, timeSpent, isMarked)
+    setCheckingIds((prev) => {
+      const next = new Set(prev)
+      next.delete(questionId)
+      return next
+    })
     if (res) {
       setInstantFeedbackData((prev) => ({
         ...prev,
-        [currentQId]: res,
+        [questionId]: res,
       }))
+    } else {
+      // Not saved: release the option so the user can try again, rather than
+      // leaving it locked with no feedback.
+      setUserAnswers((prev) => {
+        const next = { ...prev }
+        if (previousRecord) next[questionId] = previousRecord
+        else delete next[questionId]
+        return next
+      })
+      toast.error('Could not check your answer. Please tap it again.')
     }
   }
 
@@ -173,6 +195,7 @@ export default function PracticeExam({
               currentAnswer={currentAnswer}
               isInstant={isInstant}
               currentFeedback={currentFeedback}
+              isChecking={checkingIds.has(currentQId)}
               onSelectOption={handleSelectOption}
             />
 

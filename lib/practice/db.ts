@@ -18,7 +18,7 @@ import type {
   PracticeHistoryItem,
 } from '@/types/practice'
 import { SEED_QUESTIONS } from './seed-questions'
-import { loadCandidatePool, hydrateQuestions } from './question-loader'
+import { loadCandidatePool, hydrateQuestions, loadQuestionsByIds } from './question-loader'
 import {
   filterQuestionPool,
   selectSmartQuestions,
@@ -423,13 +423,15 @@ export async function getPracticeSessionById(
         .maybeSingle()
 
       if (!error && data) {
-        // Re-attach questions
+        // Re-attach questions: from this instance's cache when it holds every
+        // one, otherwise by id. A cached copy can be short if it was built by
+        // the old whole-bank load, which stopped at 1,000 rows.
+        const ids: string[] = data.question_ids || []
         const cached = ownedOrNull(activeSessionsCache.get(sessionId), userId)
-        const allQuestions = cached?.questions ?? await getAllPracticeQuestions(data.medium, data.subject)
-        const questionMap = new Map(allQuestions.map((q) => [q.question_id || q.id, q]))
-        const loadedQuestions = (data.question_ids || [])
-          .map((id: string) => questionMap.get(id))
-          .filter(Boolean) as PracticeQuestion[]
+        const cachedById = new Map((cached?.questions ?? []).map((q) => [q.question_id || q.id, q]))
+        const loadedQuestions = ids.every((id) => cachedById.has(id))
+          ? ids.map((id) => cachedById.get(id)!)
+          : await loadQuestionsByIds(data.medium, data.subject, ids)
 
         session = {
           ...data,
