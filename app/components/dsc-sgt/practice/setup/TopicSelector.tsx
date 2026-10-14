@@ -4,16 +4,22 @@
 // app/components/dsc-sgt/practice/setup/TopicSelector.tsx
 // ============================================================
 
-import React from 'react'
-import { Check, Crown, Lock } from 'lucide-react'
+import React, { useState } from 'react'
+import { Check, Crown, Loader2, Lock } from 'lucide-react'
 import { toast } from 'sonner'
-import type { DynamicFilterOptions } from '@/types/practice'
+import type { PracticeTopicOption } from '@/types/practice'
+
+/** Topics shown at first, and added by each "Show more". */
+const TOPICS_PER_PAGE = 30
 
 interface TopicSelectorProps {
   subject: string
   topicMode: 'all' | 'custom'
   selectedTopics: string[]
-  dynamicOptions: DynamicFilterOptions | null
+  /** Largest first; null until loaded. Loaded only once topic selection opens. */
+  topics: PracticeTopicOption[] | null
+  topicsFailed?: boolean
+  onRetryTopics?: () => void
   isPremium?: boolean
   onSetTopicMode: (mode: 'all' | 'custom') => void
   onToggleTopic: (topicName: string) => void
@@ -24,13 +30,19 @@ export default function TopicSelector({
   subject,
   topicMode,
   selectedTopics,
-  dynamicOptions,
+  topics,
+  topicsFailed = false,
+  onRetryTopics,
   isPremium = false,
   onSetTopicMode,
   onToggleTopic,
   onOpenUpgradeModal,
 }: TopicSelectorProps) {
-  const topicsList = dynamicOptions?.available_topics || []
+  const [shownCount, setShownCount] = useState(TOPICS_PER_PAGE)
+  const topicsList = topics ?? []
+  // Selected topics stay visible even past the current page.
+  const visibleTopics = topicsList.filter((t, i) => i < shownCount || selectedTopics.includes(t.name))
+  const remaining = topicsList.length - Math.min(shownCount, topicsList.length)
 
   const handleSelectTopicsClick = () => {
     if (!isPremium) {
@@ -68,7 +80,9 @@ export default function TopicSelector({
         {/* Right badge: show topic count for premium, lock badge for free */}
         {isPremium ? (
           <span className="text-xs font-semibold text-muted-foreground hidden sm:inline">
-            ({topicMode === 'all' ? 'All' : selectedTopics.length} / {topicsList.length} Topics)
+            {topicMode === 'all'
+              ? '(All Topics)'
+              : `(${selectedTopics.length} / ${topics ? topicsList.length : '…'} Topics)`}
           </span>
         ) : (
           <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400">
@@ -166,8 +180,26 @@ export default function TopicSelector({
               </button>
             )}
           </div>
+          {topicsFailed && (
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <span>Could not load topics.</span>
+              <button
+                type="button"
+                onClick={onRetryTopics}
+                className="font-bold text-primary hover:underline cursor-pointer"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+          {!topics && !topicsFailed && (
+            <p className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading topics…
+            </p>
+          )}
           <div className="flex flex-wrap gap-2">
-            {topicsList.map((t) => {
+            {visibleTopics.map((t) => {
               const isSelected = selectedTopics.includes(t.name)
               return (
                 <button
@@ -187,7 +219,16 @@ export default function TopicSelector({
               )
             })}
           </div>
-          {selectedTopics.length === 0 && (
+          {remaining > 0 && (
+            <button
+              type="button"
+              onClick={() => setShownCount((n) => n + TOPICS_PER_PAGE)}
+              className="mt-3 inline-flex min-h-10 items-center rounded-xl border border-border bg-card px-4 text-xs font-bold text-foreground hover:bg-muted/40 cursor-pointer"
+            >
+              Show {Math.min(TOPICS_PER_PAGE, remaining)} more topics · {topicsList.length - remaining} of {topicsList.length}
+            </button>
+          )}
+          {topics && selectedTopics.length === 0 && (
             <p className="text-[11px] text-muted-foreground mt-2">
               💡 Tap one or more topics to target your session — or leave all unselected to practice the full syllabus.
             </p>

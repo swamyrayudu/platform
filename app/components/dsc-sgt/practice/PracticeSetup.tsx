@@ -16,7 +16,7 @@ import type {
   PracticeMedium,
   PracticeMode,
   PracticeFilterState,
-  DynamicFilterOptions,
+  PracticeTopicOption,
   WeakAreaRecommendation,
 } from '@/types/practice'
 import {
@@ -105,19 +105,23 @@ export default function PracticeSetup({
   const [timerMinutes, setTimerMinutes] = useState<number>(25)
 
   // ── Dynamic Metadata from Server ────────────────────────────
-  const [dynamicOptions, setDynamicOptions] = useState<DynamicFilterOptions | null>(null)
+  // The page needs only the matching total. The topic list is fetched when the
+  // user opens topic selection, and kept per medium, subject and class.
+  const [matchingTotal, setMatchingTotal] = useState<number | null>(null)
+  const [topicLists, setTopicLists] = useState<Record<string, PracticeTopicOption[]>>({})
+  const [failedTopicKey, setFailedTopicKey] = useState<string | null>(null)
   const [weakRecommendations, setWeakRecommendations] = useState<WeakAreaRecommendation[]>([])
 
-  // Fetch dynamic filters from backend
-  const fetchFilterMetadata = useCallback(async () => {
+  const classFilter = selectedClasses.filter((c) => c !== 'All')
+  const topicListKey = JSON.stringify([medium, subject, classFilter])
+  const wantsTopics = isPremium && topicMode === 'custom'
+
+  // Fetch the matching total: one count in the database, no rows.
+  const fetchMatchingTotal = useCallback(async () => {
     try {
-      const params = new URLSearchParams({
-        medium,
-        subject,
-      })
-      if (topicMode === 'custom' && selectedTopics.length > 0) {
-        params.set('topics', selectedTopics.join(','))
-      }
+      const params = new URLSearchParams({ medium, subject, fields: 'total' })
+      // Repeated params keep topic names that contain commas intact.
+      if (topicMode === 'custom') selectedTopics.forEach((t) => params.append('topic', t))
       if (!selectedClasses.includes('All') && selectedClasses.length > 0) {
         params.set('class_levels', selectedClasses.join(','))
       }
@@ -128,12 +132,36 @@ export default function PracticeSetup({
       const res = await fetch(`/api/dsc-sgt/practice/filters?${params.toString()}`)
       const json = await res.json()
       if (json.success && json.data) {
-        setDynamicOptions(json.data)
+        setMatchingTotal(json.data.total_matching_questions)
       }
     } catch (err) {
-      console.error('Failed to fetch dynamic filters:', err)
+      console.error('Failed to fetch matching questions:', err)
     }
   }, [medium, subject, topicMode, selectedTopics, selectedClasses, selectedDifficulties])
+
+  // Fetch the topic list once topic selection is open.
+  useEffect(() => {
+    if (!wantsTopics || topicLists[topicListKey] || failedTopicKey === topicListKey) return
+    let cancelled = false
+    const [m, s, classes] = JSON.parse(topicListKey) as [string, string, string[]]
+    const params = new URLSearchParams({ medium: m, subject: s, fields: 'topics' })
+    if (classes.length) params.set('class_levels', classes.join(','))
+    fetch(`/api/dsc-sgt/practice/filters?${params.toString()}`)
+      .then((res) => res.json())
+      .then((json) => {
+        if (cancelled) return
+        if (!json.success || !json.data) throw new Error(json.error || 'Failed to load topics')
+        setTopicLists((prev) => ({ ...prev, [topicListKey]: json.data.available_topics }))
+      })
+      .catch((err) => {
+        if (cancelled) return
+        console.error('Failed to fetch topics:', err)
+        setFailedTopicKey(topicListKey)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [wantsTopics, topicListKey, topicLists, failedTopicKey])
 
   // Fetch weak recommendations on mount
   useEffect(() => {
@@ -148,8 +176,8 @@ export default function PracticeSetup({
   }, [])
 
   useEffect(() => {
-    fetchFilterMetadata()
-  }, [fetchFilterMetadata])
+    fetchMatchingTotal()
+  }, [fetchMatchingTotal])
 
   // ── Automatically open collected Medium Tab (from user profile or localStorage) ──
   useEffect(() => {
@@ -202,7 +230,7 @@ export default function PracticeSetup({
   }
 
   // Matching questions available
-  const totalAvailable = dynamicOptions?.total_matching_questions ?? 25
+  const totalAvailable = matchingTotal ?? 25
   const rawQuestionCount = Math.min(
     questionCount,
     totalAvailable > 0 ? totalAvailable : questionCount
@@ -350,10 +378,13 @@ export default function PracticeSetup({
 
       {/* ── Step 2: Choose Topics ──────────────────────────────── */}
       <TopicSelector
+        key={topicListKey}
         subject={subject}
         topicMode={topicMode}
         selectedTopics={selectedTopics}
-        dynamicOptions={dynamicOptions}
+        topics={topicLists[topicListKey] ?? null}
+        topicsFailed={failedTopicKey === topicListKey}
+        onRetryTopics={() => setFailedTopicKey(null)}
         isPremium={isPremium}
         onSetTopicMode={(mode) => {
           if (mode === 'custom' && !isPremium) {

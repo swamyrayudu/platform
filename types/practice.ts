@@ -164,6 +164,12 @@ export interface PracticeHistoryItem {
   status: string
 }
 
+/** One entry of the topic picker: `/practice/filters?fields=topics`. */
+export interface PracticeTopicOption {
+  name: string
+  count: number
+}
+
 export interface DynamicFilterOptions {
   medium: PracticeMedium
   available_subjects: {

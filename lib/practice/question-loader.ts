@@ -89,11 +89,58 @@ interface LightRow {
   difficulty: string | null
 }
 
+interface Filterable<T> {
+  or(filters: string): T
+  in(column: string, values: readonly string[]): T
+}
+
 /**
- * Run one filtered, capped query. Values inside `or=` are double-quoted:
- * PostgREST separates conditions with commas, and stripping them instead left
- * names such as "Memory, Forgetting and Assessment" matching nothing.
+ * The practice filters as PostgREST conditions — shared by the session pool
+ * and the question count, so a count is what a session can draw from.
+ * Values inside `or=` are double-quoted: PostgREST separates conditions with
+ * commas, and stripping them instead left names such as
+ * "Memory, Forgetting and Assessment" matching nothing.
  */
+function applyPracticeFilters<T extends Filterable<T>>(query: T, filter: Partial<PracticeFilterState>): T {
+  const classes = meaningful(filter.class_levels)
+  if (classes.length) {
+    query = query.or(classes.map((c) => `class_level.ilike.${quoted(`*${c.trim()}*`)}`).join(','))
+  }
+  // `in` quotes values that contain commas or brackets.
+  const topics = meaningful(filter.topics)
+  if (topics.length) query = query.in('topic', topics)
+  const subtopics = meaningful(filter.subtopics)
+  if (subtopics.length) query = query.in('subtopic', subtopics)
+  // ilike, not `in`: the JavaScript filter compares difficulty
+  // case-insensitively, and an exact `in` here would silently drop rows it
+  // would have kept. Banks are also inconsistent between them — maths
+  // stores "Difficult" where social studies stores "Hard".
+  const difficulty = meaningful(filter.difficulty)
+  if (difficulty.length) {
+    query = query.or(difficulty.map((d) => `difficulty.ilike.${quoted(d.trim())}`).join(','))
+  }
+  return query
+}
+
+/**
+ * Active questions matching the filter: one count per table, run by the
+ * database, so no rows are transferred.
+ */
+export async function countMatchingQuestions(
+  filter: Partial<PracticeFilterState> & { medium: PracticeMedium }
+): Promise<number> {
+  const counts = await Promise.all(practiceTablesFor(filter.medium, filter.subject).map(async (table) => {
+    const query = supabaseAdmin.from(table)
+      .select('question_id', { count: 'exact', head: true })
+      .eq('is_active', true)
+    const { count, error } = await applyPracticeFilters(query, filter)
+    if (error) throw error
+    return count ?? 0
+  }))
+  return counts.reduce((sum, n) => sum + n, 0)
+}
+
+/** Run one filtered, capped query. */
 async function runFiltered(
   table: string,
   columns: string,
@@ -102,26 +149,7 @@ async function runFiltered(
   const build = (withActive: boolean) => {
     let query = supabaseAdmin.from(table).select(columns).limit(POOL_PER_TABLE)
     if (withActive) query = query.eq('is_active', true)
-
-    const classes = meaningful(filter.class_levels)
-    if (classes.length) {
-      query = query.or(classes.map((c) => `class_level.ilike.${quoted(`*${c.trim()}*`)}`).join(','))
-    }
-    // `in` quotes values that contain commas or brackets.
-    const topics = meaningful(filter.topics)
-    if (topics.length) query = query.in('topic', topics)
-    const subtopics = meaningful(filter.subtopics)
-    if (subtopics.length) query = query.in('subtopic', subtopics)
-    // ilike, not `in`: the JavaScript filter compares difficulty
-    // case-insensitively, and an exact `in` here would silently drop rows it
-    // would have kept. Banks are also inconsistent between them — maths
-    // stores "Difficult" where social studies stores "Hard".
-    const difficulty = meaningful(filter.difficulty)
-    if (difficulty.length) {
-      query = query.or(difficulty.map((d) => `difficulty.ilike.${quoted(d.trim())}`).join(','))
-    }
-
-    return query
+    return applyPracticeFilters(query, filter)
   }
 
   let { data, error } = await build(true)

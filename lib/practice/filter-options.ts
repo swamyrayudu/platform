@@ -43,8 +43,10 @@ interface LightRow {
 const DEFAULT_CLASSES = ['Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10']
 const PAGE_SIZE = 1000
 
+/** `subjectCounts: false` skips the per-subject totals, leaving them at 0. */
 export async function loadFilterOptions(
-  filter: Partial<PracticeFilterState> & { medium: PracticeMedium }
+  filter: Partial<PracticeFilterState> & { medium: PracticeMedium },
+  { subjectCounts = true }: { subjectCounts?: boolean } = {}
 ): Promise<DynamicFilterOptions> {
   const subjects = getAllSubjectMetadata().map((meta) => ({
     meta,
@@ -52,7 +54,7 @@ export async function loadFilterOptions(
   }))
   const params: FilterParams = {
     p_tables: practiceTablesFor(filter.medium, filter.subject),
-    p_count_tables: [...new Set(subjects.flatMap((s) => s.tables))],
+    p_count_tables: subjectCounts ? [...new Set(subjects.flatMap((s) => s.tables))] : [],
     p_class_levels: meaningful(filter.class_levels),
     p_topics: meaningful(filter.topics),
     p_subtopics: meaningful(filter.subtopics),
