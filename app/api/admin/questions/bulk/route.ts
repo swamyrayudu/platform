@@ -36,6 +36,7 @@ import { getQuestionTable, buildQuestionUid } from '@/lib/questions/tables'
 import { collectIds, diffPastedRows, presentEditableColumns } from '@/lib/questions/bulk-diff'
 import { sortTopicsByCount } from '@/lib/questions/topic-order'
 import { sharedReviewedIds, sharedTopicOptions } from '@/lib/questions/topic-tracking'
+import { validateTopicBatch } from '@/lib/questions/topic-batch'
 import { findLiveAttempts } from '@/lib/mock-tests/live-attempts'
 import { matchDifficulty } from '@/lib/mock-tests/question-bank'
 import {
@@ -43,6 +44,7 @@ import {
   BULK_EDITABLE_COLUMNS,
   BULK_MAX_ROWS,
   BULK_TAXONOMY_CHECKED_COLUMNS,
+  TOPIC_BATCH_MAX_QUESTIONS,
   type BulkEditableColumn,
   type BulkExportRow,
   type BulkTopicOption,
@@ -133,6 +135,44 @@ export const GET = requireAdmin(async (request) => {
       const topics = await listTopics(table)
       return NextResponse.json({ success: true, table, topics,
         total: topics.reduce((total, entry) => total + entry.count, 0) }, { headers: { 'Cache-Control': 'private, no-store' } })
+    }
+
+    if (url.searchParams.has('batchTopics')) {
+      let batchTopics: unknown
+      try { batchTopics = JSON.parse(url.searchParams.get('batchTopics')!) } catch { batchTopics = undefined }
+      if (!validateTopicBatch(batchTopics) || url.searchParams.has('topic') || url.searchParams.has('topicMissing')) {
+        return NextResponse.json({ success: false, error: 'Choose 2–5 distinct topics for a combined batch.' }, { status: 400 })
+      }
+      const combined: { question_id: string; topic: string | null }[] = []
+      for (const chosen of batchTopics) {
+        let query = supabaseAdmin.from(table).select('question_id', { count: 'exact', head: true })
+        query = chosen === null ? query.is('topic', null) : query.eq('topic', chosen)
+        const { count, error } = await query
+        if (error) throw error
+        if (!count) return NextResponse.json({ success: false, error: 'A selected topic no longer has questions. Refresh the topics.' }, { status: 409 })
+        if (combined.length + count > TOPIC_BATCH_MAX_QUESTIONS) {
+          return NextResponse.json({ success: false, error: 'Combined topics must contain at most 100 questions. Remove a topic and try again.' }, { status: 400 })
+        }
+        let offset = 0
+        while (true) {
+          const { data, error } = await topicQuery(table, SELECT_COLUMNS, chosen).order(ORDER_COLUMN)
+            .range(offset, offset + TOPIC_BATCH_MAX_QUESTIONS)
+          if (error) throw error
+          if (!data?.length) break
+          combined.push(...data as unknown as { question_id: string; topic: string | null }[])
+          offset += data.length
+          if (combined.length > TOPIC_BATCH_MAX_QUESTIONS) {
+            return NextResponse.json({ success: false, error: 'Questions were added while loading. The combined batch exceeds 100; refresh the topics.' }, { status: 409 })
+          }
+        }
+        if (offset !== count) return NextResponse.json({ success: false, error: 'The selected topics changed while loading. Please reload the batch.' }, { status: 409 })
+      }
+      const questionTopics = Object.fromEntries(combined.map((row) => [row.question_id, row.topic]))
+      const rows = combined.map((row) => Object.fromEntries(BULK_CSV_COLUMNS.map((column) =>
+        [column, (row as unknown as Record<string, string | null>)[column] ?? ''])))
+      return NextResponse.json({ success: true, table, total: rows.length, from: 1, to: rows.length,
+        rows, topics: batchTopics, questionTopics, reviewedIds: await sharedReviewedIds(table, combined) },
+      { headers: { 'Cache-Control': 'private, no-store' } })
     }
 
     const topic = url.searchParams.get('topicMissing') === '1'
@@ -320,6 +360,8 @@ export const POST = requireAdmin(async (request, _context, { user }) => {
       topic,
       questionIds,
       requestId: requestIdInput,
+      batchTopics,
+      questionTopics,
     } = body as Record<string, unknown>
 
     const table = resolveTable(typeof tableInput === 'string' ? tableInput : null)
@@ -332,7 +374,12 @@ export const POST = requireAdmin(async (request, _context, { user }) => {
       return NextResponse.json({ success: false, error: 'Invalid topic' }, { status: 400 })
     }
     const selectedTopic = topic as string | null | undefined
-    if (selectedTopic !== undefined && (!Array.isArray(questionIds) ||
+    const combined = batchTopics !== undefined
+    if (combined && (!validateTopicBatch(batchTopics) || selectedTopic !== undefined)) {
+      return NextResponse.json({ success: false, error: 'Choose 2–5 distinct topics for a combined batch.' }, { status: 400 })
+    }
+    const topicScoped = combined || selectedTopic !== undefined
+    if (topicScoped && (!Array.isArray(questionIds) ||
       questionIds.length === 0 || questionIds.length > BULK_MAX_ROWS ||
       questionIds.some((id) => typeof id !== 'string' || !id.trim()) ||
       new Set(questionIds).size !== questionIds.length)) {
@@ -340,6 +387,17 @@ export const POST = requireAdmin(async (request, _context, { user }) => {
         { success: false, error: 'Load a topic batch first — its original question IDs are required' },
         { status: 400 }
       )
+    }
+
+    let originalTopics: Record<string, string | null> | undefined
+    if (combined) {
+      const loaded = questionIds as string[]
+      if (loaded.length > TOPIC_BATCH_MAX_QUESTIONS || !questionTopics || typeof questionTopics !== 'object' || Array.isArray(questionTopics) ||
+        Object.keys(questionTopics).length !== loaded.length || loaded.some((id) => !Object.hasOwn(questionTopics, id) ||
+          !(batchTopics as (string | null)[]).includes((questionTopics as Record<string, string | null>)[id]!))) {
+        return NextResponse.json({ success: false, error: 'Load a combined batch of at most 100 questions first, keeping its original IDs and topic mapping.' }, { status: 400 })
+      }
+      originalTopics = questionTopics as Record<string, string | null>
     }
 
     // A paste is only ever checked against a range that was actually loaded.
@@ -354,6 +412,9 @@ export const POST = requireAdmin(async (request, _context, { user }) => {
         { status: 400 }
       )
     }
+    if (combined && (from !== 1 || to !== (questionIds as string[]).length)) {
+      return NextResponse.json({ success: false, error: 'Keep the original combined batch range.' }, { status: 400 })
+    }
     if (typeof csv !== 'string' || !csv.trim()) {
       return NextResponse.json({ success: false, error: 'Paste some CSV first' }, { status: 400 })
     }
@@ -367,7 +428,8 @@ export const POST = requireAdmin(async (request, _context, { user }) => {
     if (shouldApply && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestId)) {
       return NextResponse.json({ success: false, error: 'Invalid update request ID' }, { status: 400 })
     }
-    const fingerprint = createHash('sha256').update(JSON.stringify({ table, csv, from, to, selectedTopic,
+    const fingerprint = createHash('sha256').update(JSON.stringify({ table, csv, from, to, selectedTopic, batchTopics,
+      questionTopics: originalTopics ? Object.fromEntries(Object.entries(originalTopics).sort(([a], [b]) => a.localeCompare(b))) : undefined,
       questionIds: Array.isArray(questionIds) ? [...questionIds].sort() : undefined, answersAllowed })).digest('hex')
     if (shouldApply) {
       const { data: previous, error } = await supabaseAdmin.from('admin_question_update_batches')
@@ -401,9 +463,9 @@ export const POST = requireAdmin(async (request, _context, { user }) => {
     if (parsed.rows.length === 0) {
       return NextResponse.json({ success: false, error: 'No data rows found' }, { status: 400 })
     }
-    if (parsed.rows.length > BULK_MAX_ROWS) {
+    if (parsed.rows.length > (combined ? TOPIC_BATCH_MAX_QUESTIONS : BULK_MAX_ROWS)) {
       return NextResponse.json(
-        { success: false, error: `At most ${BULK_MAX_ROWS} rows per paste` },
+        { success: false, error: `At most ${combined ? TOPIC_BATCH_MAX_QUESTIONS : BULK_MAX_ROWS} rows per paste` },
         { status: 400 }
       )
     }
@@ -437,15 +499,20 @@ export const POST = requireAdmin(async (request, _context, { user }) => {
     // Topic offsets can shift when earlier rows are reclassified. Keep the
     // exact exported IDs, and recheck that they still belong to this topic.
     let allowedIds: Set<string>
-    if (selectedTopic !== undefined) {
+    if (topicScoped) {
       const loadedIds = questionIds as string[]
       allowedIds = new Set<string>()
       for (let i = 0; i < loadedIds.length; i += 200) {
-        const { data, error } = await topicQuery(table, 'question_id', selectedTopic)
-          .in('question_id', loadedIds.slice(i, i + 200))
-        if (error) throw error
-        for (const row of (data ?? []) as unknown as { question_id: string }[]) {
-          allowedIds.add(String(row.question_id))
+        let offset = 0
+        while (true) {
+          const { data, error } = await topicQuery(table, 'question_id, topic', combined ? undefined : selectedTopic)
+            .in('question_id', loadedIds.slice(i, i + 200)).order(ORDER_COLUMN).range(offset, offset + 199)
+          if (error) throw error
+          if (!data?.length) break
+          for (const row of data as unknown as { question_id: string; topic: string | null }[]) {
+            if (!combined || row.topic === originalTopics![row.question_id]) allowedIds.add(String(row.question_id))
+          }
+          offset += data.length
         }
       }
       if (allowedIds.size !== loadedIds.length) {
@@ -463,13 +530,14 @@ export const POST = requireAdmin(async (request, _context, { user }) => {
     // ---- Read the current rows -----------------------------------
     const current = new Map<string, Record<string, string | null>>()
     for (let i = 0; i < ids.length; i += 200) {
-      const { data, error } = await supabaseAdmin
-        .from(table)
-        .select(SELECT_COLUMNS)
-        .in('question_id', ids.slice(i, i + 200))
-      if (error) throw error
-      for (const row of (data ?? []) as unknown as Record<string, string | null>[]) {
-        current.set(String(row.question_id), row)
+      let offset = 0
+      while (true) {
+        const { data, error } = await supabaseAdmin.from(table).select(SELECT_COLUMNS)
+          .in('question_id', ids.slice(i, i + 200)).order(ORDER_COLUMN).range(offset, offset + 199)
+        if (error) throw error
+        if (!data?.length) break
+        for (const row of data as unknown as Record<string, string | null>[]) current.set(String(row.question_id), row)
+        offset += data.length
       }
     }
 
@@ -536,7 +604,7 @@ export const POST = requireAdmin(async (request, _context, { user }) => {
       if (outOfRangeIds.has(result.questionId)) {
         result.status = 'out_of_range'
         result.diffs = []
-        result.errors = [selectedTopic !== undefined
+        result.errors = [topicScoped
           ? 'Not part of the loaded topic batch — keep the original question IDs'
           : `Not part of rows ${from}–${to} — this row came from a different range`]
         result.warnings = []
@@ -626,7 +694,7 @@ export const POST = requireAdmin(async (request, _context, { user }) => {
       return NextResponse.json(
         {
           success: false,
-          error: `${outOfRangeIds.size} pasted row(s) are not part of the loaded ${selectedTopic !== undefined ? 'topic batch' : `rows ${from}–${to}`}. Re-copy this batch and keep its original IDs — nothing was written.`,
+          error: `${outOfRangeIds.size} pasted row(s) are not part of the loaded ${topicScoped ? 'topic batch' : `rows ${from}–${to}`}. Re-copy this batch and keep its original IDs — nothing was written.`,
         },
         { status: 400 }
       )
@@ -643,7 +711,7 @@ export const POST = requireAdmin(async (request, _context, { user }) => {
         { status: 400 }
       )
     }
-    if (writable.length === 0 && (selectedTopic === undefined || summary.unchanged === 0)) {
+    if (writable.length === 0 && (!topicScoped || summary.unchanged === 0)) {
       return NextResponse.json(
         { success: false, error: 'Nothing to write — every row already matches the database.' },
         { status: 400 }
@@ -653,9 +721,9 @@ export const POST = requireAdmin(async (request, _context, { user }) => {
     // ---- Write ---------------------------------------------------
     // One database transaction includes the writes, shared counters and review
     // coverage. The request receipt prevents a retried save from counting twice.
-    const { data: saved, error: saveError } = await supabaseAdmin.rpc('apply_admin_question_updates', {
+    const { data: saved, error: saveError } = await supabaseAdmin.rpc(combined ? 'apply_admin_combined_topic_updates' : 'apply_admin_question_updates', {
       p_request_id: requestId, p_fingerprint: fingerprint, p_actor_id: user.id, p_table: table,
-      p_topic_scoped: selectedTopic !== undefined, p_topic: selectedTopic ?? null, p_writes: writable,
+      ...(combined ? { p_expected_topics: originalTopics } : { p_topic_scoped: selectedTopic !== undefined, p_topic: selectedTopic ?? null }), p_writes: writable,
       p_reviewed_ids: results.filter((row) => row.status === 'changed' || row.status === 'unchanged').map((row) => row.questionId),
       p_response: { success: true, table, applied: true, rangeFrom: from, rangeTo: to,
         summary: { ...summary, written: writable.length, modulesInvalidated: 0 },

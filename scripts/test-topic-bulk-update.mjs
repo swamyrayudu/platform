@@ -31,6 +31,7 @@ function harness(rows, pageLimit = 1000, live = false) {
   const writes = []
   const added = []
   const invalidations = []
+  const hooks = {}
   class Query {
     constructor(name) { this.name = name; this.filters = []; this.columns = '*' }
     select(columns, options) { this.columns = columns; this.options = options; return this }
@@ -76,13 +77,15 @@ function harness(rows, pageLimit = 1000, live = false) {
   }
   // Real SQL transaction behavior is also verified against Postgres with rollback.
   async function rpc(name, args) {
-    assert.equal(name, 'apply_admin_question_updates')
+    assert.ok(['apply_admin_question_updates', 'apply_admin_combined_topic_updates'].includes(name))
     const existing = db.admin_question_update_batches.find((r) => r.request_id === args.p_request_id)
     if (existing) return { data: existing.result, error: null }
+    hooks.beforeSave?.(db, args)
     const affected = new Set()
     for (const id of args.p_reviewed_ids) {
       const current = db[args.p_table].find((r) => r.question_id === id)
-      if (!current || (args.p_topic_scoped && current.topic !== args.p_topic)) {
+      if (!current || (args.p_topic_scoped && current.topic !== args.p_topic) ||
+        (args.p_expected_topics && current.topic !== args.p_expected_topics[id])) {
         return { data: null, error: { code: '40001' } }
       }
     }
@@ -157,13 +160,125 @@ function harness(rows, pageLimit = 1000, live = false) {
     }))
     return { status: response.status, data: await response.json() }
   }
-  return { db, writes, added, invalidations, get, post, postImport, load }
+  return { db, writes, added, invalidations, get, post, postImport, load, hooks }
 }
 
 const csv = (...rows) => `question_id,question\n${rows.map(([id, text]) => `${id},${text}`).join('\n')}`
 const batch = (exported, text, apply = false) => ({
   from: exported.from, to: exported.to, topic: exported.topic,
   questionIds: exported.rows.map((r) => r.question_id), csv: text, apply,
+})
+
+const combinedBatch = (exported, text, apply = false) => ({
+  from: exported.from, to: exported.to, batchTopics: exported.topics, questionTopics: exported.questionTopics,
+  questionIds: exported.rows.map((row) => row.question_id), csv: text, apply,
+})
+
+test('five small topics export one ordered CSV, apply by immutable IDs and count each changed topic once', async () => {
+  const names = ['Biology', 'Physics', 'కణం', null, '']
+  const rows = names.flatMap((topic, index) => [row(`Q${index}1`, topic), row(`Q${index}2`, topic)])
+  const h = harness([...rows, row('OTHER', 'Other')], 1)
+  const { status, data: exported } = await h.get({ batchTopics: JSON.stringify(names) })
+  assert.equal(status, 200)
+  assert.equal(exported.total, 10)
+  assert.equal(exported.from, 1)
+  assert.equal(exported.to, 10)
+  assert.deepEqual(exported.topics, names)
+  assert.equal(exported.questionTopics.Q31, null)
+  assert.equal(exported.questionTopics.Q41, '')
+  const payload = { ...combinedBatch(exported, csv(...[...exported.rows].reverse().map((r) => [r.question_id, `Better ${r.question_id}`])), true), requestId: randomUUID() }
+  assert.equal((await h.post({ ...payload, apply: false })).data.summary.changed, 10)
+  assert.equal(h.writes.length, 0)
+  assert.equal((await h.post(payload)).data.summary.written, 10)
+  assert.equal((await h.post(payload)).data.summary.written, 10)
+  assert.deepEqual(h.db[table].map((r) => [r.question_id, r.topic]), [...rows, row('OTHER', 'Other')].map((r) => [r.question_id, r.topic]))
+  // Use a normal Data API limit when checking topic metadata after writes.
+  const tracking = h.load(path.join(root, 'lib/questions/topic-tracking.ts'))
+  const topics = await tracking.sharedTopicOptions(table, h.db[table])
+  for (const name of names) {
+    const info = topics.find((topic) => topic.topic === name)
+    assert.equal(info.updateCount, 1)
+    assert.equal(info.reviewedCount, 2)
+  }
+  assert.equal(h.db[table].find((r) => r.question_id === 'OTHER').question, 'Original OTHER')
+})
+
+test('combined batches accept exactly 100 questions and reject overflow or more than five topics', async () => {
+  const h = harness(Array.from({ length: 101 }, (_, i) => row(`Q${String(i).padStart(3, '0')}`, i < 50 ? 'A' : 'B')))
+  assert.equal((await h.get({ batchTopics: JSON.stringify(['A', 'B']) })).status, 400)
+  h.db[table].pop()
+  assert.equal((await h.get({ batchTopics: JSON.stringify(['A', 'B']) })).data.rows.length, 100)
+  for (const selected of [['A'], ['A', 'A'], ['A', 'B', 'C', 'D', 'E', 'F'], [null, 3]]) {
+    assert.equal((await h.get({ batchTopics: JSON.stringify(selected) })).status, 400)
+  }
+})
+
+test('foreign IDs, changed topic mapping, scope changes and excessive CSV rows block a combined apply', async () => {
+  const h = harness([row('Q001', 'A'), row('Q002', 'B'), row('Q003', 'C')])
+  const { data: exported } = await h.get({ batchTopics: JSON.stringify(['A', 'B']) })
+  const valid = combinedBatch(exported, csv(['Q001', 'Rewrite'], ['Q002', 'Rewrite']), true)
+  assert.equal((await h.post({ ...valid, csv: csv(['Q001', 'Rewrite'], ['Q003', 'Foreign']) })).status, 400)
+  assert.equal((await h.post({ ...valid, questionTopics: undefined })).status, 400)
+  assert.equal((await h.post({ ...valid, questionTopics: { Q001: 'B', Q002: 'A' } })).status, 409)
+  assert.equal((await h.post({ ...valid, topic: 'A' })).status, 400)
+  assert.equal((await h.post({ ...valid, to: 100 })).status, 400)
+  assert.equal((await h.post({ ...valid, csv: csv(...Array.from({ length: 101 }, (_, i) => [`NEW${i}`, 'Too many'])) })).status, 400)
+  h.db[table][1].topic = 'A'
+  assert.equal((await h.post(valid)).status, 409)
+  assert.equal(h.writes.length, 0)
+})
+
+test('a question moved between scope validation and the atomic save prevents all combined writes', async () => {
+  const h = harness([row('Q001', 'A'), row('Q002', 'B')])
+  const { data: exported } = await h.get({ batchTopics: JSON.stringify(['A', 'B']) })
+  h.hooks.beforeSave = (db) => { db[table][1].topic = 'Outside' }
+  assert.equal((await h.post(combinedBatch(exported, csv(['Q001', 'Rewrite'], ['Q002', 'Rewrite']), true))).status, 409)
+  assert.equal(h.writes.length, 0)
+  assert.equal(h.db.admin_question_topic_updates.length, 0)
+})
+
+test('mixed changed and unchanged topics share review progress, and missing pasted IDs remain pending', async () => {
+  const h = harness([row('Q001', 'A'), row('Q002', 'B'), row('Q003', 'B')])
+  const { data: exported } = await h.get({ batchTopics: JSON.stringify(['A', 'B']) })
+  const result = await h.post(combinedBatch(exported, csv(['Q001', 'Rewrite'], ['Q002', 'Original Q002']), true))
+  assert.equal(result.data.summary.written, 1)
+  assert.equal(result.data.summary.missing, 1)
+  const infos = (await h.get({ topics: '1' })).data.topics
+  assert.equal(infos.find((t) => t.topic === 'A').updateCount, 1)
+  assert.equal(infos.find((t) => t.topic === 'B').updateCount, 0)
+  assert.equal(infos.find((t) => t.topic === 'B').reviewedCount, 1)
+  assert.deepEqual((await h.get({ topic: 'B', from: '1', to: '100' })).data.reviewedIds, ['Q002'])
+})
+
+test('batch suggestions follow displayed order, skip reviewed topics and fit five topics within 100 questions', () => {
+  const h = harness([])
+  const { addNextBatchTopic, fillTopicBatch } = h.load(path.join(root, 'lib/questions/topic-batch.ts'))
+  const topics = [{ topic: 'Too large', count: 120 }, { topic: 'Next', count: 50 }, { topic: 'Fits', count: 30 },
+    { topic: 'Reviewed', count: 20, reviewedCount: 20 }, { topic: 'Start', count: 15 }, { topic: 'Small', count: 5 }]
+  assert.deepEqual(addNextBatchTopic(topics, ['Start']), ['Start', 'Small'])
+  const filled = fillTopicBatch(topics, ['Start'])
+  assert.deepEqual(filled, ['Start', 'Small', 'Next', 'Fits'])
+  assert.equal(filled.reduce((sum, topic) => sum + topics.find((t) => t.topic === topic).count, 0), 100)
+  const tiny = Array.from({ length: 10 }, (_, i) => ({ topic: String(i), count: 1 }))
+  assert.equal(fillTopicBatch(tiny, ['0']).length, 5)
+})
+
+test('unchanged combined reviews advance without counts; reclassified retries reuse the original receipt', async () => {
+  const h = harness([row('Q001', 'A'), row('Q002', 'B')])
+  const { data: exported } = await h.get({ batchTopics: JSON.stringify(['A', 'B']) })
+  const review = await h.post(combinedBatch(exported, csv(['Q001', 'Original Q001'], ['Q002', 'Original Q002']), true))
+  assert.equal(review.status, 200)
+  assert.equal(review.data.summary.written, 0)
+  assert.equal(h.db.admin_question_topic_updates.length, 0)
+  assert.equal(h.db.admin_question_reviews.length, 2)
+  const workflow = h.load(path.join(root, 'lib/questions/topic-workflow.ts'))
+  assert.equal(workflow.canAdvanceTopic(review.data), true)
+  const payload = { ...combinedBatch(exported, 'question_id,topic\nQ001,B', true), requestId: randomUUID() }
+  assert.equal((await h.post(payload)).status, 200)
+  assert.equal((await h.post(payload)).status, 200)
+  assert.equal(h.db[table][0].question_id, 'Q001')
+  assert.equal(h.db[table][0].topic, 'B')
+  assert.ok(h.db.admin_question_topic_updates.every((topic) => topic.update_count === 1))
 })
 
 test('topic counts include later pages, Telugu, null and empty topics', async () => {

@@ -42,10 +42,13 @@ import { canAdvanceTopic, findUnreviewedTopicBatch, isTopicReviewed, nextUnfinis
 import { sortTopicsByCount } from '@/lib/questions/topic-order'
 import TopicQuestionImport from '@/app/components/admin/TopicQuestionImport'
 import CsvFilePicker from '@/app/components/admin/CsvFilePicker'
+import TopicBatchSelector from '@/app/components/admin/TopicBatchSelector'
+import { fillTopicBatch } from '@/lib/questions/topic-batch'
 import { userDate } from '@/app/components/admin/UserDataUI'
 import {
   BULK_CSV_COLUMNS,
   BULK_MAX_ROWS,
+  TOPIC_BATCH_MAX_QUESTIONS,
   type BulkExportResponse,
   type BulkPreviewResponse,
   type BulkRowResult,
@@ -144,6 +147,11 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
   const topics = topicsLoading ? [] : sortTopicsByCount(topicsState?.topics ?? [])
   const selectedInfo = topics.find((entry) => entry.topic === selectedTopic)
   const selectedCount = selectedInfo?.count ?? 0
+  const [groupTopics, setGroupTopics] = useState<(string | null)[] | null>(null)
+  const groupEntries = groupTopics?.map((topic) => topics.find((entry) => entry.topic === topic)) ?? []
+  const groupCount = groupEntries.reduce((sum, entry) => sum + (entry?.count ?? 0), 0)
+  const groupValid = Boolean(groupTopics && groupTopics.length >= 2 && groupCount > 0 &&
+    groupCount <= TOPIC_BATCH_MAX_QUESTIONS && groupEntries.every((entry) => entry && entry.count > 0))
 
   const [total, setTotal] = useState<number | null>(null)
   const [exported, setExported] = useState<BulkExportResponse | null>(null)
@@ -221,6 +229,7 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
   function changeTable(nextTable: string) {
     setTable(nextTable)
     setTopicKey('')
+    setGroupTopics(null)
     setShowAddQuestions(false)
     resetBatch()
     const done = topicMode ? 0 : readProgress()[nextTable] ?? 0
@@ -229,12 +238,22 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
   }
 
   function changeTopic(nextKey: string) {
+    setGroupTopics(null)
     setTopicKey(nextKey)
     setShowAddQuestions(false)
     resetBatch()
     const count = topics.find((entry) => JSON.stringify(entry.topic) === nextKey)?.count ?? 100
     setFrom(1)
     setTo(Math.min(count, 100))
+  }
+
+  function changeGroup(next: (string | null)[] | null) {
+    resetBatch()
+    setShowAddQuestions(false)
+    const combined = next && next.length > 1 ? next : null
+    setGroupTopics(combined)
+    setFrom(1)
+    setTo(combined ? combined.reduce<number>((sum, topic) => sum + (topics.find((entry) => entry.topic === topic)?.count ?? 0), 0) : Math.min(selectedCount, 100))
   }
 
   function questionsAdded() {
@@ -252,11 +271,11 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
   const rangeSize = to - from + 1
   const rangeValid = Number.isInteger(from) && Number.isInteger(to) &&
     from >= 1 && to >= from && rangeSize <= BULK_MAX_ROWS
-  const topicReady = !topicMode || (!topicsLoading && topicKey !== '' && selectedCount > 0)
+  const topicReady = !topicMode || (!topicsLoading && (groupTopics ? groupValid : topicKey !== '' && selectedCount > 0))
 
   async function fetchRange() {
     if (!topicReady) return
-    if (!rangeValid) {
+    if (!groupTopics && !rangeValid) {
       setError(`Range must start at 1 or more and cover at most ${BULK_MAX_ROWS} questions.`)
       return
     }
@@ -267,7 +286,8 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
     setError(null)
     try {
       const params = new URLSearchParams({ table, from: String(from), to: String(to) })
-      if (topicMode && selectedTopic !== undefined) {
+      if (groupTopics) params.set('batchTopics', JSON.stringify(groupTopics))
+      else if (topicMode && selectedTopic !== undefined) {
         if (selectedTopic === null) params.set('topicMissing', '1')
         else params.set('topic', selectedTopic)
       }
@@ -307,15 +327,61 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
     return data as BulkExportResponse
   }
 
+  async function readCombinedBatch(chosen: (string | null)[]): Promise<BulkExportResponse> {
+    const params = new URLSearchParams({ table, batchTopics: JSON.stringify(chosen) })
+    const res = await fetch(`/api/admin/questions/bulk?${params}`, { credentials: 'include', cache: 'no-store' })
+    const data = await res.json()
+    if (!res.ok || !data.success) throw new Error(data.error ?? 'Could not load the combined batch')
+    return data as BulkExportResponse
+  }
+
   function openAutomaticBatch(batch: BulkExportResponse) {
     resetBatch()
     setShowAddQuestions(false)
-    setTopicKey(JSON.stringify(batch.topic))
+    setGroupTopics(batch.topics ?? null)
+    setTopicKey(JSON.stringify(batch.topics ? batch.topics[0] : batch.topic))
     setFrom(batch.from)
     setTo(batch.to)
     setExported(batch)
     setTotal(batch.total)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  async function advanceAfterCombinedApply(result: BulkPreviewResponse, loaded: BulkExportResponse) {
+    if (!loaded.topics || !canAdvanceTopic(result)) return
+    try {
+      const response = await fetch(`/api/admin/questions/bulk?table=${encodeURIComponent(table)}&topics=1`, { credentials: 'include', cache: 'no-store' })
+      const refreshed = await response.json()
+      if (!response.ok || !refreshed.success) throw new Error(refreshed.error ?? 'Could not refresh topics')
+      const freshTopics = (refreshed as BulkTopicsResponse).topics
+      setTopicsState({ table, revision: topicsRevision, topics: sortTopicsByCount(freshTopics) })
+      for (const topic of loaded.topics) {
+        const remaining = await findUnreviewedTopicBatch(new Set(), (from, to) => readTopicBatch(topic, from, to))
+        if (remaining.batch) {
+          openAutomaticBatch(remaining.batch)
+          setWorkflowMessage(`Batch saved. Pending questions in ${topic || 'No topic'} are loaded; review these before continuing.`)
+          return
+        }
+      }
+      const next = nextUnfinishedTopic(freshTopics, loaded.topics[loaded.topics.length - 1]!)
+      if (!next) {
+        setWorkflowMessage('Batch saved. All current topics in this subject and medium have been reviewed.')
+        return
+      }
+      const nextGroup = fillTopicBatch(freshTopics, [next.topic])
+      if (nextGroup.length > 1) {
+        const batch = await readCombinedBatch(nextGroup)
+        openAutomaticBatch(batch)
+        setWorkflowMessage(`Batch saved. Next ${nextGroup.length} topics loaded together: ${batch.rows.length} questions.`)
+      } else {
+        const remaining = await findUnreviewedTopicBatch(new Set(), (from, to) => readTopicBatch(next.topic, from, to))
+        if (!remaining.batch) throw new Error('The next topic changed. Refresh the shared counts.')
+        openAutomaticBatch(remaining.batch)
+        setWorkflowMessage(`Batch saved. Next topic loaded: ${next.topic || 'No topic'}.`)
+      }
+    } catch (err) {
+      setError(`The batch was saved, but automatic navigation could not finish. ${err instanceof Error ? err.message : 'Refresh the topics to continue.'}`)
+    }
   }
 
   async function advanceAfterTopicApply(result: BulkPreviewResponse, loaded: BulkExportResponse) {
@@ -389,7 +455,7 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
           from: exported?.from,
           to: exported?.to,
           ...(topicMode ? {
-            topic: exported.topic,
+            ...(exported.topics ? { batchTopics: exported.topics, questionTopics: exported.questionTopics } : { topic: exported.topic }),
             questionIds: exported.rows.map((row) => row.question_id),
           } : {}),
         }),
@@ -411,7 +477,8 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
               : 'Live in practice now.',
         })
         if (topicMode) {
-          await advanceAfterTopicApply(data as BulkPreviewResponse, exported)
+          if (exported.topics) await advanceAfterCombinedApply(data as BulkPreviewResponse, exported)
+          else await advanceAfterTopicApply(data as BulkPreviewResponse, exported)
         } else {
           const current = readProgress()
           const reached = exported?.to ?? 0
@@ -504,13 +571,13 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
             </select>
           </label>
 
-          <NumberField label="From" value={from} onChange={setFrom} disabled={busy} />
-          <NumberField label="To" value={to} onChange={setTo} disabled={busy} />
+          <NumberField label="From" value={groupTopics ? 1 : from} onChange={setFrom} disabled={busy || Boolean(groupTopics)} />
+          <NumberField label="To" value={groupTopics ? groupCount : to} onChange={setTo} disabled={busy || Boolean(groupTopics)} />
 
           <div className="flex items-end">
             <button
               onClick={fetchRange}
-              disabled={busy || !rangeValid || !topicReady}
+              disabled={busy || (!groupTopics && !rangeValid) || !topicReady}
               className="flex h-[38px] items-center gap-2 rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
             >
               {exporting ? (
@@ -518,7 +585,7 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
               ) : (
                 <RefreshCw className="h-3.5 w-3.5" />
               )}
-              Load {rangeValid ? rangeSize : '…'} rows
+              Load {groupTopics ? `${groupCount} questions` : `${rangeValid ? rangeSize : '…'} rows`}
             </button>
           </div>
         </div>
@@ -526,6 +593,7 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
         {topicMode && (
           <div className="mt-4">
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem]">
+            <div>
             <label className="block">
               <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Topic</span>
               <select value={topicKey} onChange={(e) => changeTopic(e.target.value)}
@@ -540,6 +608,11 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
                 ))}
               </select>
             </label>
+            {selectedTopic !== undefined && selectedCount > 0 && (groupTopics || selectedCount <= TOPIC_BATCH_MAX_QUESTIONS) && (
+              <TopicBatchSelector topics={topics} selected={groupTopics ?? [selectedTopic]} disabled={busy || topicsLoading}
+                onChange={changeGroup} onClose={() => changeGroup(null)} onLoad={fetchRange} />
+            )}
+            </div>
             <aside className="rounded-xl border border-primary/20 bg-primary/5 p-3" aria-label="Shared topic update activity" aria-live="polite">
               <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Shared topic activity</p>
               {selectedInfo ? (
@@ -568,7 +641,7 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
                 {topics.length} topics · {updatedTopicCount} with recorded updates · Largest topics first. Shared counts refresh every 30 seconds.
               </p>
             )}
-            {topicKey !== '' && selectedCount > 0 && (
+            {topicKey !== '' && selectedCount > 0 && !groupTopics && (
               <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                 <span>{selectedCount} questions in this topic. From / To count rows within this topic.</span>
                 {selectedCount <= BULK_MAX_ROWS && (
@@ -584,7 +657,7 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
             )}
             {topicKey !== '' && selectedCount > 0 && !topicsLoading && (
               <div className="mt-3 flex flex-wrap items-center gap-3">
-                <button onClick={() => setShowAddQuestions((show) => !show)} disabled={busy}
+                <button onClick={() => setShowAddQuestions((show) => !show)} disabled={busy || Boolean(groupTopics)}
                   aria-expanded={showAddQuestions}
                   className="inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3.5 py-2 text-xs font-semibold text-primary hover:bg-primary/20 disabled:opacity-50">
                   <Plus className="h-3.5 w-3.5" /> {showAddQuestions ? 'Close new questions' : 'Add new questions'}
@@ -599,13 +672,13 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
         )}
 
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-          {total !== null && <span>{total.toLocaleString('en-IN')} questions in this {topicMode ? 'topic' : 'table'}</span>}
+          {total !== null && <span>{total.toLocaleString('en-IN')} questions in this {exported?.topics ? 'combined batch' : topicMode ? 'topic' : 'table'}</span>}
           {done > 0 && (
             <span className="text-emerald-600 dark:text-emerald-400">
               Finished up to row {done} on this device
             </span>
           )}
-          {!rangeValid && (
+          {!groupTopics && !rangeValid && (
             <span className="text-destructive">
               Range must start at 1 or more and cover at most {BULK_MAX_ROWS} rows
             </span>
@@ -615,8 +688,11 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
         {exported && exported.rows.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
             <p className="w-full text-xs font-medium text-foreground">
-              Loaded rows {exported.from}–{exported.to}{topicMode ? ` of topic: ${exported.topic || 'No topic'}` : ''} · {exported.rows.length} questions
+              Loaded rows {exported.from}–{exported.to}{exported.topics ? ` across ${exported.topics.length} topics` : topicMode ? ` of topic: ${exported.topic || 'No topic'}` : ''} · {exported.rows.length} questions
             </p>
+            {exported.topics && <ul className="w-full space-y-1 text-[11px] text-muted-foreground">
+              {exported.topics.map((topic) => <li key={JSON.stringify(topic)}>{topic === null ? 'No topic (unassigned)' : topic === '' ? 'No topic (empty)' : topic} · {exported.rows.filter((row) => exported.questionTopics?.[row.question_id] === topic).length} questions</li>)}
+            </ul>}
             <button
               onClick={async () => {
                 await navigator.clipboard.writeText(exportCsvText)
@@ -643,7 +719,7 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
         )}
       </section>
 
-      {topicMode && showAddQuestions && selectedTopic !== undefined && (
+      {topicMode && !groupTopics && showAddQuestions && selectedTopic !== undefined && (
         <TopicQuestionImport key={topicScopeKey} table={table} topic={selectedTopic}
           disabled={exporting || previewing || applying || fileReading} onBusyChange={setImportBusy} onAdded={questionsAdded} />
       )}
@@ -667,7 +743,7 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
           still works.
         </p>
 
-        <CsvFilePicker key={JSON.stringify([table, topicKey, exported?.from, exported?.to])}
+        <CsvFilePicker key={JSON.stringify([table, topicKey, exported?.topics, exported?.from, exported?.to])}
           value={csv} disabled={busy || !rangeLoaded}
           onBusyChange={(reading) => {
             setFileReading(reading)
@@ -727,7 +803,7 @@ Q000001,"Rewritten stem","opt A","opt B","opt C","opt D",B,"why B is right","జ
 
           <p className="mt-1.5 text-[11px] text-muted-foreground">
             Checked against rows {preview.rangeFrom}–{preview.rangeTo} of {preview.table}
-            {topicMode ? `, topic: ${exported?.topic || 'No topic'}` : ''}.
+            {exported?.topics ? `, ${exported.topics.length} combined topics` : topicMode ? `, topic: ${exported?.topic || 'No topic'}` : ''}.
           </p>
 
           <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
@@ -869,7 +945,7 @@ Q000001,"Rewritten stem","opt A","opt B","opt C","opt D",B,"why B is right","జ
                       ? 'Fix the invalid rows above — nothing can be written until they are valid.'
                       : 'Nothing to write.'
                     : reviewOnly ? 'These questions already match. Apply records their review and continues automatically; the update count stays the same.'
-                    : `${summary.changed} question(s) will be updated. Their question IDs will stay the same.${topicMode ? ' This save will increase the shared topic update count. When all questions are reviewed, the next pending topic loads automatically.' : ''}`}
+                    : `${summary.changed} question(s) will be updated. Their question IDs will stay the same.${topicMode ? exported?.topics ? ' Each topic with changed questions gets one update count. The next pending batch loads automatically.' : ' This save will increase the shared topic update count. When all questions are reviewed, the next pending topic loads automatically.' : ''}`}
               </p>
               {/* Not merely disabled: a paste from the wrong range is not
                   something to nudge past, so the control is not offered. */}

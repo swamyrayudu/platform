@@ -180,7 +180,14 @@ export interface BulkExportResponse {
   topic?: string | null
   /** Shared review markers for these current question IDs. */
   reviewedIds?: string[]
+  /** Full topics combined into a batch of at most 100 questions. */
+  topics?: (string | null)[]
+  /** Original topics, including the distinction between null and empty. */
+  questionTopics?: Record<string, string | null>
 }
+
+export const TOPIC_BATCH_MAX_QUESTIONS = 100
+export const TOPIC_BATCH_MAX_TOPICS = 5
 
 export interface BulkTopicOption {
   topic: string | null
