@@ -3,11 +3,13 @@ import { Badge, Body, Button, Input } from './ui';
 import { PracticeChoices } from './practice-choices';
 import { useProgressiveList } from '@/hooks/use-progressive-list';
 import type { DynamicFilterOptions } from '@/types/practice';
+import { isBrokenTopicName } from '@/utils/roadmap-practice';
 
 export function TopicPicker({topics, selected, onToggle, scope}: {topics:DynamicFilterOptions['available_topics'];selected:string[];onToggle:(topic:string)=>void;scope:string}) {
   const [search,setSearch]=useState('');
   const [showSelected,setShowSelected]=useState(false);
-  const matching=useMemo(()=>topics.filter(topic=>topic.name.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())),[topics,search]);
+  // Names stored with broken characters are not offered.
+  const matching=useMemo(()=>topics.filter(topic=>!isBrokenTopicName(topic.name)&&topic.name.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())),[topics,search]);
   const feed=useProgressiveList(matching,`${scope}:${search}`,12);
   const selectedFeed=useProgressiveList(selected,`${scope}:selected:${showSelected}`,12);
   return <>

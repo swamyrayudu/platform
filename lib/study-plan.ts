@@ -5,10 +5,10 @@
 // lib/exam-roadmap.ts), with study days given by the exam's marks:
 //
 //   Part                         Marks   Phase 1 study days
-//   Content, 5 school subjects     40     27  (Science 7, Social 7, Maths 6,
-//                                               Telugu 4, English 3: the bigger
+//   Content, 5 school subjects     40     28  (Science 7, Social 7, Maths 6,
+//                                               Telugu 4, English 4: the bigger
 //                                               syllabi get more of the days)
-//   Methodology, 5 subjects        20     14
+//   Methodology, 5 subjects        20     13
 //   Educational Psychology          8      6
 //   GK & Current Affairs            8      4, plus a current-affairs topic in
 //                                            every weekly test and daily reading
@@ -27,6 +27,8 @@
 // in Telugu. The Telugu paper's topics are Telugu and the English paper's
 // English in both plans, because both mediums write both language papers.
 // ============================================================
+
+import { practiceFor, type RoadmapPractice } from './roadmap-practice'
 
 export type PlanMedium = 'english' | 'telugu'
 
@@ -54,6 +56,8 @@ export interface StudyDay {
   kind: DayKind
   /** Set on Phase 1 study days. */
   part?: PlanPart
+  /** Phase 1 study days: the subject and topics the Practice button opens. */
+  practice?: RoadmapPractice
 }
 
 export const SUBJECT_LABEL: Record<PlanSubject, string> = {
@@ -155,16 +159,16 @@ const PERSP: Entry[] = [
     subject: 'perspectives',
     title: { en: 'Teachers and educational concerns', te: 'ఉపాధ్యాయ సాధికారత, సమకాలీన విద్యా అంశాలు' },
     topics: {
-      en: ['Teacher empowerment: code of conduct, motivation, professional development, teacher organisations, school records', 'Democracy, equality, equity, quality; economics of education, human capital, Saakshar Bharat', 'Population, gender, urbanisation, life skills; adolescence, value, health and inclusive education; LPG'],
-      te: ['ఉపాధ్యాయ సాధికారత: వృత్తి నియమావళి, ప్రేరణ, వృత్తిపర అభివృద్ధి, ఉపాధ్యాయ సంఘాలు, పాఠశాల రికార్డులు', 'ప్రజాస్వామ్యం, సమానత్వం, సమన్యాయం, నాణ్యత; విద్యా అర్థశాస్త్రం, మానవ మూలధనం, సాక్షర భారత్', 'జనాభా విద్య, లింగ సమానత్వం, పట్టణీకరణ, జీవన నైపుణ్యాలు; కౌమార, విలువల, ఆరోగ్య, సమ్మిళిత విద్య; సరళీకరణ, ప్రైవేటీకరణ, ప్రపంచీకరణ'],
+      en: ['Teacher empowerment: code of conduct, motivation, professional development, teacher organisations; NCERT, NCTE, SCERT, DIET; school records and registers', 'Democracy, equality, equity, quality, equality of educational opportunity; economics of education, human capital, Saakshar Bharat', 'Population, gender, urbanisation, migration, life skills; adolescence education; value education and professional ethics; health and physical education; inclusive classroom management; LPG'],
+      te: ['ఉపాధ్యాయ సాధికారత: వృత్తి నియమావళి, ప్రేరణ, వృత్తిపర అభివృద్ధి, ఉపాధ్యాయ సంఘాలు; NCERT, NCTE, SCERT, DIET; పాఠశాల రికార్డులు, రిజిస్టర్లు', 'ప్రజాస్వామ్యం, సమానత్వం, సమన్యాయం, నాణ్యత, సమాన విద్యావకాశాలు; విద్యా అర్థశాస్త్రం, మానవ మూలధనం, సాక్షర భారత్', 'జనాభా విద్య, లింగ సమానత్వం, పట్టణీకరణ, వలసలు, జీవన నైపుణ్యాలు; కౌమార విద్య; విలువల విద్య, వృత్తి నైతికత; ఆరోగ్య, వ్యాయామ విద్య; సమ్మిళిత తరగతి నిర్వహణ; సరళీకరణ, ప్రైవేటీకరణ, ప్రపంచీకరణ'],
     },
   },
   {
     subject: 'perspectives',
     title: { en: 'Programmes, acts and policies', te: 'విద్యా కార్యక్రమాలు, చట్టాలు, విధానాలు' },
     topics: {
-      en: ['APPEP, DPEP, SSA, NPEGEL, RMSA, RAA, KGBVs, Model Schools; mid-day meals, scholarships, incentives', 'RTE Act 2009, RTI Act 2005, child rights, human rights', 'NCF 2005, NEP 2020, current trends in education'],
-      te: ['APPEP, DPEP, సర్వశిక్షా అభియాన్, NPEGEL, RMSA, RAA, KGBVలు, మోడల్ స్కూళ్లు; మధ్యాహ్న భోజనం, ఉపకార వేతనాలు, ప్రోత్సాహకాలు', 'విద్యా హక్కు చట్టం 2009, సమాచార హక్కు చట్టం 2005, బాలల హక్కులు, మానవ హక్కులు', 'జాతీయ పాఠ్యప్రణాళికా చట్రం 2005, జాతీయ విద్యా విధానం 2020, విద్యలో నూతన ధోరణులు'],
+      en: ['APPEP, DPEP, SSA, NPEGEL, RMSA, RAA, KGBVs, Model Schools; mid-day meals, free books, scholarships, awards, welfare hostels, transport', 'RTE Act 2009, RTI Act 2005, child rights, human rights', 'NCF 2005: perspectives, guiding principles, learning and knowledge, teaching–learning, assessment, systemic reforms; NEP 2020; current trends in education'],
+      te: ['APPEP, DPEP, సర్వశిక్షా అభియాన్, NPEGEL, RMSA, RAA, KGBVలు, మోడల్ స్కూళ్లు; మధ్యాహ్న భోజనం, ఉచిత పుస్తకాలు, ఉపకార వేతనాలు, పురస్కారాలు, సంక్షేమ వసతి గృహాలు, రవాణా సౌకర్యం', 'విద్యా హక్కు చట్టం 2009, సమాచార హక్కు చట్టం 2005, బాలల హక్కులు, మానవ హక్కులు', 'జాతీయ పాఠ్యప్రణాళికా చట్రం 2005: దృక్పథాలు, మార్గదర్శక సూత్రాలు, అభ్యసనం–జ్ఞానం, బోధనాభ్యసన ప్రక్రియ, మూల్యాంకనం, వ్యవస్థాగత సంస్కరణలు; జాతీయ విద్యా విధానం 2020; విద్యలో నూతన ధోరణులు'],
     },
   },
 ]
@@ -324,16 +328,16 @@ const SCIENCE: Entry[] = [
     subject: 'science',
     title: { en: 'Materials, motion, force, heat', te: 'పదార్థాలు, చలనం, బలం, ఉష్ణం' },
     topics: {
-      en: ['Materials; metals and non-metals; separation; acids, bases and salts', 'Physical and chemical changes, rusting, crystallisation', 'Measurement, motion and speed; force, pressure, friction; heat and temperature'],
-      te: ['పదార్థాలు; లోహాలు, అలోహాలు; వేరుచేసే పద్ధతులు; ఆమ్లాలు, క్షారాలు, లవణాలు', 'భౌతిక, రసాయన మార్పులు, తుప్పు పట్టడం, స్ఫటికీకరణం', 'కొలతలు, చలనం, వడి; బలం, పీడనం, ఘర్షణ; ఉష్ణం, ఉష్ణోగ్రత'],
+      en: ['Materials; metals and non-metals; separation; acids, bases and salts', 'Physical and chemical changes, rusting, crystallisation', 'Measurement, motion and speed; force, pressure, friction; heat: temperature, thermometers, conduction, convection, radiation'],
+      te: ['పదార్థాలు; లోహాలు, అలోహాలు; వేరుచేసే పద్ధతులు; ఆమ్లాలు, క్షారాలు, లవణాలు', 'భౌతిక, రసాయన మార్పులు, తుప్పు పట్టడం, స్ఫటికీకరణం', 'కొలతలు, చలనం, వడి; బలం, పీడనం, ఘర్షణ; ఉష్ణం: ఉష్ణోగ్రత, ఉష్ణమాపకాలు, ఉష్ణ వహనం, సంవహనం, వికిరణం'],
     },
   },
   {
     subject: 'science',
     title: { en: 'Light, electricity, magnetism, sound', te: 'కాంతి, విద్యుత్, అయస్కాంతత్వం, ధ్వని' },
     topics: {
-      en: ['Light: shadows, mirrors, lenses, dispersion, the human eye, Braille', 'Electricity: circuits; heating, magnetic and chemical effects; magnets', 'Sound: production, propagation, waves, pitch and loudness, noise pollution'],
-      te: ['కాంతి: నీడలు, దర్పణాలు, కటకాలు, విక్షేపణం, మానవ నేత్రం, బ్రెయిలీ లిపి', 'విద్యుత్: వలయాలు; ఉష్ణ, అయస్కాంత, రసాయన ఫలితాలు; అయస్కాంతాలు', 'ధ్వని: ఉత్పత్తి, ప్రసారం, తరంగాలు, కీచుదనం, తీవ్రత, ధ్వని కాలుష్యం'],
+      en: ['Light: shadows, mirrors, lenses, dispersion, the human eye, Braille', 'Electricity: circuits; heating, magnetic and chemical effects; magnets: properties, types, compass, storing', 'Sound: production, propagation, waves, pitch and loudness, noise pollution'],
+      te: ['కాంతి: నీడలు, దర్పణాలు, కటకాలు, విక్షేపణం, మానవ నేత్రం, బ్రెయిలీ లిపి', 'విద్యుత్: వలయాలు; ఉష్ణ, అయస్కాంత, రసాయన ఫలితాలు; అయస్కాంతాలు: ధర్మాలు, రకాలు, దిక్సూచి, భద్రపరచడం', 'ధ్వని: ఉత్పత్తి, ప్రసారం, తరంగాలు, కీచుదనం, తీవ్రత, ధ్వని కాలుష్యం'],
     },
   },
   {
@@ -378,6 +382,19 @@ function tenUnitMethod(subject: 'science' | 'social', en: string, te: string): E
 const SCIENCE_METHOD = tenUnitMethod('science', 'Science', 'విజ్ఞాన శాస్త్ర')
 const SOCIAL_METHOD = tenUnitMethod('social', 'Social studies', 'సాంఘిక శాస్త్ర')
 
+/**
+ * Social methodology's units II and III in one day: they mirror Science
+ * methodology, studied the day before, so the day goes to English literature.
+ */
+const SOCIAL_METHOD_REST: Entry = {
+  subject: 'social', methodology: true,
+  title: { en: 'Social studies methodology II', te: 'సాంఘిక శాస్త్ర బోధనా పద్ధతులు II' },
+  topics: {
+    en: ['Teaching-learning material, improvised aids; social studies curriculum and textbook', 'Assessment and evaluation; social studies laboratories', 'Year plan and lesson plan; role of the teacher; fairs, clubs, field trips, museums'],
+    te: ['బోధనాభ్యసన సామగ్రి, స్వయం తయారీ బోధనోపకరణాలు; సాంఘిక శాస్త్ర పాఠ్యప్రణాళిక, పాఠ్యపుస్తకం', 'మదింపు, మూల్యాంకనం; సాంఘిక శాస్త్ర ప్రయోగశాలలు', 'వార్షిక ప్రణాళిక, పాఠ్య ప్రణాళిక; ఉపాధ్యాయుని పాత్ర; ప్రదర్శనలు, క్లబ్బులు, క్షేత్ర పర్యటనలు, మ్యూజియంలు'],
+  },
+}
+
 const SOCIAL: Entry[] = [
   {
     subject: 'social',
@@ -391,16 +408,16 @@ const SOCIAL: Entry[] = [
     subject: 'social',
     title: { en: 'The Earth and its resources', te: 'భూమి, వనరులు' },
     topics: {
-      en: ['Interior, atmosphere, biosphere, pollution, disasters', 'Landforms of AP, podu cultivation; forests and climatic regions', 'Land, soil, water, natural vegetation and wildlife'],
-      te: ['భూ అంతర్భాగం, వాతావరణం, జీవావరణం, కాలుష్యం, విపత్తులు', 'ఆంధ్రప్రదేశ్ భూస్వరూపాలు, పోడు వ్యవసాయం; అడవులు, శీతోష్ణస్థితి మండలాలు', 'భూమి, నేలలు, నీరు, సహజ వృక్షసంపద, వన్యప్రాణులు'],
+      en: ['Realms of the Earth; interior, atmosphere, biosphere, pollution, disasters', 'Landforms of AP, podu cultivation, diversity in lifestyles; forests and climatic regions', 'Land, soil, water, natural vegetation and wildlife'],
+      te: ['భూ ఆవరణాలు; భూ అంతర్భాగం, వాతావరణం, జీవావరణం, కాలుష్యం, విపత్తులు', 'ఆంధ్రప్రదేశ్ భూస్వరూపాలు, పోడు వ్యవసాయం, జీవన విధానాల్లో వైవిధ్యం; అడవులు, శీతోష్ణస్థితి మండలాలు', 'భూమి, నేలలు, నీరు, సహజ వృక్షసంపద, వన్యప్రాణులు'],
     },
   },
   {
     subject: 'social',
     title: { en: 'Production, exchange, livelihoods', te: 'ఉత్పత్తి, వినిమయం, జీవనోపాధులు' },
     topics: {
-      en: ['Migration, professions; mineral and power resources; population', 'Agriculture and industries; weavers, iron smelters, Wootz steel', 'Markets, consumer protection; transport, exports and imports, road safety'],
-      te: ['వలసలు, వృత్తులు; ఖనిజ, శక్తి వనరులు; జనాభా', 'వ్యవసాయం, పరిశ్రమలు; నేత కార్మికులు, ఇనుము కరిగించేవారు, ఊట్జ్ ఉక్కు', 'మార్కెట్లు, వినియోగదారుల రక్షణ; రవాణా, ఎగుమతులు, దిగుమతులు, రహదారి భద్రత'],
+      en: ['Migration, slums, family budget, professions; mineral and power resources; population', 'Agriculture and industries; weavers, iron smelters, Wootz steel; public facilities, water as part of the right to life', 'Markets, consumer protection; transport, exports and imports, road safety'],
+      te: ['వలసలు, మురికివాడలు, కుటుంబ బడ్జెట్, వృత్తులు; ఖనిజ, శక్తి వనరులు; జనాభా', 'వ్యవసాయం, పరిశ్రమలు; నేత కార్మికులు, ఇనుము కరిగించేవారు, ఊట్జ్ ఉక్కు; ప్రజా సౌకర్యాలు, జీవించే హక్కులో భాగంగా నీరు', 'మార్కెట్లు, వినియోగదారుల రక్షణ; రవాణా, ఎగుమతులు, దిగుమతులు, రహదారి భద్రత'],
     },
   },
   {
@@ -415,8 +432,8 @@ const SOCIAL: Entry[] = [
     subject: 'social',
     title: { en: 'Government and the Constitution', te: 'ప్రభుత్వం, రాజ్యాంగం' },
     topics: {
-      en: ['Types and levels of government, local self-government', 'Parliament, state government, judiciary, criminal justice, law and social justice', 'The Constitution, fundamental rights and duties, secularism'],
-      te: ['ప్రభుత్వ రకాలు, స్థాయిలు, స్థానిక స్వపరిపాలన', 'పార్లమెంటు, రాష్ట్ర ప్రభుత్వం, న్యాయవ్యవస్థ, నేర న్యాయ వ్యవస్థ, చట్టం–సామాజిక న్యాయం', 'భారత రాజ్యాంగం, ప్రాథమిక హక్కులు, విధులు, లౌకికవాదం'],
+      en: ['Types and levels of government, local self-government', 'Parliament, state government, judiciary, criminal justice; law and social justice: Bhopal gas tragedy, safety and environment laws', 'The Constitution, fundamental rights and duties, secularism'],
+      te: ['ప్రభుత్వ రకాలు, స్థాయిలు, స్థానిక స్వపరిపాలన', 'పార్లమెంటు, రాష్ట్ర ప్రభుత్వం, న్యాయవ్యవస్థ, నేర న్యాయ వ్యవస్థ; చట్టం–సామాజిక న్యాయం: భోపాల్ గ్యాస్ దుర్ఘటన, భద్రత, పర్యావరణ చట్టాలు', 'భారత రాజ్యాంగం, ప్రాథమిక హక్కులు, విధులు, లౌకికవాదం'],
     },
   },
   {
@@ -431,8 +448,8 @@ const SOCIAL: Entry[] = [
     subject: 'social',
     title: { en: 'Society, religion, culture', te: 'సమాజం, మతం, సంస్కృతి' },
     topics: {
-      en: ['Inequality and equality; women’s movements, caste and social reform; marginalisation', 'Religions; Bhakti and Sufi movements', 'Communication and media; historical places of AP; Indus Valley, Vedic period, Indian culture'],
-      te: ['అసమానతలు, సమానత్వం; మహిళా ఉద్యమాలు, కుల, సాంఘిక సంస్కరణలు; అణచివేతకు గురైన వర్గాలు', 'మతాలు; భక్తి, సూఫీ ఉద్యమాలు', 'సమాచారం, ప్రసార మాధ్యమాలు; ఆంధ్రప్రదేశ్ చారిత్రక ప్రదేశాలు; సింధు నాగరికత, వేద కాలం, భారతీయ సంస్కృతి'],
+      en: ['Inequality and equality; women’s movements; caste and social reform: Gulamgiri, the Non-Brahman movement; marginalisation, the 1989 Act for Dalits and Adivasis', 'Religions; Bhakti and Sufi movements', 'Communication and media; historical places of AP; Indus Valley, Vedic period, Indian culture'],
+      te: ['అసమానతలు, సమానత్వం; మహిళా ఉద్యమాలు; కుల, సాంఘిక సంస్కరణలు: గులాంగిరీ, బ్రాహ్మణేతర ఉద్యమం; అణచివేతకు గురైన వర్గాలు, దళితులు–ఆదివాసీల కోసం 1989 చట్టం', 'మతాలు; భక్తి, సూఫీ ఉద్యమాలు', 'సమాచారం, ప్రసార మాధ్యమాలు; ఆంధ్రప్రదేశ్ చారిత్రక ప్రదేశాలు; సింధు నాగరికత, వేద కాలం, భారతీయ సంస్కృతి'],
     },
   },
 ]
@@ -471,11 +488,13 @@ const TELUGU_METHOD: Entry[] = [
 ]
 
 // The English paper, in English for both mediums: the syllabus's seven
-// content units and nine methodology units.
+// content units and nine methodology units. Literature has a day of its own
+// (week 9): authors and their works are a large, fact-heavy unit.
 const ENGLISH: Entry[] = [
   { subject: 'english', title: same('Parts of speech, articles, prepositions'), topics: same(['Parts of speech', 'Articles', 'Prepositions']) },
   { subject: 'english', title: same('Tenses and types of sentences'), topics: same(['Tenses: forms and usage', 'Types of sentences']) },
-  { subject: 'english', title: same('Pronunciation, writing, literature'), topics: same(['Pronunciation, sounds, use of the dictionary', 'Writing of discourse: story, essay, letter, editorial, précis, note-making, autobiography, biography', 'Poets, essayists, novelists, dramatists and their works']) },
+  { subject: 'english', title: same('Pronunciation and writing'), topics: same(['Pronunciation, sounds, use of the dictionary', 'Writing of discourse: story, essay, letter, editorial, précis, note-making, autobiography, biography']) },
+  { subject: 'english', title: same('English literature'), topics: same(['Poets and their works', 'Essayists and novelists and their works', 'Dramatists and their works']) },
 ]
 
 const ENGLISH_METHOD: Entry[] = [
@@ -498,7 +517,7 @@ const WEEKS: Entry[][] = [
   [PSY[4], MATHS[5], SCIENCE[5], SOCIAL[5], TELUGU_METHOD[0], ENGLISH_METHOD[0]],
   [PSY[5], SCIENCE[6], SOCIAL[6], MATHS_METHOD[0], SCIENCE_METHOD[0], SOCIAL_METHOD[0]],
   [PERSP[2], TELUGU_METHOD[1], ENGLISH_METHOD[1], MATHS_METHOD[1], SCIENCE_METHOD[1], GK[2]],
-  [SOCIAL_METHOD[1], TELUGU_METHOD[2], ENGLISH_METHOD[2], SCIENCE_METHOD[2], SOCIAL_METHOD[2], GK[3]],
+  [ENGLISH[3], TELUGU_METHOD[2], ENGLISH_METHOD[2], SCIENCE_METHOD[2], SOCIAL_METHOD_REST, GK[3]],
 ]
 
 // ---- Phases 2 and 3: English titles; topics are study content per medium,
@@ -564,12 +583,12 @@ function partOf(e: Entry): PlanPart {
 function buildPlan(medium: PlanMedium): StudyDay[] {
   const k = medium === 'telugu' ? 'te' : 'en'
   const days: StudyDay[] = []
-  const push = (phase: 1 | 2 | 3, subject: PlanSubject, title: string, topics: string[], task: string, action: PlanAction, kind?: DayKind, part?: PlanPart) => {
+  const push = (phase: 1 | 2 | 3, subject: PlanSubject, title: string, topics: string[], task: string, action: PlanAction, kind?: DayKind, part?: PlanPart, practice?: RoadmapPractice) => {
     const day = days.length + 1
-    days.push({ day, week: Math.ceil(day / 7), phase, subject, title, topics, task, action, kind: kind ?? kindOf(subject, task), ...(part && { part }) })
+    days.push({ day, week: Math.ceil(day / 7), phase, subject, title, topics, task, action, kind: kind ?? kindOf(subject, task), ...(part && { part }), ...(practice && { practice }) })
   }
   WEEKS.forEach((week, w) => {
-    for (const e of week) push(1, e.subject, e.title[k], e.topics[k], e.methodology ? TASK.method : TASK.practice, 'practice', undefined, partOf(e))
+    for (const e of week) push(1, e.subject, e.title[k], e.topics[k], e.methodology ? TASK.method : TASK.practice, 'practice', undefined, partOf(e), practiceFor(e.title.en, medium))
     push(1, 'test', `Weekly test ${w + 1} + GK`, ['This week’s topics', `GK: ${WEEKLY_CURRENT_AFFAIRS[w][k]}`], TASK.weekly, 'practice')
   })
   for (const f of PHASE_TWO) push(2, f.subject, f.title, f.topics[k], f.task ?? TASK.practice, f.action ?? 'practice', f.kind)

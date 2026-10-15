@@ -58,13 +58,21 @@ async function api<T>(url: string, method = 'GET', body?: unknown): Promise<T> {
   return json as T
 }
 
-function FieldsForm({ value, onChange, folders }: { value: ResourceFields; onChange: (v: ResourceFields) => void; folders: ResourceFolder[] }) {
+/** A PDF waiting in the upload list; its title starts as the file name. */
+type Queued = { key: string; file: File; title: string; progress: number | null; error: string | null }
+
+const titleFromName = (name: string) => name.replace(/\.pdf$/i, '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200)
+
+/** Fields shared by every PDF in an upload; `withTitle` adds the title (editing one file). */
+function FieldsForm({ value, onChange, folders, withTitle = true }: { value: ResourceFields; onChange: (v: ResourceFields) => void; folders: ResourceFolder[]; withTitle?: boolean }) {
   const set = <K extends keyof ResourceFields>(k: K, v: ResourceFields[K]) => onChange({ ...value, [k]: v })
   return (
     <div className="grid gap-3 sm:grid-cols-2">
-      <label className={`${label} sm:col-span-2`}>Title
-        <input className={`${input} mt-1`} value={value.title} maxLength={200} onChange={(e) => set('title', e.target.value)} />
-      </label>
+      {withTitle && (
+        <label className={`${label} sm:col-span-2`}>Title
+          <input className={`${input} mt-1`} value={value.title} maxLength={200} onChange={(e) => set('title', e.target.value)} />
+        </label>
+      )}
       <label className={`${label} sm:col-span-2`}>Description (optional)
         <textarea className={`${input} mt-1`} rows={2} maxLength={2000} value={value.description} onChange={(e) => set('description', e.target.value)} />
       </label>
@@ -112,9 +120,10 @@ export default function AdminResourcesPage() {
   const [resources, setResources] = useState<AdminResource[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notSetUp, setNotSetUp] = useState(false)
-  const [file, setFile] = useState<File | null>(null)
+  const [queue, setQueue] = useState<Queued[]>([])
   const [fields, setFields] = useState<ResourceFields>(EMPTY)
-  const [progress, setProgress] = useState<number | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [dragging, setDragging] = useState(false)
   const [editing, setEditing] = useState<{ id: string; fields: ResourceFields } | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [folders, setFolders] = useState<ResourceFolder[]>([])
@@ -139,33 +148,54 @@ export default function AdminResourcesPage() {
     api<Listing>('/api/admin/resources').then(show).catch(fail)
   }
 
-  const chooseFile = (f: File | null) => {
-    if (!f) return
-    const problem = fileProblem(f)
-    if (problem) {
-      toast.error(problem)
-      return
+  /** Add PDFs to the list; files that are not PDFs or are too big are skipped with a message. */
+  const chooseFiles = (list: FileList | null) => {
+    const picked = Array.from(list ?? [])
+    const added: Queued[] = []
+    for (const f of picked) {
+      const problem = fileProblem(f)
+      if (problem) toast.error(`${f.name}: ${problem}`)
+      else if (!queue.some((q) => q.file.name === f.name && q.file.size === f.size)) {
+        added.push({ key: `${f.name}:${f.size}:${f.lastModified}`, file: f, title: titleFromName(f.name), progress: null, error: null })
+      }
     }
-    setFile(f)
-    if (!fields.title) setFields((v) => ({ ...v, title: f.name.replace(/\.pdf$/i, '').replace(/[_-]+/g, ' ').trim() }))
+    if (added.length) setQueue((prev) => [...prev, ...added])
   }
+  const updateQueued = (key: string, change: Partial<Queued>) =>
+    setQueue((prev) => prev.map((q) => (q.key === key ? { ...q, ...change } : q)))
 
+  /**
+   * Upload the list one PDF at a time, each with the shared fields and its own
+   * title. Uploaded files leave the list; a failed one stays with its error, so
+   * pressing Upload again retries only those.
+   */
   const upload = async () => {
-    if (!file || !fields.title.trim()) return
-    setProgress(0)
-    try {
-      const { path, signedUrl } = await api<{ path: string; signedUrl: string }>(
-        '/api/admin/resources/upload-url', 'POST', { fileName: file.name, size: file.size })
-      await uploadWithProgress(signedUrl, file, setProgress)
-      const { resource } = await api<{ resource: AdminResource }>('/api/admin/resources', 'POST', { path, fileName: file.name, ...fields })
-      setResources((prev) => [resource, ...(prev ?? [])])
-      setFile(null)
+    const todo = queue.filter((q) => q.title.trim())
+    if (!todo.length) return
+    setUploading(true)
+    let done = 0
+    for (const q of todo) {
+      updateQueued(q.key, { progress: 0, error: null })
+      try {
+        const { path, signedUrl } = await api<{ path: string; signedUrl: string }>(
+          '/api/admin/resources/upload-url', 'POST', { fileName: q.file.name, size: q.file.size })
+        await uploadWithProgress(signedUrl, q.file, (pct) => updateQueued(q.key, { progress: pct }))
+        const { resource } = await api<{ resource: AdminResource }>('/api/admin/resources', 'POST',
+          { path, fileName: q.file.name, ...fields, title: q.title.trim() })
+        setResources((prev) => [resource, ...(prev ?? [])])
+        setQueue((prev) => prev.filter((x) => x.key !== q.key))
+        done++
+      } catch (err) {
+        updateQueued(q.key, { progress: null, error: err instanceof Error ? err.message : 'Upload failed.' })
+      }
+    }
+    setUploading(false)
+    const failed = todo.length - done
+    if (failed === 0) {
+      toast.success(done === 1 ? 'Resource uploaded' : `${done} resources uploaded`)
       setFields(EMPTY)
-      toast.success('Resource uploaded')
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Upload failed.')
-    } finally {
-      setProgress(null)
+    } else {
+      toast.error(`${done} uploaded, ${failed} failed. The failed files are still in the list: press Upload to retry them.`)
     }
   }
 
@@ -239,28 +269,76 @@ export default function AdminResourcesPage() {
       {!notSetUp && <FoldersSection folders={counted} onChange={setFolders} />}
 
       <section className="mb-8 rounded-2xl border border-border bg-card p-5">
-        <h2 className="mb-4 text-sm font-medium text-foreground">Upload a PDF</h2>
-        <label className="mb-4 flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-border bg-muted/20 p-5 text-center hover:border-primary/50">
+        <h2 className="text-sm font-medium text-foreground">Upload PDFs</h2>
+        <p className="mb-4 mt-1 text-[11px] text-muted-foreground">
+          Choose one or many PDFs. The details below apply to every file; each title starts as the file name and can be changed here or later.
+        </p>
+        <label
+          onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(e) => { e.preventDefault(); setDragging(false); if (!uploading) chooseFiles(e.dataTransfer.files) }}
+          className={`mb-4 flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed p-5 text-center hover:border-primary/50 ${dragging ? 'border-primary bg-primary/5' : 'border-border bg-muted/20'}`}
+        >
           <Upload className="h-6 w-6 text-primary" />
-          <span className="text-sm font-medium text-foreground">{file ? file.name : 'Choose a PDF (max 10 MB)'}</span>
-          {file && <span className="text-[11px] text-muted-foreground">{formatBytes(file.size)}</span>}
-          <input type="file" accept="application/pdf,.pdf" className="sr-only" onChange={(e) => { chooseFile(e.target.files?.[0] ?? null); e.target.value = '' }} />
+          <span className="text-sm font-medium text-foreground">{queue.length ? 'Add more PDFs' : 'Choose PDFs or drop them here'}</span>
+          <span className="text-[11px] text-muted-foreground">Up to 10 MB each</span>
+          <input type="file" multiple disabled={uploading} accept="application/pdf,.pdf" className="sr-only" onChange={(e) => { chooseFiles(e.target.files); e.target.value = '' }} />
         </label>
-        <FieldsForm value={fields} onChange={setFields} folders={folders} />
+
+        {queue.length > 0 && (
+          <div className="mb-4">
+            <div className="mb-2 flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>{queue.length} file{queue.length === 1 ? '' : 's'} · {formatBytes(queue.reduce((n, q) => n + q.file.size, 0))}</span>
+              {!uploading && <button onClick={() => setQueue([])} className="font-medium hover:text-foreground">Clear all</button>}
+            </div>
+            <ul className="divide-y divide-border rounded-xl border border-border">
+              {queue.map((q) => (
+                <li key={q.key} className="px-3 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <input
+                      className={`${input} flex-1`}
+                      value={q.title}
+                      maxLength={200}
+                      disabled={uploading}
+                      aria-label={`Title for ${q.file.name}`}
+                      onChange={(e) => updateQueued(q.key, { title: e.target.value })}
+                    />
+                    {!uploading && (
+                      <button onClick={() => setQueue((prev) => prev.filter((x) => x.key !== q.key))} title="Remove from list" className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground">
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  <p className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
+                    <span className="truncate">{q.file.name} · {formatBytes(q.file.size)}</span>
+                    {q.progress !== null && (
+                      <span className="flex items-center gap-2">
+                        <span className="h-1.5 w-24 overflow-hidden rounded-full bg-muted">
+                          <span className="block h-full bg-primary transition-all" style={{ width: `${q.progress}%` }} />
+                        </span>
+                        {q.progress}%
+                      </span>
+                    )}
+                  </p>
+                  {q.error && <p className="mt-1 text-[11px] text-destructive">{q.error}</p>}
+                  {!q.title.trim() && <p className="mt-1 text-[11px] text-destructive">Give this file a title.</p>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <FieldsForm value={fields} onChange={setFields} folders={folders} withTitle={false} />
         <div className="mt-4 flex items-center gap-3">
           <button
             onClick={upload}
-            disabled={!file || !fields.title.trim() || progress !== null || notSetUp}
+            disabled={!queue.length || queue.some((q) => !q.title.trim()) || uploading || notSetUp}
             className="inline-flex min-h-10 items-center gap-2 rounded-full bg-primary px-5 text-xs font-medium text-primary-foreground disabled:opacity-50"
           >
-            {progress !== null ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-            {progress !== null ? `Uploading ${progress}%` : 'Upload'}
+            {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+            {uploading ? 'Uploading…' : queue.length > 1 ? `Upload ${queue.length} PDFs` : 'Upload'}
           </button>
-          {progress !== null && (
-            <div className="h-1.5 w-40 overflow-hidden rounded-full bg-muted">
-              <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
-            </div>
-          )}
+          {uploading && <span className="text-[11px] text-muted-foreground">Keep this page open until every file is done.</span>}
         </div>
       </section>
 

@@ -117,6 +117,10 @@ export default function StudyPlan({ medium }: { medium: PlanMedium }) {
   }
 
   const promptFor = (d: StudyDay) => studyPrompt(d, plan, medium)
+  // A study day's Practice opens practice set to that day's subject and topics.
+  const hrefFor = (d: StudyDay) => d.action === 'practice' && d.practice
+    ? `${ACTION.practice.href}?${new URLSearchParams({ medium, day: String(d.day) })}`
+    : d.action === 'none' ? '' : ACTION[d.action].href
   const days = weeks[week - 1]
   const firstDate = dateOf(days[0].day)
   const lastDate = dateOf(days[days.length - 1].day)
@@ -133,6 +137,7 @@ export default function StudyPlan({ medium }: { medium: PlanMedium }) {
         onStart={chooseStart}
         onToggle={toggleDone}
         promptFor={promptFor}
+        hrefFor={hrefFor}
       />
 
       {/* ── Every day ── */}
@@ -231,7 +236,7 @@ export default function StudyPlan({ medium }: { medium: PlanMedium }) {
                   </div>
                   <div className="min-w-0 flex-1">
                     <DayDetails day={d} />
-                    <DayActions day={d} done={done.has(d.day)} onToggle={toggleDone} prompt={promptFor(d)} />
+                    <DayActions day={d} done={done.has(d.day)} onToggle={toggleDone} prompt={promptFor(d)} href={hrefFor(d)} />
                   </div>
                 </li>
               )
@@ -243,7 +248,7 @@ export default function StudyPlan({ medium }: { medium: PlanMedium }) {
   )
 }
 
-function TodayCard({ plan, start, todayDay, currentDay, today, done, onStart, onToggle, promptFor }: {
+function TodayCard({ plan, start, todayDay, currentDay, today, done, onStart, onToggle, promptFor, hrefFor }: {
   plan: StudyDay[]
   start: string | null
   todayDay: number | null
@@ -253,6 +258,7 @@ function TodayCard({ plan, start, todayDay, currentDay, today, done, onStart, on
   onStart: (iso: string) => void
   onToggle: (day: number) => void
   promptFor: (day: StudyDay) => string
+  hrefFor: (day: StudyDay) => string
 }) {
   const dateInput = (
     <input
@@ -304,7 +310,7 @@ function TodayCard({ plan, start, todayDay, currentDay, today, done, onStart, on
             Today · {shortDate(today)} · Day {currentDay} of {plan.length}
           </p>
           <DayDetails day={day} large />
-          <DayActions day={day} done={done.has(day.day)} onToggle={onToggle} prompt={promptFor(day)} large />
+          <DayActions day={day} done={done.has(day.day)} onToggle={onToggle} prompt={promptFor(day)} href={hrefFor(day)} large />
         </div>
         {footer}
       </section>
@@ -345,11 +351,13 @@ function DayDetails({ day, large }: { day: StudyDay; large?: boolean }) {
   )
 }
 
-function DayActions({ day, done, onToggle, prompt, large }: {
+function DayActions({ day, done, onToggle, prompt, href, large }: {
   day: StudyDay
   done: boolean
   onToggle: (day: number) => void
   prompt: string
+  /** Where the day's action button goes. */
+  href: string
   large?: boolean
 }) {
   const [showPrompt, setShowPrompt] = useState(false)
@@ -375,7 +383,7 @@ function DayActions({ day, done, onToggle, prompt, large }: {
         </button>
         {day.action !== 'none' && (
           <Link
-            href={ACTION[day.action].href}
+            href={href}
             className={`inline-flex items-center gap-1 rounded-lg font-semibold ${size} ${
               large ? 'bg-primary text-primary-foreground hover:opacity-90' : 'text-primary hover:underline'
             }`}

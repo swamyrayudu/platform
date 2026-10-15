@@ -27,10 +27,12 @@ const sameUnit = (title: L, topics: string[] = []): Unit => ({ title, topics: to
 
 /** What candidates should know about the paper, beyond the marks table. */
 export const PATTERN_FACTS: { label: string; value: string }[] = [
-  { label: 'Questions', value: `${PATTERN.total_questions} multiple-choice questions, 4 options each` },
+  // The DSC-2026 syllabus gives marks only; question count, time and marking
+  // are DSC 2025's until the 2026 notification says otherwise.
+  { label: 'Questions', value: `${PATTERN.total_questions} multiple-choice questions, 4 options each (as in DSC 2025)` },
   { label: 'Marks', value: `${PATTERN.total_marks} (½ mark per question)` },
-  { label: 'Time', value: `${PATTERN.duration_minutes} minutes (2 hours 30 minutes)` },
-  { label: 'Negative marking', value: PATTERN.negative_marks ? `−${PATTERN.negative_marks} per wrong answer` : 'None' },
+  { label: 'Time', value: `${PATTERN.duration_minutes} minutes (2 hours 30 minutes, as in DSC 2025)` },
+  { label: 'Negative marking', value: PATTERN.negative_marks ? `−${PATTERN.negative_marks} per wrong answer (as in DSC 2025)` : 'None (as in DSC 2025)' },
   { label: 'Mode', value: 'Online, computer-based test (as in DSC 2025)' },
   { label: 'School subjects', value: 'Content from Class III–VIII textbooks, difficulty up to Class X; each has content (8 marks) and teaching methodology (4 marks)' },
   { label: 'Language I', value: 'Telugu, or Urdu, Kannada, Oriya or Tamil for those mediums' },

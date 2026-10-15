@@ -11,6 +11,8 @@ export interface RoadmapDay {
   /** Null on everyday study days: the Practice button says it. */
   task: string | null;
   action: PlanAction; prompt: string;
+  /** Phase 1 study days: what Practice opens (subject, and keys that pick its topics). */
+  practice?: { subject: string; keys: string[] };
 }
 export interface ExamPart {
   id: string; name: string; teluguName?: string; marks: number;

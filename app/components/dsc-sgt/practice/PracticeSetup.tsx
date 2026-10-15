@@ -12,6 +12,8 @@ import { GraduationCap, History, Crown, Lock, Sparkles } from 'lucide-react'
 import { useAuth } from '@/app/contexts/AuthContext'
 import { usePremium } from '@/app/components/dsc-sgt/PremiumContext'
 import { resolvePreferredMedium, storeMedium } from '@/lib/medium-preference'
+import { getStudyPlan } from '@/lib/study-plan'
+import { isBrokenTopicName, matchPracticeTopics } from '@/lib/roadmap-practice'
 import type {
   PracticeMedium,
   PracticeMode,
@@ -35,6 +37,15 @@ interface PracticeSetupProps {
   onQuickRetry: (topic?: string, subject?: string) => void
   onViewHistory: () => void
   isLoading?: boolean
+  /** Opened from a roadmap day's Practice button (?medium=…&day=…). */
+  roadmap?: { medium: PracticeMedium; day: number } | null
+}
+
+/** The roadmap day a link names, if it is a study day with practice. */
+function roadmapDayOf(roadmap: PracticeSetupProps['roadmap']) {
+  if (!roadmap) return null
+  const day = getStudyPlan(roadmap.medium).find((d) => d.day === roadmap.day)
+  return day?.practice ? { medium: roadmap.medium, day: day.day, title: day.title, ...day.practice } : null
 }
 
 export default function PracticeSetup({
@@ -42,6 +53,7 @@ export default function PracticeSetup({
   onQuickRetry,
   onViewHistory,
   isLoading = false,
+  roadmap = null,
 }: PracticeSetupProps) {
   const { user } = useAuth()
   const { isPremium, openModal } = usePremium()
@@ -87,9 +99,16 @@ export default function PracticeSetup({
   }, [fetchQuota])
 
   // ── Core State ──────────────────────────────────────────────
-  const [medium, setMedium] = useState<PracticeMedium>('english')
-  const [subject, setSubject] = useState<string>('English')
-  const [hasUserSelectedMedium, setHasUserSelectedMedium] = useState<boolean>(false)
+  // A roadmap day starts on its medium and subject; its topics are picked
+  // when the topic list loads (choosing topics is Pro). `topicsApplied` stops
+  // a later re-selection; leaving the day's medium or subject ends the link.
+  const [roadmapDay, setRoadmapDay] = useState(() => {
+    const day = roadmapDayOf(roadmap)
+    return day && { ...day, topicsApplied: false }
+  })
+  const [medium, setMedium] = useState<PracticeMedium>(roadmapDay?.medium ?? 'english')
+  const [subject, setSubject] = useState<string>(roadmapDay?.subject ?? 'English')
+  const [hasUserSelectedMedium, setHasUserSelectedMedium] = useState<boolean>(!!roadmapDay)
   const [topicMode, setTopicMode] = useState<'all' | 'custom'>('all')
   const [selectedTopics, setSelectedTopics] = useState<string[]>([])
   const [selectedSubtopics, setSelectedSubtopics] = useState<string[]>([])
@@ -114,7 +133,8 @@ export default function PracticeSetup({
 
   const classFilter = selectedClasses.filter((c) => c !== 'All')
   const topicListKey = JSON.stringify([medium, subject, classFilter])
-  const wantsTopics = isPremium && topicMode === 'custom'
+  const roadmapTopicsPending = isPremium && !!roadmapDay && !roadmapDay.topicsApplied
+  const wantsTopics = isPremium && (topicMode === 'custom' || roadmapTopicsPending)
 
   // Fetch the matching total: one count in the database, no rows.
   const fetchMatchingTotal = useCallback(async () => {
@@ -139,10 +159,19 @@ export default function PracticeSetup({
     }
   }, [medium, subject, topicMode, selectedTopics, selectedClasses, selectedDifficulties])
 
-  // Fetch the topic list once topic selection is open.
+  // Fetch the topic list once topic selection is open, or a roadmap day
+  // waits for it. The day's topics are picked as the list arrives.
   useEffect(() => {
     if (!wantsTopics || topicLists[topicListKey] || failedTopicKey === topicListKey) return
     let cancelled = false
+    const pickFor = roadmapTopicsPending ? roadmapDay : null
+    const applyRoadmap = (names: string[]) => {
+      if (!pickFor) return
+      const picked = matchPracticeTopics(names, pickFor.keys)
+      setSelectedTopics(picked)
+      setTopicMode(picked.length > 0 ? 'custom' : 'all')
+      setRoadmapDay({ ...pickFor, topicsApplied: true })
+    }
     const [m, s, classes] = JSON.parse(topicListKey) as [string, string, string[]]
     const params = new URLSearchParams({ medium: m, subject: s, fields: 'topics' })
     if (classes.length) params.set('class_levels', classes.join(','))
@@ -151,17 +180,20 @@ export default function PracticeSetup({
       .then((json) => {
         if (cancelled) return
         if (!json.success || !json.data) throw new Error(json.error || 'Failed to load topics')
-        setTopicLists((prev) => ({ ...prev, [topicListKey]: json.data.available_topics }))
+        const topics: PracticeTopicOption[] = json.data.available_topics
+        setTopicLists((prev) => ({ ...prev, [topicListKey]: topics }))
+        applyRoadmap(topics.map((t) => t.name))
       })
       .catch((err) => {
         if (cancelled) return
         console.error('Failed to fetch topics:', err)
         setFailedTopicKey(topicListKey)
+        applyRoadmap([])
       })
     return () => {
       cancelled = true
     }
-  }, [wantsTopics, topicListKey, topicLists, failedTopicKey])
+  }, [wantsTopics, topicListKey, topicLists, failedTopicKey, roadmapTopicsPending, roadmapDay])
 
   // Fetch weak recommendations on mount
   useEffect(() => {
@@ -196,6 +228,7 @@ export default function PracticeSetup({
   }, [user?.educationMedium, hasUserSelectedMedium, medium])
 
   const handleSelectMedium = (m: PracticeMedium) => {
+    setRoadmapDay(null)
     setHasUserSelectedMedium(true)
     setMedium(m)
     setSubject(m === 'english' ? 'English' : 'Telugu')
@@ -363,12 +396,37 @@ export default function PracticeSetup({
           weakRecommendations={weakRecommendations}
           onQuickRetry={onQuickRetry}
         />
+
+        {roadmapDay && (
+          <div className="flex items-start justify-between gap-3 rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3 text-xs">
+            <p className="text-foreground">
+              <span className="font-semibold">Roadmap day {roadmapDay.day}:</span> {roadmapDay.title}
+              <span className="block mt-0.5 text-muted-foreground">
+                {!isPremium
+                  ? 'Subject set for today. Choosing today\'s topics is a Pro feature.'
+                  : !roadmapDay.topicsApplied
+                    ? 'Selecting today\'s topics…'
+                    : selectedTopics.length > 0
+                      ? `${selectedTopics.length} topic${selectedTopics.length === 1 ? '' : 's'} for today selected below.`
+                      : 'No questions on today\'s topics yet: practising the whole subject.'}
+              </span>
+            </p>
+            <button
+              type="button"
+              onClick={() => setRoadmapDay(null)}
+              className="shrink-0 font-semibold text-primary hover:underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Step 1: Choose Subject ─────────────────────────────── */}
       <SubjectSelector
         selectedSubject={subject}
         onSelectSubject={(subName) => {
+          setRoadmapDay(null)
           setSubject(subName)
           setSelectedTopics([])
           setTopicMode('all')
@@ -382,7 +440,7 @@ export default function PracticeSetup({
         subject={subject}
         topicMode={topicMode}
         selectedTopics={selectedTopics}
-        topics={topicLists[topicListKey] ?? null}
+        topics={topicLists[topicListKey]?.filter((t) => !isBrokenTopicName(t.name)) ?? null}
         topicsFailed={failedTopicKey === topicListKey}
         onRetryTopics={() => setFailedTopicKey(null)}
         isPremium={isPremium}

@@ -15,6 +15,7 @@ import { useAuth } from '@/store/auth';
 import { launchPractice } from '@/services/session-launch';
 import { colors } from '@/utils/theme';
 import { hasSubjectMethodology, websitePracticeSubject } from '@/utils/practice-subjects';
+import { matchPracticeTopics } from '@/utils/roadmap-practice';
 import type { PracticeFilterState, PracticeMode } from '@/types/practice';
 const modes: {value:PracticeMode;label:string;description:string;icon:'flash-outline'|'shuffle-outline'|'locate-outline'|'refresh-outline'|'sparkles-outline'}[]=[
   {value:'balanced',label:'Balanced',description:'Mix topics and difficulty.',icon:'flash-outline'},
@@ -23,15 +24,20 @@ const modes: {value:PracticeMode;label:string;description:string;icon:'flash-out
   {value:'random',label:'Random',description:'Mix questions from your selection.',icon:'shuffle-outline'},
   {value:'previously_incorrect',label:'Retry mistakes',description:'Retry questions you missed.',icon:'refresh-outline'},
 ];
+/** subject/topic: a suggested topic. medium/day/title/keys: a roadmap day's Practice button. */
+type PracticeParams={subject?:string;topic?:string;medium?:string;day?:string;title?:string;keys?:string};
 export default function Practice() {
-  const params=useLocalSearchParams<{subject?:string;topic?:string}>();
-  return <PracticeBuilder key={JSON.stringify([params.subject,params.topic])} params={params}/>;
+  const params=useLocalSearchParams<PracticeParams>();
+  return <PracticeBuilder key={JSON.stringify([params.subject,params.topic,params.medium,params.day])} params={params}/>;
 }
-function PracticeBuilder({params}:{params:{subject?:string;topic?:string}}) {
+function PracticeBuilder({params}:{params:PracticeParams}) {
   const {user}=useAuth();
   const requestedSubject=websitePracticeSubject(params.subject);
   const requestedTopic=(!params.subject||requestedSubject)?params.topic:undefined;
-  const [filter,setFilter]=useState<PracticeFilterState>({medium:user?.educationMedium||'english',subject:requestedSubject||(user?.educationMedium==='telugu'?'Telugu':'English'),class_levels:[],topics:requestedTopic?[requestedTopic]:[],subtopics:[],difficulty:[],question_count:25,mode:'balanced',feedback_mode:'instant',has_timer:false,duration_minutes:30});
+  const requestedMedium=params.medium==='telugu'||params.medium==='english'?params.medium:undefined;
+  // A roadmap day: its keys pick its topics once the topic list loads (choosing topics is Pro).
+  const [roadmap,setRoadmap]=useState(()=>requestedSubject&&params.day&&params.keys?{day:params.day,title:params.title??'',keys:params.keys.split('\n'),applied:false,picked:0}:null);
+  const [filter,setFilter]=useState<PracticeFilterState>({medium:requestedMedium||user?.educationMedium||'english',subject:requestedSubject||(user?.educationMedium==='telugu'?'Telugu':'English'),class_levels:[],topics:requestedTopic?[requestedTopic]:[],subtopics:[],difficulty:[],question_count:25,mode:'balanced',feedback_mode:'instant',has_timer:false,duration_minutes:30});
   const [customTopics,setCustomTopics]=useState(!!requestedTopic); const [advanced,setAdvanced]=useState(false);
   const [customCount,setCustomCount]=useState(false);
   const [suggestionsOpen,setSuggestionsOpen]=useState(false);
@@ -48,6 +54,12 @@ function PracticeBuilder({params}:{params:{subject?:string;topic?:string}}) {
   });
   const create=useMutation({mutationFn:()=>launchPractice(user!.id,()=>practiceService.create(effectiveFilter)),onSuccess:data=>router.push({pathname:'/exam',params:{kind:'practice',id:data.session.id}})});
   const data=options.data?.data; const maxQuestions=quota.data?.maxQuestions??25;
+  // Once, as soon as the plan and the topic list are known.
+  if(roadmap&&!roadmap.applied&&quota.data&&options.ready&&data){
+    const picked=premium?matchPracticeTopics(data.available_topics.map(topic=>topic.name),roadmap.keys):[];
+    setRoadmap({...roadmap,applied:true,picked:picked.length});
+    if(picked.length){update({topics:picked,subtopics:[]});setCustomTopics(true);}
+  }
   const invalidCount=filter.question_count<5||filter.question_count>maxQuestions||filter.question_count>(data?.total_matching_questions??0);
   const exhausted=!!quota.data&&!quota.data.canPractice;
   const footer=<Button icon={exhausted?'lock-closed-outline':'play-outline'} label={options.checking?'Checking questions…':exhausted?(showsPlans?'View Pro plans':'Practice limit reached'):data?.total_matching_questions===0?'No questions available':`Start practice · ${filter.question_count}`} busy={create.isPending} disabled={!quota.data||!options.ready||invalidCount||(filter.has_timer&&filter.duration_minutes<1)||(exhausted&&!showsPlans)} onPress={()=>{if(!exhausted)create.mutate();else if(showsPlans)router.push('/subscription');}}/>;
@@ -63,11 +75,15 @@ function PracticeBuilder({params}:{params:{subject?:string;topic?:string}}) {
       </View> : null}
       {/* The server's reason invites an upgrade, which store builds must not do. */}
       {exhausted&&quota.data?.reason ? <Text style={styles.hint}>{showsPlans?quota.data.reason:'You have used the free practice sessions on this account.'}</Text> : null}
-      <PracticeMediumTabs value={filter.medium} onChange={medium=>{if(medium===filter.medium)return;update({medium,subject:medium==='telugu'?'Telugu':'English',topics:[],subtopics:[],class_levels:[],difficulty:[]});setCustomTopics(false);}}/>
+      <PracticeMediumTabs value={filter.medium} onChange={medium=>{if(medium===filter.medium)return;setRoadmap(null);update({medium,subject:medium==='telugu'?'Telugu':'English',topics:[],subtopics:[],class_levels:[],difficulty:[]});setCustomTopics(false);}}/>
     </View>
+    {roadmap ? <View style={styles.roadmap}>
+      <Text style={styles.roadmapTitle}>Roadmap day {roadmap.day}: {roadmap.title}</Text>
+      <Text style={styles.hint}>{!roadmap.applied?'Selecting today’s topics…':!premium?'Subject set for today. Choosing today’s topics is a Pro feature.':roadmap.picked?`${roadmap.picked} topic${roadmap.picked===1?'':'s'} for today selected below.`:'No questions on today’s topics yet: practising the whole subject.'}</Text>
+    </View> : null}
     {quota.error ? <ErrorState error={quota.error} retry={()=>void quota.refetch()}/> : null}
     <PracticeSection step={1} title="Subject">
-      <PracticeSubjects medium={filter.medium} selected={filter.subject} onSelect={subject=>{if(subject===filter.subject)return;update({subject,topics:[],subtopics:[],class_levels:[],difficulty:[]});setCustomTopics(false);}}/>
+      <PracticeSubjects medium={filter.medium} selected={filter.subject} onSelect={subject=>{if(subject===filter.subject)return;setRoadmap(null);update({subject,topics:[],subtopics:[],class_levels:[],difficulty:[]});setCustomTopics(false);}}/>
       {options.error?<View style={{gap:8}}><Body color={colors.red}>{options.error instanceof Error?options.error.message:'Could not load question availability.'}</Body><Button secondary label="Retry question loading" onPress={()=>void options.refetch()}/></View>:<PracticeDataStatus checking={options.checking} count={data?.total_matching_questions}/>}
       {options.ready&&data?.total_matching_questions===0?<Body color={colors.red}>Try another subject, medium or filter.</Body>:null}
     </PracticeSection>
@@ -134,4 +150,5 @@ const styles=StyleSheet.create({
   switchRow:{flexDirection:'row',alignItems:'center',gap:12,paddingTop:12,borderTopWidth:1,borderTopColor:colors.border},switchCopy:{flex:1,minWidth:0,gap:3},flex:{flex:1,minWidth:0},
   disclosure:{minHeight:44,flexDirection:'row',alignItems:'center',gap:8,paddingVertical:4},pressed:{opacity:.7},
   methodologyHint:{fontSize:12,lineHeight:20,color:'#805717',backgroundColor:'#FCF4E6',padding:10,borderRadius:12},
+  roadmap:{gap:2,padding:12,borderRadius:14,borderWidth:1,borderColor:colors.primarySoft,backgroundColor:colors.card},roadmapTitle:{fontSize:13,lineHeight:20,fontWeight:'700',color:colors.ink},
 });

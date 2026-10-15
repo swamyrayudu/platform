@@ -105,7 +105,7 @@ function StudyPlan({roadmap, medium}: {roadmap: Roadmap; medium: PlanMedium}) {
       {current !== null ? <>
         <Text style={styles.eyebrow}>Today · {shortDate(today)} · Day {current} of {days.length}</Text>
         <DayContent day={days[current - 1]} large/>
-        <DayActions day={days[current - 1]} done={done.has(current)} onToggle={toggle} onPrompt={setPrompt} large/>
+        <DayActions day={days[current - 1]} medium={medium} done={done.has(current)} onToggle={toggle} onPrompt={setPrompt} large/>
       </> : <Heading>{todayNumber !== null && todayNumber < 1 ? `Starts in ${1 - todayNumber} day${todayNumber === 0 ? '' : 's'}` : '90 days complete'}</Heading>}
       <View style={styles.progressFooter}>
         <View style={styles.startRow}>
@@ -171,7 +171,7 @@ function StudyPlan({roadmap, medium}: {roadmap: Roadmap; medium: PlanMedium}) {
               {d.day === current ? <View style={styles.todayBadge}><Text style={styles.todayBadgeText}>Today</Text></View> : null}
             </View>
             <DayContent day={d}/>
-            {loaded ? <DayActions day={d} done={done.has(d.day)} onToggle={toggle} onPrompt={setPrompt}/> : null}
+            {loaded ? <DayActions day={d} medium={medium} done={done.has(d.day)} onToggle={toggle} onPrompt={setPrompt}/> : null}
           </View>;
         })}
       </View>
@@ -189,14 +189,21 @@ function DayContent({day, large}: {day: RoadmapDay; large?: boolean}) {
   </View>;
 }
 
-function DayActions({day, done, onToggle, onPrompt, large}: {day: RoadmapDay; done: boolean; onToggle: (day: number) => void; onPrompt: (day: RoadmapDay) => void; large?: boolean}) {
+/** A study day's Practice opens practice set to that day's subject and topics. */
+function openAction(day: RoadmapDay, medium: PlanMedium) {
+  if (day.action === 'practice' && day.practice) {
+    router.push({pathname: '/practice', params: {subject: day.practice.subject, medium, day: String(day.day), title: day.title, keys: day.practice.keys.join('\n')}});
+  } else if (day.action !== 'none') router.push(ACTION[day.action].href);
+}
+
+function DayActions({day, medium, done, onToggle, onPrompt, large}: {day: RoadmapDay; medium: PlanMedium; done: boolean; onToggle: (day: number) => void; onPrompt: (day: RoadmapDay) => void; large?: boolean}) {
   return <View style={[styles.actions, large && {marginTop: 6}]}>
     <Pressable accessibilityRole="checkbox" accessibilityState={{checked: done}} accessibilityLabel={`Day ${day.day} done`} onPress={() => onToggle(day.day)}
       style={[styles.pill, done && styles.pillDone]}>
       <Ionicons name={done ? 'checkbox' : 'square-outline'} size={17} color={done ? colors.green : colors.muted}/>
       <Text style={[styles.pillText, done && {color: colors.green}]}>Done</Text>
     </Pressable>
-    {day.action !== 'none' ? <Pressable accessibilityRole="link" onPress={() => router.push(ACTION[day.action as Exclude<PlanAction, 'none'>].href)}
+    {day.action !== 'none' ? <Pressable accessibilityRole="link" onPress={() => openAction(day, medium)}
       style={[styles.pill, large && styles.pillPrimary]}>
       <Text style={[styles.pillText, {color: large ? '#fff' : colors.primary}]}>{ACTION[day.action].label}</Text>
       <Ionicons name="arrow-forward" size={15} color={large ? '#fff' : colors.primary}/>

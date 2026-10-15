@@ -10,7 +10,7 @@
 //   - 'history': Student's past practice archive & retries
 // ============================================================
 
-import React, { useState } from 'react'
+import React, { use, useState } from 'react'
 import { toast } from 'sonner'
 import { useAuth } from '@/app/contexts/AuthContext'
 import { resolvePreferredMedium } from '@/lib/medium-preference'
@@ -28,7 +28,17 @@ import type {
 
 type ViewMode = 'setup' | 'exam' | 'results' | 'history'
 
-export default function PracticePage() {
+type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
+
+/** ?medium=…&day=… from a roadmap day's Practice button. */
+function roadmapLink(query: Awaited<SearchParams>): { medium: PracticeMedium; day: number } | null {
+  const medium = query.medium
+  const day = Number(query.day)
+  return (medium === 'english' || medium === 'telugu') && Number.isInteger(day) && day > 0 ? { medium, day } : null
+}
+
+export default function PracticePage({ searchParams }: { searchParams: SearchParams }) {
+  const roadmap = roadmapLink(use(searchParams))
   const { user } = useAuth()
   const { isPremium, openModal } = usePremium()
   const [view, setView] = useState<ViewMode>('setup')
@@ -272,6 +282,7 @@ export default function PracticePage() {
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       {view === 'setup' && (
         <PracticeSetup
+          roadmap={roadmap}
           onStartSession={handleStartSession}
           onQuickRetry={(topic, subject) =>
             handlePracticeTopic(
