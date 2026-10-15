@@ -12,6 +12,7 @@ interface SubmitModalProps {
   answeredCount: number
   totalQuestions: number
   isSubmitting: boolean
+  title?: string
   onClose: () => void
   onConfirm: () => void
 }
@@ -21,6 +22,7 @@ export function SubmitModal({
   answeredCount,
   totalQuestions,
   isSubmitting,
+  title = 'Submit Practice Session?',
   onClose,
   onConfirm,
 }: SubmitModalProps) {
@@ -30,7 +32,7 @@ export function SubmitModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in-50">
       <div className="w-full max-w-sm rounded-3xl border border-border bg-card p-6 shadow-2xl text-center">
         <h3 className="text-base sm:text-lg font-semibold text-foreground">
-          Submit Practice Session?
+          {title}
         </h3>
         <p className="text-xs sm:text-sm text-muted-foreground mt-2">
           You answered <strong>{answeredCount}</strong> of <strong>{totalQuestions}</strong> questions.

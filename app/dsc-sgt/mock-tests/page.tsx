@@ -29,7 +29,9 @@ import {
   Globe,
   Award,
   ListChecks,
+  FilePlus2,
 } from 'lucide-react'
+import Link from 'next/link'
 import { usePremium } from '@/app/components/dsc-sgt/PremiumContext'
 import { useAuth } from '@/app/contexts/AuthContext'
 import { resolvePreferredMedium, storeMedium } from '@/lib/medium-preference'
@@ -343,15 +345,25 @@ export default function MockTestsPage() {
           </p>
         </div>
 
-        {!isPremium && (
-          <button
-            onClick={() => openModal('mock_tests_top')}
-            className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-primary px-4 py-2 text-xs font-bold text-white shadow-sm hover:brightness-105"
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/dsc-sgt/my-tests/new"
+            className="inline-flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-2 text-xs font-bold text-foreground shadow-xs hover:bg-accent"
           >
-            <Crown className="h-3.5 w-3.5" />
-            <span>Unlock All Modules (₹599)</span>
-          </button>
-        )}
+            <FilePlus2 className="h-3.5 w-3.5 text-primary" />
+            <span>Create your own test</span>
+          </Link>
+
+          {!isPremium && (
+            <button
+              onClick={() => openModal('mock_tests_top')}
+              className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-primary px-4 py-2 text-xs font-bold text-white shadow-sm hover:brightness-105"
+            >
+              <Crown className="h-3.5 w-3.5" />
+              <span>Unlock All Modules (₹599)</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Medium Tabs ── */}

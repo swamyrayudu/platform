@@ -69,6 +69,7 @@ export default function DeleteAccountPanel() {
             <li>Your profile: name, email address, profile picture and preferences.</li>
             <li>Your practice sessions, answers, scores and progress.</li>
             <li>Your mock test attempts, results and leaderboard entries.</li>
+            <li>Tests you created in My Tests, with their questions and results.</li>
             <li>Your question reports, sign-in sessions and devices.</li>
             <li>Any remaining Pro access on the account.</li>
           </ul>

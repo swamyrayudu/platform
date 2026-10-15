@@ -33,6 +33,7 @@ import {
   FileSpreadsheet,
   ListFilter,
   Users,
+  Library,
 } from 'lucide-react'
 import { useAuth } from '@/app/contexts/AuthContext'
 import { LoadingScreen } from '@/components/ui/loading-screen'
@@ -49,6 +50,7 @@ const ADMIN_NAV = [
   { href: '/admin/topic-update', label: 'Topic update', icon: ListFilter },
   { href: '/admin/import-questions', label: 'Import', icon: Plus },
   { href: '/admin/question-feedback', label: 'Reports', icon: Flag },
+  { href: '/admin/resources', label: 'Resources', icon: Library },
 ] as const
 
 function isActive(pathname: string, href: string) {

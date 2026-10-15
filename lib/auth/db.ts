@@ -20,6 +20,7 @@ import type {
   EducationMedium,
 } from './types'
 import { AuthError } from './errors'
+import { removeAllMyTestFiles } from '@/lib/my-tests/store'
 
 // ---- Refresh token expiry -------------------------------------------
 
@@ -533,13 +534,23 @@ export async function revokeAllUserSessions(
  * Permanently delete a user's account and personal data.
  *
  * Deleting the users row cascades to sessions, devices, attempts, progress,
- * mock attempts, question usage, feedback and payment orders. Practice
+ * mock attempts, question usage, feedback, payment orders and the user's own
+ * tests and their attempts (their question files are removed first). Practice
  * sessions reference users with ON DELETE SET NULL, so they are deleted first
  * — otherwise they would survive, unowned. payment_activations also uses SET
  * NULL and is kept on purpose: the Razorpay payment reference and date, no
  * longer linked to anyone, stay for accounting as the privacy policy says.
  */
 export async function deleteUserAccount(userId: string): Promise<void> {
+  // Files in Storage do not cascade with the users row, so remove the
+  // user's own tests (My Tests) first.
+  try {
+    await removeAllMyTestFiles(userId)
+  } catch (storageError) {
+    console.error('[DB] deleteUserAccount storage error:', storageError)
+    throw new AuthError('INTERNAL_ERROR', 500)
+  }
+
   const { error: practiceError } = await supabaseAdmin
     .from('practice_sessions')
     .delete()

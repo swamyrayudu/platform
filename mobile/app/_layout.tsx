@@ -27,7 +27,7 @@ function Navigation() {
     <Stack.Protected guard={!auth.user}><Stack.Screen name="login"/></Stack.Protected>
     <Stack.Protected guard={!!auth.user && !auth.user.onboardingCompleted}><Stack.Screen name="onboarding"/></Stack.Protected>
     <Stack.Protected guard={!!auth.user && auth.user.onboardingCompleted}>
-      <Stack.Screen name="(tabs)"/><Stack.Screen name="exam"/><Stack.Screen name="result"/><Stack.Screen name="mock/[id]"/><Stack.Screen name="subscription"/>
+      <Stack.Screen name="(tabs)"/><Stack.Screen name="exam"/><Stack.Screen name="result"/><Stack.Screen name="mock/[id]"/><Stack.Screen name="subscription"/><Stack.Screen name="create-test"/><Stack.Screen name="my-test/[id]"/>
     </Stack.Protected>
     <Stack.Screen name="auth/callback"/>
   </Stack>;

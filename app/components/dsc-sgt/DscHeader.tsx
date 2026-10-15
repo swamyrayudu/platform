@@ -14,6 +14,11 @@ import {
   ShieldAlert,
   Home,
   User,
+  FilePlus2,
+  Library,
+  LayoutGrid,
+  ChevronDown,
+  Route,
 } from 'lucide-react'
 import { ModeToggle } from '@/components/mode-toggle'
 import { BrandMark } from '@/components/brand-logo'
@@ -30,6 +35,13 @@ export const DSC_NAV_ITEMS = [
   { label: 'Performance', href: '/dsc-sgt/performance', icon: BarChart3 },
 ]
 
+/** Behind "More", so the bar stays on one line. */
+export const DSC_MORE_ITEMS = [
+  { label: 'My Tests', detail: 'Create and take your own tests', href: '/dsc-sgt/my-tests', icon: FilePlus2 },
+  { label: 'Resources', detail: 'Books, study material, bit banks', href: '/dsc-sgt/resources', icon: Library },
+  { label: 'Exam roadmap', detail: 'Paper pattern, syllabus and dates', href: '/dsc-sgt/roadmap', icon: Route },
+]
+
 function isItemActive(pathname: string, href: string) {
   return href === '/dsc-sgt' ? pathname === href : pathname.startsWith(href)
 }
@@ -40,26 +52,44 @@ export default function DscHeader() {
   const { isPremium, openModal } = usePremium()
   const [profileOpen, setProfileOpen] = useState(false)
   const profileRef = useRef<HTMLDivElement>(null)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const moreRef = useRef<HTMLDivElement>(null)
 
-  // Close the profile dropdown on an outside click
+  // Close either dropdown on an outside click, and both on Escape
   useEffect(() => {
     function handler(e: MouseEvent) {
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
         setProfileOpen(false)
       }
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setMoreOpen(false)
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setProfileOpen(false)
+        setMoreOpen(false)
+      }
     }
     document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', handler)
+      document.removeEventListener('keydown', onKey)
+    }
   }, [])
 
-  // Navigating dismisses the profile menu. It closes on tap already; this
-  // covers the routes we do not control — browser back/forward, a redirect.
+  // Navigating dismisses the menus. They close on tap already; this covers
+  // the routes we do not control — browser back/forward, a redirect.
   // Adjusting during render rather than in an effect avoids the extra pass.
   const [lastPath, setLastPath] = useState(pathname)
   if (lastPath !== pathname) {
     setLastPath(pathname)
     setProfileOpen(false)
+    setMoreOpen(false)
   }
+
+  const moreActive = DSC_MORE_ITEMS.some((item) => isItemActive(pathname, item.href))
 
   // A running exam owns the whole screen. The app header costs 56px of it and
   // offers nothing a candidate mid-paper can use — the exam has its own bar
@@ -99,17 +129,70 @@ export default function DscHeader() {
                 key={item.href}
                 href={item.href}
                 aria-current={active ? 'page' : undefined}
-                className={`flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
+                aria-label={item.label}
+                title={item.label}
+                className={`flex items-center gap-2 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors xl:px-3.5 ${
                   active
                     ? 'bg-card text-foreground shadow-xs'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 <Icon className="h-3.5 w-3.5" strokeWidth={1.7} />
-                <span>{item.label}</span>
+                {/* Labels do not fit beside the brand below 1280px, so they start at xl. */}
+                <span className="hidden xl:inline">{item.label}</span>
               </Link>
             )
           })}
+
+          {/* More: the pages that do not fit on the bar */}
+          <div className="relative" ref={moreRef}>
+            <button
+              type="button"
+              onClick={() => setMoreOpen((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={moreOpen}
+              aria-label="More pages"
+              title="More"
+              className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors xl:px-3.5 ${
+                moreActive || moreOpen
+                  ? 'bg-card text-foreground shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" strokeWidth={1.7} />
+              <span className="hidden xl:inline">More</span>
+              <ChevronDown className={`h-3 w-3 transition-transform ${moreOpen ? 'rotate-180' : ''}`} strokeWidth={2} />
+            </button>
+
+            {moreOpen && (
+              <div
+                role="menu"
+                className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-border bg-popover p-1.5 text-popover-foreground shadow-xl animate-in fade-in-50 zoom-in-95"
+              >
+                {DSC_MORE_ITEMS.map(({ label, detail, href, icon: Icon }) => {
+                  const active = isItemActive(pathname, href)
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      role="menuitem"
+                      aria-current={active ? 'page' : undefined}
+                      onClick={() => setMoreOpen(false)}
+                      className={`flex items-start gap-3 rounded-xl px-3 py-2.5 transition-colors ${
+                        active ? 'bg-accent text-accent-foreground' : 'hover:bg-accent hover:text-accent-foreground'
+                      }`}
+                    >
+                      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" strokeWidth={1.7} />
+                      <span className="min-w-0">
+                        <span className="block text-xs font-semibold text-foreground">{label}</span>
+                        <span className="block text-[11px] text-muted-foreground">{detail}</span>
+                      </span>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </nav>
 
         {/* ── Right: actions ── */}
@@ -211,6 +294,20 @@ function ProfileMenu({
           <User className="h-4 w-4 shrink-0" strokeWidth={1.7} />
           <span>My profile</span>
         </Link>
+
+        {/* The "More" pages: from lg up they are in the header's More menu, so
+            only below it, where the bottom bar does not list them, are they here. */}
+        {DSC_MORE_ITEMS.map(({ href, label, icon: Icon }) => (
+          <Link
+            key={href}
+            href={href}
+            onClick={onClose}
+            className="flex min-h-10 w-full items-center gap-2.5 rounded-xl px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground lg:hidden"
+          >
+            <Icon className="h-4 w-4 shrink-0" strokeWidth={1.7} />
+            <span>{label}</span>
+          </Link>
+        ))}
 
         <button
           onClick={() => {
