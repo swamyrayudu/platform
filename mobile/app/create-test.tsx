@@ -29,6 +29,9 @@ const MAX_FILE_BYTES = 2 * 1024 * 1024;
 /** The real paper: 160 questions in 150 minutes. */
 const defaultMinutes = (count: number) => Math.max(5, Math.round(count * 150 / 160));
 const shortSubject = (name: string) => name === 'Educational Psychology + Perspectives in Education' ? 'Psychology + Perspectives' : name;
+/** A mixed test across the whole paper; the website gives the AI the real paper's proportions. */
+const ALL = 'All subjects';
+const MAX_TOPICS = 30;
 
 export default function CreateTest() {
   const {user} = useAuth();
@@ -41,6 +44,7 @@ export default function CreateTest() {
   const [difficulty, setDifficulty] = useState<PromptRequest['difficulty']>('mixed');
   const [topics, setTopics] = useState<string[]>([]);
   const [allTopics, setAllTopics] = useState(false);
+  const [topicDraft, setTopicDraft] = useState('');
   const [checked, setChecked] = useState<PastedCheck | null>(null);
   const [source, setSource] = useState<string | null>(null);
   const [pasting, setPasting] = useState(false);
@@ -49,10 +53,11 @@ export default function CreateTest() {
   const [fileError, setFileError] = useState<string | null>(null);
 
   const subjectInfo = PRACTICE_SUBJECTS.find(s => s.name === subject) ?? PRACTICE_SUBJECTS[0];
-  const topicList = useQuery({queryKey: ['test-topics', medium, subject], queryFn: () => myTestsService.topics(medium, subject), staleTime: 10 * 60 * 1000});
-  const available = topicList.data?.data.available_topics ?? [];
+  const all = subject === ALL;
+  const topicList = useQuery({queryKey: ['test-topics', medium, subject], queryFn: () => myTestsService.topics(medium, subject), staleTime: 10 * 60 * 1000, enabled: !all});
+  const available = all ? [] : (topicList.data?.data.available_topics ?? []).filter(t => !topics.includes(t.name));
 
-  const promptRequest: PromptRequest = {subject: medium === 'telugu' ? `${subjectInfo.name} (${subjectInfo.teluguName})` : subjectInfo.name, medium, topics, question_count: count, difficulty};
+  const promptRequest: PromptRequest = {subject: all ? ALL : medium === 'telugu' ? `${subjectInfo.name} (${subjectInfo.teluguName})` : subjectInfo.name, medium, topics, question_count: count, difficulty};
   const prompt = useMutation({mutationFn: () => myTestsService.prompt(promptRequest)});
   const accept = (result: PastedCheck, from: string) => { setChecked(result); setSource(from); if (result.questions.length) setMinutes(defaultMinutes(result.questions.length)); };
   const readFile = useMutation({
@@ -75,6 +80,15 @@ export default function CreateTest() {
 
   // What the test is about changes the prompt.
   const resetPrompt = () => prompt.reset();
+  /** Typed topics: one, or several separated by commas or new lines. */
+  const addTyped = () => {
+    const typed = topicDraft.split(/[,\n]/).map(t => t.trim().replace(/\s+/g, ' ')).filter(t => t && t.length <= 120);
+    if (!typed.length) return;
+    setTopics([...new Set([...topics, ...typed])].slice(0, MAX_TOPICS));
+    setTopicDraft('');
+    resetPrompt();
+  };
+  const chooseSubject = (name: string) => { setSubject(name); setTopics([]); setAllTopics(false); resetPrompt(); };
   const ready = (checked?.questions.length ?? 0) > 0;
   const canNext = step === 0 ? !!title.trim() : step === 2 ? ready : true;
   const back = () => { if (step > 0) setStep(step - 1); else if (router.canGoBack()) router.back(); else router.replace('/my-tests'); };
@@ -106,9 +120,17 @@ export default function CreateTest() {
       </Field>
       <Field label="Subject">
         <View style={styles.grid}>
+          <Pressable accessibilityRole="radio" accessibilityState={{selected: all}} onPress={() => chooseSubject(ALL)} style={[styles.subject, styles.subjectAll, all && styles.subjectOn]}>
+            <View style={[styles.subjectIcon, {backgroundColor: colors.primarySoft}]}><Ionicons name="apps-outline" size={18} color={colors.primary}/></View>
+            <View style={{flex: 1, minWidth: 0}}>
+              <Text style={[styles.subjectText, all && {color: colors.primary}]}>All subjects</Text>
+              <Text style={styles.hint}>A mixed test, like the real paper</Text>
+            </View>
+            {all ? <Ionicons name="checkmark-circle" size={18} color={colors.primary}/> : null}
+          </Pressable>
           {PRACTICE_SUBJECTS.map(s => {
             const on = s.name === subject; const style = subjectStyle(s.name);
-            return <Pressable key={s.name} accessibilityRole="radio" accessibilityState={{selected: on}} onPress={() => { setSubject(s.name); setTopics([]); setAllTopics(false); resetPrompt(); }}
+            return <Pressable key={s.name} accessibilityRole="radio" accessibilityState={{selected: on}} onPress={() => chooseSubject(s.name)}
               style={[styles.subject, on && styles.subjectOn]}>
               <View style={[styles.subjectIcon, {backgroundColor: style.color + '18'}]}><Ionicons name={style.icon} size={18} color={style.color}/></View>
               <Text style={[styles.subjectText, on && {color: colors.primary}]} numberOfLines={2}>{shortSubject(s.name)}</Text>
@@ -135,21 +157,35 @@ export default function CreateTest() {
       <Field label="Difficulty">
         <Segmented items={DIFFICULTIES} value={difficulty} onChange={d => { setDifficulty(d); resetPrompt(); }}/>
       </Field>
-      <Field label="Topics" hint={topics.length ? `${topics.length} chosen` : 'Optional. Leave all unticked for the whole subject.'}
-        action={topics.length ? <Pressable accessibilityRole="button" onPress={() => { setTopics([]); resetPrompt(); }}><Text style={styles.link}>Clear</Text></Pressable> : undefined}>
-        {topicList.isPending ? <ActivityIndicator color={colors.primary}/> : null}
-        {topicList.data && !available.length ? <Text style={styles.hint}>No topic list for this subject. The test will cover the whole subject.</Text> : null}
-        <View style={styles.wrap}>
-          {(allTopics ? available : available.slice(0, 10)).map(t => {
-            const on = topics.includes(t.name);
-            return <Pressable key={t.name} accessibilityRole="checkbox" accessibilityState={{checked: on}} onPress={() => { setTopics(on ? topics.filter(x => x !== t.name) : [...topics, t.name].slice(0, 30)); resetPrompt(); }}
-              style={[styles.topic, on && styles.topicOn]}>
-              <Ionicons name={on ? 'checkbox' : 'square-outline'} size={16} color={on ? colors.primary : colors.muted}/>
-              <Text style={[styles.topicText, on && {color: colors.primary, fontWeight: '700'}]} numberOfLines={2}>{t.name}</Text>
-            </Pressable>;
-          })}
+      <Field label="Topics" hint={topics.length ? `${topics.length} of ${MAX_TOPICS} chosen` : `Optional. Type the topics you want, or leave empty for ${all ? 'the whole syllabus' : 'the whole subject'}.`}
+        action={topics.length ? <Pressable accessibilityRole="button" onPress={() => { setTopics([]); resetPrompt(); }}><Text style={styles.link}>Clear all</Text></Pressable> : undefined}>
+        <View style={styles.addRow}>
+          <TextInput accessibilityLabel="Type a topic" value={topicDraft} onChangeText={setTopicDraft} onSubmitEditing={addTyped} returnKeyType="done" blurOnSubmit={false}
+            placeholder={all ? 'e.g. Piaget, Sandhulu, Fractions' : 'Type a topic, e.g. Photosynthesis'} placeholderTextColor={colors.muted} maxLength={300} style={[styles.input, styles.addInput]}/>
+          <Pressable accessibilityRole="button" accessibilityLabel="Add topic" disabled={!topicDraft.trim() || topics.length >= MAX_TOPICS} onPress={addTyped}
+            style={[styles.addButton, (!topicDraft.trim() || topics.length >= MAX_TOPICS) && {opacity: .4}]}>
+            <Ionicons name="add" size={22} color="#fff"/>
+          </Pressable>
         </View>
-        {available.length > 10 ? <Pressable accessibilityRole="button" onPress={() => setAllTopics(!allTopics)}><Text style={styles.link}>{allTopics ? 'Show fewer topics' : `Show all ${available.length} topics`}</Text></Pressable> : null}
+        <Text style={styles.hint}>Add several at once with commas.</Text>
+        {topics.length ? <View style={styles.wrap}>
+          {topics.map(t => <Pressable key={t} accessibilityRole="button" accessibilityLabel={`Remove ${t}`} onPress={() => { setTopics(topics.filter(x => x !== t)); resetPrompt(); }} style={[styles.topic, styles.topicOn]}>
+            <Text style={[styles.topicText, {color: colors.primary, fontWeight: '700'}]} numberOfLines={2}>{t}</Text>
+            <Ionicons name="close-circle" size={16} color={colors.primary}/>
+          </Pressable>)}
+        </View> : null}
+        {!all && topicList.isPending ? <ActivityIndicator color={colors.primary}/> : null}
+        {available.length ? <>
+          <Text style={styles.suggestTitle}>Or tap a topic from the question bank</Text>
+          <View style={styles.wrap}>
+            {(allTopics ? available : available.slice(0, 10)).map(t => <Pressable key={t.name} accessibilityRole="button" accessibilityLabel={`Add ${t.name}`} disabled={topics.length >= MAX_TOPICS}
+              onPress={() => { setTopics([...topics, t.name].slice(0, MAX_TOPICS)); resetPrompt(); }} style={styles.topic}>
+              <Ionicons name="add" size={15} color={colors.muted}/>
+              <Text style={styles.topicText} numberOfLines={2}>{t.name}</Text>
+            </Pressable>)}
+          </View>
+          {available.length > 10 ? <Pressable accessibilityRole="button" onPress={() => setAllTopics(!allTopics)}><Text style={styles.link}>{allTopics ? 'Show fewer topics' : `Show all ${available.length} topics`}</Text></Pressable> : null}
+        </> : null}
       </Field>
     </> : null}
 
@@ -274,6 +310,11 @@ const styles = StyleSheet.create({
   grid: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
   subject: {flexGrow: 1, flexBasis: '46%', flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 56, padding: 10, borderRadius: 14, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.card},
   subjectOn: {borderColor: colors.primary, backgroundColor: colors.primarySoft},
+  subjectAll: {flexBasis: '100%'},
+  addRow: {flexDirection: 'row', alignItems: 'center', gap: 8},
+  addInput: {flex: 1, minHeight: 48},
+  addButton: {width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary},
+  suggestTitle: {fontSize: 12, fontWeight: '700', color: colors.muted, marginTop: 4},
   subjectIcon: {width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center'},
   subjectText: {flex: 1, fontSize: 13, lineHeight: 17, fontWeight: '600', color: colors.ink},
   counts: {flexDirection: 'row', gap: 8},

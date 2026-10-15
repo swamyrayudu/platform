@@ -21,8 +21,13 @@ import {
 
 export const RESOURCES_BUCKET = 'resources'
 
-/** Signed links last an hour, long enough to read a book in the browser viewer. */
+/** Admin previews: an hour, to check a file. */
 const LINK_SECONDS = 60 * 60
+/**
+ * Candidates: a minute. The website and app viewers fetch the file at once,
+ * so a link copied out of them stops working almost immediately.
+ */
+const CANDIDATE_LINK_SECONDS = 60
 
 const BASE_COLUMNS = 'id, title, description, category, subject, medium, access, file_name, size_bytes, created_at'
 const PUBLIC_COLUMNS = `${BASE_COLUMNS}, folder_id`
@@ -192,19 +197,19 @@ export async function createPreviewUrl(id: string): Promise<string | null> {
 }
 
 /**
- * A short-lived link to a published resource, or why there is none.
- * `download` makes the browser save the file instead of opening it.
+ * A one-minute link to a published resource for the in-app viewers, or why
+ * there is none. The file is never offered as a browser download.
  */
-export async function createAccessUrl(id: string, isPremium: boolean, download: boolean):
+export async function createAccessUrl(id: string, isPremium: boolean):
   Promise<{ url: string } | { error: 'NOT_FOUND' | 'PRO_REQUIRED' }> {
   const { data, error } = await supabaseAdmin.from('resources')
-    .select('storage_path, file_name, access, is_published').eq('id', id).maybeSingle()
+    .select('storage_path, access, is_published').eq('id', id).maybeSingle()
   if (error) throw error
   if (!data || !data.is_published) return { error: 'NOT_FOUND' }
   if (data.access === 'pro' && !isPremium) return { error: 'PRO_REQUIRED' }
 
   const { data: signed, error: signError } = await supabaseAdmin.storage.from(RESOURCES_BUCKET)
-    .createSignedUrl(data.storage_path as string, LINK_SECONDS, download ? { download: data.file_name as string } : undefined)
+    .createSignedUrl(data.storage_path as string, CANDIDATE_LINK_SECONDS)
   if (signError || !signed) throw signError ?? new Error('Could not sign the link')
   // Counting is best effort: a failed count must not block the reader.
   await supabaseAdmin.rpc('increment_resource_downloads', { p_id: id }).then(() => undefined, () => undefined)

@@ -5,14 +5,16 @@
 // ============================================================
 // Folders the admin made (e.g. "Previous papers") come first, then files in
 // no folder; opening a folder shows its files. Search looks in every folder.
+// PDFs are read in-page (PdfViewer), never downloaded or handed to the
+// browser's own viewer.
 // ============================================================
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { toast } from 'sonner'
-import { ChevronLeft, ChevronRight, Crown, Download, ExternalLink, FileText, Folder, Library, Loader2, Search } from 'lucide-react'
+import { BookOpen, ChevronLeft, ChevronRight, Crown, FileText, Folder, Library, Loader2, Search } from 'lucide-react'
 import { usePremium } from '@/app/components/dsc-sgt/PremiumContext'
 import { RESOURCE_CATEGORIES, categoryLabel, formatBytes, type PublicResource, type ResourceFolder } from '@/lib/resources/config'
-import { openSignedLink, requestLink } from '@/lib/resources/open-link'
+import { requestLink } from '@/lib/resources/open-link'
+import PdfViewer from '@/app/components/dsc-sgt/resources/PdfViewer'
 
 type Medium = 'all' | 'telugu' | 'english'
 
@@ -32,7 +34,7 @@ export default function ResourcesPage() {
   const [medium, setMedium] = useState<Medium>('all')
   const [subject, setSubject] = useState('all')
   const [search, setSearch] = useState('')
-  const [opening, setOpening] = useState<string | null>(null)
+  const [viewing, setViewing] = useState<{ id: string; title: string } | null>(null)
   const [folders, setFolders] = useState<ResourceFolder[]>([])
   const [folderId, setFolderId] = useState<string | null>(null)
 
@@ -71,21 +73,13 @@ export default function ResourcesPage() {
     [resources]
   )
 
-  const open = async (r: PublicResource, download: boolean) => {
-    if (r.access === 'pro' && !isPremium) {
-      openModal('resources')
-      return
-    }
-    setOpening(`${r.id}:${download}`)
-    try {
-      await openSignedLink(() => requestLink(`/api/dsc-sgt/resources/${r.id}/link`, { download }), download)
-    } catch (err) {
-      if ((err as { code?: string })?.code === 'PRO_REQUIRED') openModal('resources')
-      else toast.error(err instanceof Error ? err.message : 'Could not open this resource.')
-    } finally {
-      setOpening(null)
-    }
+  const open = (r: PublicResource) => {
+    if (r.access === 'pro' && !isPremium) openModal('resources')
+    else setViewing({ id: r.id, title: r.title })
   }
+  const viewingId = viewing?.id
+  const getUrl = useCallback(() => requestLink(`/api/dsc-sgt/resources/${viewingId}/link`), [viewingId])
+  const closeViewer = useCallback(() => setViewing(null), [])
 
   const tab = (value: string, text: string, count: number) => (
     <button
@@ -225,14 +219,9 @@ export default function ResourcesPage() {
                         <Crown className="h-3.5 w-3.5" /> Unlock with Pro
                       </button>
                     ) : (
-                      <>
-                        <button type="button" onClick={() => open(r, false)} disabled={opening !== null} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60 cursor-pointer">
-                          {opening === `${r.id}:false` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />} Open
-                        </button>
-                        <button type="button" onClick={() => open(r, true)} disabled={opening !== null} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-border px-4 text-xs font-semibold text-foreground hover:bg-accent disabled:opacity-60 cursor-pointer">
-                          {opening === `${r.id}:true` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} Download
-                        </button>
-                      </>
+                      <button type="button" onClick={() => open(r)} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground hover:bg-primary/90 cursor-pointer">
+                        <BookOpen className="h-3.5 w-3.5" /> Read
+                      </button>
                     )}
                   </div>
                 </article>
@@ -241,6 +230,7 @@ export default function ResourcesPage() {
           </div>
         </>
       )}
+      {viewing && <PdfViewer title={viewing.title} getUrl={getUrl} onClose={closeViewer} />}
     </main>
   )
 }

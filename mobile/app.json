@@ -3,7 +3,7 @@
     "name": "RSD Education",
     "slug": "rsd-education",
     "scheme": "rsdeducation",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "icon": "./assets/icon.png",
     "platforms": ["android", "ios"],
     "orientation": "portrait",
@@ -11,7 +11,7 @@
     "ios": { "bundleIdentifier": "com.rsdeducation.student", "supportsTablet": true },
     "android": {
       "package": "com.rsdeducation.student",
-      "versionCode": 3,
+      "versionCode": 4,
       "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#2E2B55" },
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",

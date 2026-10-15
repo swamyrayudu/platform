@@ -14,6 +14,7 @@ import { EXAM_DATES, EXAM_DATES_UPDATED, EXAM_PARTS, SYLLABUS_SOURCE } from '@/l
 import { DAILY_HABITS, PLAN_PHASES, ROUTINE_TASKS, SUBJECT_LABEL, getStudyPlan } from '@/lib/study-plan'
 import { studyPrompt } from '@/lib/study-prompt'
 import { partSummary } from '@/lib/roadmap-summary'
+import { PATTERN_FACTS, syllabusFor } from '@/lib/exam-syllabus'
 
 export const GET = requireAuth(async (request) => {
   const medium = new URL(request.url).searchParams.get('medium') === 'telugu' ? 'telugu' : 'english'
@@ -43,6 +44,9 @@ export const GET = requireAuth(async (request) => {
       dates: EXAM_DATES,
       dates_updated: EXAM_DATES_UPDATED,
       source: SYLLABUS_SOURCE,
+      // The full syllabus in this medium (app 1.0.3+). `parts` stays for older apps.
+      syllabus: syllabusFor(medium),
+      facts: PATTERN_FACTS,
     },
   })
 })

@@ -208,19 +208,31 @@ const DIFFICULTY_TEXT: Record<PromptOptions['difficulty'], string> = {
   hard: 'Hard',
 }
 
+/** The subject value for a mixed test across the whole paper. */
+export const ALL_SUBJECTS = 'All subjects'
+export const isAllSubjects = (subject: string) => subject.trim().toLowerCase().startsWith('all subjects')
+
+/** A test across the whole paper follows the real paper's share of questions. */
+const ALL_SUBJECTS_LINE = 'All subjects of the AP DSC SGT paper, in the official proportions: GK & Current Affairs 10%, '
+  + 'Perspectives in Education 5%, Educational Psychology 10%, and 15% each for Telugu, English, Mathematics, '
+  + 'Science and Social Studies (each of these five: two-thirds content, one-third teaching methodology)'
+
 /** The prompt users paste into an AI chat tool to prepare their questions. */
 export function buildPrompt({ subject, medium, topics, questionCount, difficulty, output = 'file' }: PromptOptions): string {
+  const all = isAllSubjects(subject)
   const language = medium === 'telugu' ? 'Telugu (తెలుగు)' : 'English'
   const topicLine = topics.length
     ? topics.join(', ')
-    : 'cover the whole syllabus of this subject evenly'
+    : all ? 'cover every part of the syllabus' : 'cover the whole syllabus of this subject evenly'
   return [
     'You are an expert question setter for the Andhra Pradesh DSC SGT (Secondary Grade Teacher) recruitment exam.',
     '',
     `Create ${questionCount} multiple-choice questions.`,
-    `- Subject: ${subject}`,
+    `- Subject: ${all ? ALL_SUBJECTS_LINE : subject}`,
     `- Topics: ${topicLine}`,
-    `- Language: write every question, option and explanation in ${language}.`,
+    all
+      ? `- Language: write every question, option and explanation in ${language}, except the English questions, which are in English, and the Telugu questions, which are in Telugu.`
+      : `- Language: write every question, option and explanation in ${language}.`,
     `- Difficulty: ${DIFFICULTY_TEXT[difficulty]}.`,
     '- Standard: AP DSC SGT exam level, based on the AP SCERT school syllabus.',
     '',

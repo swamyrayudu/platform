@@ -7,7 +7,8 @@
 //   Study plan               app/components/dsc-sgt/roadmap/StudyPlan.tsx,
 //                            with a medium picker; the Telugu-medium plan
 //                            has its topics in Telugu
-//   Exam pattern & syllabus  app/components/dsc-sgt/roadmap/ExamOverview.tsx
+//   Exam pattern & syllabus  app/components/dsc-sgt/roadmap/ExamOverview.tsx,
+//                            the full syllabus in the chosen medium
 // The medium opens on the one the candidate registered with, as Practice does.
 // ============================================================
 
@@ -48,19 +49,18 @@ export default function RoadmapPage() {
           </div>
           <p className="mt-1 text-xs text-muted-foreground">AP DSC 2026 · SGT</p>
         </div>
-        {tab === 'plan' && (
-          <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-            Medium
-            <select
-              value={medium}
-              onChange={(e) => chooseMedium(e.target.value as PlanMedium)}
-              className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-semibold text-foreground cursor-pointer"
-            >
-              <option value="telugu">Telugu</option>
-              <option value="english">English</option>
-            </select>
-          </label>
-        )}
+        {/* The medium sets the plan's topics and the syllabus language, on both tabs. */}
+        <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+          Medium
+          <select
+            value={medium}
+            onChange={(e) => chooseMedium(e.target.value as PlanMedium)}
+            className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-semibold text-foreground cursor-pointer"
+          >
+            <option value="telugu">Telugu</option>
+            <option value="english">English</option>
+          </select>
+        </label>
       </header>
 
       <div role="tablist" aria-label="Exam roadmap" className="mb-6 mt-5 flex gap-6 border-b border-border">
@@ -80,7 +80,7 @@ export default function RoadmapPage() {
         ))}
       </div>
 
-      {tab === 'plan' ? <StudyPlan key={medium} medium={medium} /> : <ExamOverview />}
+      {tab === 'plan' ? <StudyPlan key={medium} medium={medium} /> : <ExamOverview medium={medium} />}
     </main>
   )
 }

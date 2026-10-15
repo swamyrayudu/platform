@@ -13,9 +13,15 @@ export interface RoadmapDay {
   action: PlanAction; prompt: string;
 }
 export interface ExamPart {
-  id: string; name: string; teluguName: string; marks: number;
+  id: string; name: string; teluguName?: string; marks: number;
   split?: { content: number; methodology: number };
   units: string[]; methodologyUnits?: string[]; note?: string;
+}
+export interface SyllabusUnit { title: string; topics: string[] }
+export interface SyllabusPart {
+  id: string; name: string; teluguName: string; marks: number; questions: number;
+  split?: { content: number; methodology: number }; note?: string;
+  content: SyllabusUnit[]; methodology?: SyllabusUnit[];
 }
 export interface Roadmap {
   medium: PlanMedium;
@@ -28,6 +34,9 @@ export interface Roadmap {
     parts: ExamPart[];
     dates: { label: string; date: string | null; note?: string }[];
     dates_updated: string; source: string;
+    /** The full syllabus in the requested medium (servers from Oct 2026). */
+    syllabus?: SyllabusPart[];
+    facts?: { label: string; value: string }[];
   };
 }
 

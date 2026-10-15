@@ -14,7 +14,7 @@ import { toast } from 'sonner'
 import { Check, Copy, FileSpreadsheet, Loader2, Upload } from 'lucide-react'
 import { SUBJECT_LIST } from '@/app/components/dsc-sgt/practice/setup/SubjectSelector'
 import {
-  MY_TEST_LIMITS, MY_TEST_QUESTION_COUNTS, buildPrompt, defaultDurationMinutes,
+  ALL_SUBJECTS, MY_TEST_LIMITS, MY_TEST_QUESTION_COUNTS, buildPrompt, defaultDurationMinutes, isAllSubjects,
   type MyTestMedium, type PromptOptions, type ReadResult,
 } from '@/lib/my-tests/format'
 import { readQuestionFiles } from '@/lib/my-tests/read-upload'
@@ -60,11 +60,14 @@ export default function CreateTestForm() {
   const [readError, setReadError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
+  const all = isAllSubjects(subject)
   const subjectConfig = SUBJECT_LIST.find((s) => s.name === subject) ?? SUBJECT_LIST[0]
-  const subjectLabel = medium === 'telugu' ? `${subjectConfig.name} (${subjectConfig.teluguName})` : subjectConfig.name
+  const subjectLabel = all ? ALL_SUBJECTS : medium === 'telugu' ? `${subjectConfig.name} (${subjectConfig.teluguName})` : subjectConfig.name
 
   // Topic ideas from the question bank for this subject and medium, largest first.
   useEffect(() => {
+    // A mixed test has no single topic list; its topics are typed in.
+    if (isAllSubjects(subject)) return
     let cancelled = false
     const params = new URLSearchParams({ medium, subject, fields: 'topics' })
     fetch(`/api/dsc-sgt/practice/filters?${params}`)
@@ -175,6 +178,7 @@ export default function CreateTestForm() {
               onChange={(e) => { setSubject(e.target.value); setTopics([]) }}
               className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground"
             >
+              <option value={ALL_SUBJECTS}>All subjects — like the real paper</option>
               {SUBJECT_LIST.map((s) => (
                 <option key={s.name} value={s.name}>{medium === 'telugu' ? `${s.teluguName} — ${s.name}` : s.name}</option>
               ))}
@@ -204,11 +208,11 @@ export default function CreateTestForm() {
                 ))}
               </div>
             )}
-            {suggestions.length > 0 && (
+            {!all && suggestions.length > 0 && (
               <div className="mt-3">
                 <p className="text-[11px] text-muted-foreground">Popular topics in our question bank:</p>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {suggestions.filter((t) => !topics.includes(t)).map((t) => (
+                  {(all ? [] : suggestions).filter((t) => !topics.includes(t)).map((t) => (
                     <button key={t} type="button" onClick={() => toggleTopic(t)} className="rounded-lg border border-border/70 px-2.5 py-1 text-[11px] text-muted-foreground hover:text-foreground cursor-pointer">
                       + {t}
                     </button>

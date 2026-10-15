@@ -1,7 +1,9 @@
 // ============================================================
-// app/api/dsc-sgt/resources/[id]/link/route.ts — A link to open or save a PDF
+// app/api/dsc-sgt/resources/[id]/link/route.ts — A link for the PDF viewers
 // ============================================================
-// POST { download?: boolean } → { url }, signed for one hour.
+// POST → { url }, signed for one minute. Only the website's and the app's
+// own viewers use it (and the app's private download); it is never offered
+// as a browser download. A `download` field from older apps is ignored.
 // Pro resources need an active Pro subscription; this is the only check
 // that matters, because the bucket is private and the URL expires.
 // ============================================================
@@ -15,8 +17,7 @@ export const POST = requireAuth<{ id: string }>(async (request, { params }, { us
   try {
     const { id } = await params
     if (!/^[0-9a-f-]{36}$/i.test(id)) return NextResponse.json({ success: false, error: 'Resource not found.' }, { status: 404 })
-    const body = await request.json().catch(() => null)
-    const result = await createAccessUrl(id, isUserPremium(user), body?.download === true)
+    const result = await createAccessUrl(id, isUserPremium(user))
     if ('error' in result) {
       return result.error === 'PRO_REQUIRED'
         ? NextResponse.json({ success: false, code: 'PRO_REQUIRED', error: 'This resource is for Pro members.' }, { status: 403 })

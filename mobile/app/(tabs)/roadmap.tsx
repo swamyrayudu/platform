@@ -15,7 +15,7 @@ import { roadmapService } from '@/services/learning-service';
 import { roadmapProgress, type RoadmapProgress } from '@/services/roadmap-progress';
 import { DAY_MS, dayStart, isoDate, parseIso, planDayNumber, shiftIso, shortDate, weeksOf } from '@/utils/roadmap';
 import { colors } from '@/utils/theme';
-import type { PlanAction, PlanMedium, PlanSubject, Roadmap, RoadmapDay } from '@/types/learning';
+import type { PlanAction, PlanMedium, PlanSubject, Roadmap, RoadmapDay, SyllabusPart, SyllabusUnit } from '@/types/learning';
 
 const SUBJECT_COLOR: Record<PlanSubject, string> = {
   psychology: '#8B5CF6', perspectives: '#C026D3', mathematics: '#3B82F6', telugu: '#F97316', science: '#10B981',
@@ -35,13 +35,14 @@ export default function RoadmapScreen() {
   return <Screen title="Exam roadmap" refreshing={roadmap.isRefetching} onRefresh={() => void roadmap.refetch()}
     pageHeader={<BackHeader title="Exam roadmap" subtitle="AP DSC 2026 · SGT" fallback="/more"/>}>
     <Segmented value={tab} onChange={setTab} items={[{value: 'plan', label: 'Study plan'}, {value: 'exam', label: 'Exam pattern'}]}/>
-    {tab === 'plan' ? <View style={styles.mediumRow}>
+    {/* The medium sets the plan's topics and the syllabus language. */}
+    <View style={styles.mediumRow}>
       <Text style={styles.muted}>Medium</Text>
       <Segmented small value={medium} onChange={setMedium} items={[{value: 'telugu', label: 'Telugu'}, {value: 'english', label: 'English'}]}/>
-    </View> : null}
+    </View>
     {roadmap.isPending ? <Loading/> : null}
     {roadmap.error ? <ErrorState error={roadmap.error} retry={() => void roadmap.refetch()}/> : null}
-    {roadmap.data ? (tab === 'plan' ? <StudyPlan key={medium} roadmap={roadmap.data} medium={medium}/> : <ExamPattern roadmap={roadmap.data}/>) : null}
+    {roadmap.data ? (tab === 'plan' ? <StudyPlan key={medium} roadmap={roadmap.data} medium={medium}/> : <ExamPattern roadmap={roadmap.data} medium={medium}/>) : null}
   </Screen>;
 }
 
@@ -236,10 +237,31 @@ function IconButton({icon, label, onPress, disabled}: {icon: 'add' | 'remove' | 
   </Pressable>;
 }
 
-function ExamPattern({roadmap}: {roadmap: Roadmap}) {
-  const {pattern, parts, dates, dates_updated, source} = roadmap.exam;
+/** The older server shape (units as plain lines), for before the full syllabus is deployed. */
+function fallbackSyllabus(roadmap: Roadmap): SyllabusPart[] {
+  const q = (marks: number) => Math.round(marks / roadmap.exam.pattern.marks_per_question);
+  return roadmap.exam.parts.map(p => ({
+    id: p.id, name: p.name, teluguName: p.teluguName ?? p.name, marks: p.marks, questions: q(p.marks), split: p.split, note: p.note,
+    content: p.units.map(u => ({title: u, topics: []})), methodology: p.methodologyUnits?.map(u => ({title: u, topics: []})),
+  }));
+}
+
+function UnitList({heading, units}: {heading: string; units: SyllabusUnit[]}) {
+  return <View style={{gap: 8}}>
+    <Text style={styles.unitHeading}>{heading}</Text>
+    {units.map((u, i) => <View key={u.title} style={styles.unitCard}>
+      <Text style={styles.unitTitle}><Text style={styles.unitNumber}>{i + 1}. </Text>{u.title}</Text>
+      {u.topics.map(t => <View key={t} style={styles.topicRow}><Text style={styles.bullet}>•</Text><Text style={styles.topicText}>{t}</Text></View>)}
+    </View>)}
+  </View>;
+}
+
+function ExamPattern({roadmap, medium}: {roadmap: Roadmap; medium: PlanMedium}) {
+  const {pattern, dates, dates_updated, source, facts} = roadmap.exam;
+  const parts = roadmap.exam.syllabus ?? fallbackSyllabus(roadmap);
+  const telugu = medium === 'telugu';
   const [open, setOpen] = useState<string | null>(null);
-  const questions = (marks: number) => Math.round(marks / pattern.marks_per_question);
+  const q = (marks: number) => Math.round(marks / pattern.marks_per_question);
   const updated = new Date(parseIso(dates_updated)).toLocaleDateString('en-IN', {day: 'numeric', month: 'long', year: 'numeric'});
   return <>
     <Stats items={[
@@ -248,12 +270,20 @@ function ExamPattern({roadmap}: {roadmap: Roadmap}) {
       {label: 'minutes', value: pattern.duration_minutes},
       {label: pattern.negative_marks ? `mark each · −${pattern.negative_marks} if wrong` : 'mark each · no negative', value: pattern.marks_per_question === 0.5 ? '½' : pattern.marks_per_question},
     ]}/>
+    {facts?.length ? <Card>
+      <Heading>Pattern details</Heading>
+      {facts.map(f => <View key={f.label} style={styles.fact}>
+        <Text style={styles.factLabel}>{f.label}</Text>
+        <Text style={styles.factValue}>{f.value}</Text>
+      </View>)}
+    </Card> : null}
     <Card>
       <Heading>Marks by part</Heading>
       {parts.map(p => <View key={p.id} style={styles.markRow}>
         <View style={{flex: 1, minWidth: 0}}>
           <Text style={styles.markName}>{p.name}</Text>
-          <Text style={styles.muted}>{questions(p.marks)} questions{p.split ? ` · content ${p.split.content} + methodology ${p.split.methodology}` : ''}</Text>
+          {telugu ? <Text style={styles.muted}>{p.teluguName}</Text> : null}
+          <Text style={styles.muted}>{p.questions} questions{p.split ? ` · content ${p.split.content}M (${q(p.split.content)} Q) + methodology ${p.split.methodology}M (${q(p.split.methodology)} Q)` : ''}</Text>
         </View>
         <Text style={styles.markValue}>{p.marks}</Text>
       </View>)}
@@ -263,21 +293,24 @@ function ExamPattern({roadmap}: {roadmap: Roadmap}) {
       </View>
     </Card>
     <View style={{gap: 10}}>
-      <Heading>Syllabus</Heading>
+      <Heading>Full syllabus</Heading>
+      <Text style={styles.muted}>Every unit and topic of the official syllabus{telugu ? ', in Telugu' : ''}. Tap a part to open it.</Text>
       {parts.map(p => {
         const expanded = open === p.id;
+        const unitCount = p.content.length + (p.methodology?.length ?? 0);
         return <View key={p.id} style={styles.syllabus}>
           <Pressable accessibilityRole="button" accessibilityState={{expanded}} onPress={() => setOpen(expanded ? null : p.id)} style={styles.syllabusHead}>
             <View style={{flex: 1, minWidth: 0}}>
               <Text style={styles.markName}>{p.name}</Text>
-              <Text style={styles.muted}>{p.marks} marks · {questions(p.marks)} questions</Text>
+              {telugu ? <Text style={styles.muted}>{p.teluguName}</Text> : null}
+              <Text style={styles.muted}>{p.marks} marks · {p.questions} questions · {unitCount} unit{unitCount === 1 ? '' : 's'}</Text>
             </View>
             <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={colors.muted}/>
           </Pressable>
           {expanded ? <View style={styles.syllabusBody}>
-            {p.note ? <Text style={styles.muted}>{p.note}</Text> : null}
-            {p.units.length ? <><Text style={styles.unitHeading}>{p.split ? `Content · ${p.split.content} marks` : 'Units'}</Text>{p.units.map(u => <Text key={u} style={styles.topic}>• {u}</Text>)}</> : null}
-            {p.methodologyUnits ? <><Text style={styles.unitHeading}>Methodology{p.split ? ` · ${p.split.methodology} marks` : ''}</Text>{p.methodologyUnits.map(u => <Text key={u} style={styles.topic}>• {u}</Text>)}</> : null}
+            {p.note ? <Text style={styles.note}>{p.note}</Text> : null}
+            {p.content.length ? <UnitList heading={p.split ? `Content · ${p.split.content} marks · ${q(p.split.content)} questions` : 'Units'} units={p.content}/> : null}
+            {p.methodology?.length ? <UnitList heading={`Teaching methodology${p.split ? ` · ${p.split.methodology} marks · ${q(p.split.methodology)} questions` : ''}`} units={p.methodology}/> : null}
           </View> : null}
         </View>;
       })}
@@ -347,5 +380,13 @@ const styles = StyleSheet.create({
   syllabus: {borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, overflow: 'hidden'},
   syllabusHead: {flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, minHeight: 60},
   syllabusBody: {paddingHorizontal: 14, paddingBottom: 14, gap: 5},
-  unitHeading: {fontSize: 12, fontWeight: '700', color: colors.ink, marginTop: 6},
+  unitHeading: {fontSize: 11, fontWeight: '800', letterSpacing: .4, textTransform: 'uppercase', color: colors.primary, marginTop: 8},
+  unitCard: {padding: 12, gap: 5, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background},
+  unitTitle: {fontSize: 14, lineHeight: 21, fontWeight: '700', color: colors.ink}, unitNumber: {color: colors.muted},
+  topicRow: {flexDirection: 'row', gap: 7}, bullet: {fontSize: 13, lineHeight: 20, color: colors.muted},
+  topicText: {flex: 1, fontSize: 13, lineHeight: 20, color: colors.muted},
+  note: {fontSize: 12, lineHeight: 18, color: colors.muted, padding: 10, borderRadius: 12, backgroundColor: colors.background},
+  fact: {gap: 2, paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.border},
+  factLabel: {fontSize: 11, fontWeight: '700', letterSpacing: .4, textTransform: 'uppercase', color: colors.muted},
+  factValue: {fontSize: 14, lineHeight: 21, color: colors.ink},
 });
