@@ -17,6 +17,13 @@
 //           ~330, and the query returns matches rather than the whole table.
 //   PASS 2  hydrate only the questions that were chosen.
 //
+// Pass 1 reads the WHOLE matching bank (light columns, in parallel pages),
+// not a capped slice. The cap used to be the first 250 rows, which are stored
+// chapter by chapter, so a session drew from one or two topics however
+// balanced the selection was (Telugu-medium maths: 3,702 questions in 31
+// topics, the first 250 all in one). An all-subjects session reads an evenly
+// spread sample of each bank instead, to stay quick across seven tables.
+//
 // The JavaScript filter still runs over pass 1. Class and difficulty are only
 // narrowed here, with semantics looser than or equal to it. Topic and subtopic
 // match exactly: the names come from the filter options, and `includes` pulled
@@ -37,12 +44,16 @@ const FULL_COLUMNS =
   'question_id, subject, class_level, chapter, topic, subtopic, difficulty, question_type, ' +
   'question, option_a, option_b, option_c, option_d, correct_answer, explanation, source_type, language'
 
+/** PostgREST returns at most this many rows per request. */
+const PAGE_SIZE = 1000
+/** A single subject's whole bank is read if it is at most this big (all are today). */
+const FULL_BANK_LIMIT = 8000
 /**
- * Upper bound on candidates per table. The scorer needs more than it returns
- * so it has something to choose between, but it does not need thousands —
- * beyond a few hundred the extra rows change nothing except transfer cost.
+ * An all-subjects session reads this many rows per table, as windows spread
+ * evenly through the bank so every part of it (and so every chapter) is in.
  */
-const POOL_PER_TABLE = 250
+const SAMPLE_PER_TABLE = 1200
+const SAMPLE_WINDOW = 300
 
 /** Which subject key a practice subject name maps to. */
 function subjectKeyFor(subject?: string): string | null {
@@ -140,38 +151,72 @@ export async function countMatchingQuestions(
   return counts.reduce((sum, n) => sum + n, 0)
 }
 
-/** Run one filtered, capped query. */
+/**
+ * Matching rows of one table, light or full columns. The whole match is read
+ * in parallel pages when `sample` is off and the bank is within
+ * FULL_BANK_LIMIT; otherwise evenly spread windows are read.
+ */
 async function runFiltered(
   table: string,
   columns: string,
-  filter: Partial<PracticeFilterState>
+  filter: Partial<PracticeFilterState>,
+  sample = false
 ): Promise<Record<string, unknown>[]> {
-  const build = (withActive: boolean) => {
-    let query = supabaseAdmin.from(table).select(columns).limit(POOL_PER_TABLE)
+  const base = (withActive: boolean, select: string, head = false) => {
+    let query = supabaseAdmin.from(table).select(select, head ? { count: 'exact', head: true } : undefined)
     if (withActive) query = query.eq('is_active', true)
     return applyPracticeFilters(query, filter)
   }
 
-  let { data, error } = await build(true)
+  // Count first; most likely a failure means the table has no is_active column.
+  let withActive = true
+  let { count, error } = await base(true, 'question_id', true)
   if (error) {
-    // Most likely the table has no is_active column; retry without it rather
-    // than losing the subject entirely.
-    ;({ data, error } = await build(false))
+    withActive = false
+    ;({ count, error } = await base(false, 'question_id', true))
     if (error) {
-      console.warn(`[practice] candidate load failed for ${table}:`, error.message)
+      console.warn(`[practice] candidate count failed for ${table}:`, error.message)
       return []
     }
   }
-  return (data ?? []) as unknown as Record<string, unknown>[]
+  const total = count ?? 0
+  if (total === 0) return []
+
+  // Stable order, so pages and windows never overlap or skip.
+  const range = (from: number, to: number) => base(withActive, columns).order('question_id', { ascending: true }).range(from, to)
+  const windows: [number, number][] = []
+  const budget = sample ? SAMPLE_PER_TABLE : FULL_BANK_LIMIT
+  if (total <= budget) {
+    for (let from = 0; from < total; from += PAGE_SIZE) windows.push([from, Math.min(total, from + PAGE_SIZE) - 1])
+  } else {
+    // One window at a random place inside each equal slice of the bank.
+    const parts = Math.ceil(budget / SAMPLE_WINDOW)
+    const slice = total / parts
+    for (let i = 0; i < parts; i++) {
+      const from = Math.floor(i * slice + Math.random() * Math.max(0, slice - SAMPLE_WINDOW))
+      windows.push([from, Math.min(total, from + SAMPLE_WINDOW) - 1])
+    }
+  }
+
+  const pages = await Promise.all(windows.map(async ([from, to]) => {
+    const { data, error: pageError } = await range(from, to)
+    if (pageError) {
+      console.warn(`[practice] candidate page failed for ${table}:`, pageError.message)
+      return []
+    }
+    return (data ?? []) as unknown as Record<string, unknown>[]
+  }))
+  return pages.flat()
 }
 
 /** One table's candidates, light columns only. */
 async function loadLightFromTable(
   table: string,
   medium: PracticeMedium,
-  filter: Partial<PracticeFilterState>
+  filter: Partial<PracticeFilterState>,
+  sample: boolean
 ): Promise<PracticeQuestion[]> {
-  const rows = await runFiltered(table, LIGHT_COLUMNS, filter)
+  const rows = await runFiltered(table, LIGHT_COLUMNS, filter, sample)
   return (rows as unknown as LightRow[]).map((r) => ({
     id: r.question_id,
     question_id: r.question_id,
@@ -195,38 +240,32 @@ async function loadLightFromTable(
 }
 
 /**
- * Candidate pool for a practice session.
- *
- * One subject resolves to a single table, and there the two-pass shape costs
- * more than it saves: a second round trip outweighs the bytes it avoids. That
- * case fetches full rows once, still filtered and still capped. Only the
- * all-subjects case, which fans out across six tables, uses light-then-hydrate.
+ * Candidate pool for a practice session: light rows (six columns) for every
+ * matching question of a subject, or an evenly spread sample of each bank for
+ * all subjects. The chosen questions are hydrated afterwards.
  */
 export async function loadCandidatePool(
   filter: Partial<PracticeFilterState> & { medium: PracticeMedium }
 ): Promise<{ pool: PracticeQuestion[]; alreadyHydrated: boolean }> {
   const tables = practiceTablesFor(filter.medium, filter.subject)
   if (tables.length === 0) return { pool: [], alreadyHydrated: false }
-
-  if (tables.length === 1) {
-    const pool = await loadFullFromTable(tables[0], filter.medium, filter)
-    return { pool, alreadyHydrated: true }
-  }
-
-  const results = await Promise.all(
-    tables.map((t) => loadLightFromTable(t, filter.medium, filter))
-  )
+  const sample = tables.length > 1
+  const results = await Promise.all(tables.map((t) => loadLightFromTable(t, filter.medium, filter, sample)))
   return { pool: results.flat(), alreadyHydrated: false }
 }
 
-/** Single-table path: filtered, capped, complete rows, one round trip. */
-async function loadFullFromTable(
-  table: string,
-  medium: PracticeMedium,
-  filter: Partial<PracticeFilterState>
-): Promise<PracticeQuestion[]> {
-  const rows = await runFiltered(table, FULL_COLUMNS, filter)
-  return rows.map((r) => toFullQuestion(table, medium, r))
+/** The subject a candidate came from, by its table (for all-subjects balance). */
+export function subjectGroupOf(q: Pick<PracticeQuestion, 'question_uid'>): string {
+  const table = (q.question_uid ?? '').split(':')[0]
+  return QUESTION_TABLES.find((t) => t.table === table)?.subjectKey ?? 'other'
+}
+
+/**
+ * Share of an all-subjects session per subject: the real paper's questions
+ * (GK 16, Psychology + Perspectives 24, 24 for each of the five subjects).
+ */
+export const SUBJECT_WEIGHTS: Record<string, number> = {
+  gk: 16, pedagogy: 24, telugu: 24, english: 24, mathematics: 24, science: 24, social_studies: 24,
 }
 
 function toFullQuestion(table: string, medium: PracticeMedium, r: Record<string, unknown>): PracticeQuestion {

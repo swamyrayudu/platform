@@ -214,87 +214,143 @@ export function calculateQuestionScore(
   return score
 }
 
+/** Optional balance across subjects, for all-subjects sessions. */
+export interface BalanceOptions {
+  /** The subject a candidate belongs to. */
+  groupOf?: (q: PracticeQuestion) => string
+  /** Relative share per subject; subjects missing from the pool are skipped. */
+  groupWeights?: Record<string, number>
+}
+
+const idOf = (q: PracticeQuestion) => q.question_id || q.id
+const byScore = (a: QuestionCandidate, b: QuestionCandidate) => (b.selection_score || 0) - (a.selection_score || 0)
+
+/** Split `total` by weight (largest remainder), then cap by what each key has and pass the excess on. */
+function quotas(available: Record<string, number>, weights: Record<string, number>, total: number): Record<string, number> {
+  const keys = Object.keys(available).filter((k) => available[k] > 0)
+  const out: Record<string, number> = Object.fromEntries(keys.map((k) => [k, 0]))
+  let left = total
+  let open = keys
+  while (left > 0 && open.length) {
+    const sum = open.reduce((n, k) => n + (weights[k] ?? 1), 0)
+    const shares = open.map((k) => ({ k, exact: (left * (weights[k] ?? 1)) / sum }))
+    const given = shares.map(({ k, exact }) => ({ k, n: Math.floor(exact), rest: exact - Math.floor(exact) }))
+    let spare = left - given.reduce((n, g) => n + g.n, 0)
+    given.sort((a, b) => b.rest - a.rest || Math.random() - 0.5)
+    for (const g of given) { if (spare > 0) { g.n++; spare-- } }
+    let placed = 0
+    for (const g of given) {
+      const room = available[g.k] - out[g.k]
+      const take = Math.min(room, g.n)
+      out[g.k] += take
+      placed += take
+    }
+    left -= placed
+    open = open.filter((k) => out[k] < available[k])
+    if (placed === 0) break
+  }
+  return out
+}
+
 /**
- * Intelligent Balanced Distribution Algorithm
+ * Within one topic: best-scored first, but taking turns between subtopics,
+ * so several questions from a topic do not all test the same subtopic.
+ */
+function interleaveSubtopics(list: QuestionCandidate[]): QuestionCandidate[] {
+  const bySub = new Map<string, QuestionCandidate[]>()
+  for (const q of [...list].sort(byScore)) {
+    const key = (q.subtopic || '').trim().toLowerCase()
+    bySub.set(key, [...(bySub.get(key) ?? []), q])
+  }
+  const groups = [...bySub.values()].sort((a, b) => byScore(a[0], b[0]))
+  const out: QuestionCandidate[] = []
+  for (let i = 0; out.length < list.length; i++) for (const g of groups) if (g[i]) out.push(g[i])
+  return out
+}
+
+/**
+ * Up to `count` questions spread as evenly as possible over the topics:
+ * round 1 takes one question from each topic, round 2 a second, and so on.
+ * Topics go in order of their best question's score, so with more topics than
+ * questions the ones that matter most (unseen, weak) come first; scores carry
+ * random jitter, so for a new user that order is random.
+ */
+function pickAcrossTopics(cands: QuestionCandidate[], count: number): QuestionCandidate[] {
+  const byTopic = new Map<string, QuestionCandidate[]>()
+  for (const q of cands) {
+    const key = (q.topic || 'General').trim().toLowerCase()
+    byTopic.set(key, [...(byTopic.get(key) ?? []), q])
+  }
+  const topics = [...byTopic.values()].map(interleaveSubtopics).sort((a, b) => byScore(a[0], b[0]))
+  const out: QuestionCandidate[] = []
+  for (let round = 0; out.length < count; round++) {
+    let added = false
+    for (const list of topics) {
+      if (out.length >= count) break
+      if (list[round]) { out.push(list[round]); added = true }
+    }
+    if (!added) break
+  }
+  return out
+}
+
+/** Balanced pick: subjects by weight (if given), then topics evenly within each. */
+function pickBalanced(cands: QuestionCandidate[], count: number, options: BalanceOptions): QuestionCandidate[] {
+  if (count <= 0 || cands.length === 0) return []
+  const { groupOf, groupWeights } = options
+  if (!groupOf || !groupWeights) return pickAcrossTopics(cands, count)
+  const groups = new Map<string, QuestionCandidate[]>()
+  for (const q of cands) {
+    const g = groupOf(q)
+    groups.set(g, [...(groups.get(g) ?? []), q])
+  }
+  if (groups.size <= 1) return pickAcrossTopics(cands, count)
+  const share = quotas(Object.fromEntries([...groups].map(([g, list]) => [g, list.length])), groupWeights, count)
+  return [...groups].flatMap(([g, list]) => pickAcrossTopics(list, share[g] ?? 0))
+}
+
+/**
+ * Choose a session's questions.
+ *
+ * Every mode is balanced across topics (and across subjects in an
+ * all-subjects session, in the paper's proportions). The mode decides which
+ * questions go first: unseen ones for new_questions, wrongly answered ones
+ * for previously_incorrect, weak topics for weak_areas. If that group is too
+ * small, the rest fills up, still balanced. The score orders questions within
+ * a topic (unseen and weak first, recently seen and well-known last); in
+ * random mode it is random.
  */
 export function selectSmartQuestions(
   pool: PracticeQuestion[],
   count: number,
   mode: PracticeMode,
   history: Record<string, UserAttemptHistory> = {},
-  weakTopics: Set<string> = new Set()
+  weakTopics: Set<string> = new Set(),
+  options: BalanceOptions = {}
 ): PracticeQuestion[] {
-  if (pool.length <= count) {
-    // If pool is smaller than or equal to requested count, shuffle and return all
-    return shuffleArray([...pool])
-  }
+  if (pool.length <= count) return shuffleArray([...pool])
 
-  // Score each candidate
   const scored: QuestionCandidate[] = pool.map((q) => ({
     ...q,
     selection_score: calculateQuestionScore(q, history, weakTopics, mode),
   }))
 
-  // Sort descending by priority score
-  scored.sort((a, b) => (b.selection_score || 0) - (a.selection_score || 0))
-
-  if (mode === 'random') {
-    return shuffleArray(scored).slice(0, count)
+  const first = (q: QuestionCandidate) => {
+    const h = history[idOf(q)]
+    if (mode === 'new_questions') return !h || h.attempt_count === 0
+    if (mode === 'previously_incorrect') return !!h && h.incorrect_count > 0
+    if (mode === 'weak_areas') return weakTopics.has((q.topic || '').toLowerCase())
+    return true
+  }
+  const preferred = scored.filter(first)
+  const chosen = pickBalanced(preferred, count, options)
+  if (chosen.length < count) {
+    const taken = new Set(chosen.map(idOf))
+    chosen.push(...pickBalanced(scored.filter((q) => !taken.has(idOf(q))), count - chosen.length, options))
   }
 
-  if (mode === 'weak_areas' || mode === 'previously_incorrect' || mode === 'new_questions') {
-    // Top scored questions with light shuffle in top bucket
-    const topBucket = scored.slice(0, Math.min(scored.length, count * 2))
-    return shuffleArray(topBucket).slice(0, count)
-  }
-
-  // BALANCED MODE: Group by topic to ensure fair topic distribution
-  const byTopic: Record<string, QuestionCandidate[]> = {}
-  scored.forEach((q) => {
-    const t = q.topic || 'General'
-    if (!byTopic[t]) byTopic[t] = []
-    byTopic[t].push(q)
-  })
-
-  const topics = Object.keys(byTopic)
-  const selected: QuestionCandidate[] = []
-  const selectedIds = new Set<string>()
-
-  // Round-robin selection across topics from highest scored items
-  let round = 0
-  while (selected.length < count && round < 50) {
-    let addedInRound = false
-    for (const t of topics) {
-      if (selected.length >= count) break
-      const topicList = byTopic[t]
-      if (round < topicList.length) {
-        const candidate = topicList[round]
-        const cId = candidate.question_id || candidate.id
-        if (!selectedIds.has(cId)) {
-          selected.push(candidate)
-          selectedIds.add(cId)
-          addedInRound = true
-        }
-      }
-    }
-    round++
-    if (!addedInRound) break
-  }
-
-  // If still need more, take remaining top items
-  if (selected.length < count) {
-    for (const q of scored) {
-      const cId = q.question_id || q.id
-      if (!selectedIds.has(cId)) {
-        selected.push(q)
-        selectedIds.add(cId)
-        if (selected.length >= count) break
-      }
-    }
-  }
-
-  // Randomize the final generated session so questions don't appear in topic clumps
-  return shuffleArray(selected)
+  // Shuffle the order, so the session does not run topic by topic.
+  return shuffleArray(chosen)
 }
 
 /**

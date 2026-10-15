@@ -18,7 +18,7 @@ import type {
   PracticeHistoryItem,
 } from '@/types/practice'
 import { SEED_QUESTIONS } from './seed-questions'
-import { loadCandidatePool, hydrateQuestions, loadQuestionsByIds } from './question-loader'
+import { loadCandidatePool, hydrateQuestions, loadQuestionsByIds, subjectGroupOf, SUBJECT_WEIGHTS } from './question-loader'
 import {
   filterQuestionPool,
   selectSmartQuestions,
@@ -215,7 +215,10 @@ export async function createPracticeSession(
   // filterQuestionPool still decides what matches — SQL only reduces how much
   // has to be fetched to ask it. See lib/practice/question-loader.ts.
   const { pool: candidates, alreadyHydrated } = await loadCandidatePool(filter)
-  const pool = filterQuestionPool(candidates, filter)
+  // Subject is not re-checked here: the candidates come from that subject's own
+  // tables, and banks store the subject name in their own words (Telugu-medium
+  // science mostly in Telugu), so comparing names dropped all but a handful.
+  const pool = filterQuestionPool(candidates, { ...filter, subject: 'All' })
 
   // Load user attempt history & weak areas
   const [history, weakTopics] = await Promise.all([
@@ -230,7 +233,9 @@ export async function createPracticeSession(
     requestedCount,
     filter.mode,
     history,
-    weakTopics
+    weakTopics,
+    // All-subjects sessions follow the paper's share per subject; one subject is balanced by topic.
+    { groupOf: subjectGroupOf, groupWeights: SUBJECT_WEIGHTS }
   )
 
   // Only now fetch stems, options and explanations, and only for these. The
