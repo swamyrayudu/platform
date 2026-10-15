@@ -7,12 +7,14 @@
 
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
-import { listPublishedResources } from '@/lib/resources/store'
+import { listFolders, listPublishedResources } from '@/lib/resources/store'
 import { resourcesError } from '@/lib/resources/respond'
 
 export const GET = requireAuth(async () => {
   try {
-    return NextResponse.json({ success: true, resources: await listPublishedResources() })
+    const resources = await listPublishedResources()
+    // Only folders holding published files; older app builds ignore this field.
+    return NextResponse.json({ success: true, resources, folders: await listFolders(resources, false) })
   } catch (err) {
     return resourcesError(err, 'Could not load resources.')
   }

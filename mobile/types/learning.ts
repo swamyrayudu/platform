@@ -50,5 +50,8 @@ export type ResourceCategory = 'book' | 'study_material' | 'bit_bank' | 'previou
 export interface Resource {
   id: string; title: string; description: string; category: ResourceCategory;
   subject: string; medium: 'english' | 'telugu' | 'both'; access: 'free' | 'pro';
+  /** Missing on older servers; null when not in a folder. */
+  folder_id?: string | null;
   file_name: string; size_bytes: number; created_at: string;
 }
+export interface ResourceFolder { id: string; name: string; description: string; created_at: string; file_count: number }

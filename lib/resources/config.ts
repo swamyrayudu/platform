@@ -28,6 +28,8 @@ export interface PublicResource {
   subject: string
   medium: ResourceMedium
   access: ResourceAccess
+  /** Null when the file is not in a folder (or folders are not set up yet). */
+  folder_id: string | null
   file_name: string
   size_bytes: number
   created_at: string
@@ -46,6 +48,36 @@ export interface ResourceFields {
   medium: ResourceMedium
   access: ResourceAccess
   is_published: boolean
+  folder_id: string | null
+}
+
+/** A group of resources, e.g. "Previous papers". */
+export interface ResourceFolder {
+  id: string
+  name: string
+  description: string
+  created_at: string
+  /** Files in the folder: published ones for candidates, all for admins. */
+  file_count: number
+}
+
+const isUuid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v)
+
+/** Check an admin-entered folder name and description. */
+export function checkFolder(input: unknown, partial = false): { fields: { name?: string; description?: string } } | { error: string } {
+  const o = (input ?? {}) as Record<string, unknown>
+  const fields: { name?: string; description?: string } = {}
+  if (o.name !== undefined || !partial) {
+    const name = typeof o.name === 'string' ? o.name.trim().replace(/\s+/g, ' ') : ''
+    if (!name || name.length > 120) return { error: 'Give the folder a name of up to 120 characters.' }
+    fields.name = name
+  }
+  if (o.description !== undefined || !partial) {
+    const description = typeof o.description === 'string' ? o.description.trim() : ''
+    if (description.length > 500) return { error: 'Keep the folder description under 500 characters.' }
+    fields.description = description
+  }
+  return { fields }
 }
 
 export function categoryLabel(value: string): string {
@@ -104,6 +136,11 @@ export function checkFields(input: unknown, partial = false): { fields: Partial<
   }
   if (has('is_published') || !partial) {
     fields.is_published = o.is_published === undefined ? true : o.is_published === true
+  }
+  if (has('folder_id') || !partial) {
+    const folder = o.folder_id === undefined || o.folder_id === null || o.folder_id === '' ? null : o.folder_id
+    if (folder !== null && !isUuid(folder)) return { error: 'Choose a folder.' }
+    fields.folder_id = folder
   }
   return { fields }
 }

@@ -110,6 +110,26 @@ export interface ReadResult {
 }
 
 /**
+ * Turn a spreadsheet (header row first) into rows keyed by header, with the
+ * row numbers the user sees. Blank rows are skipped. Shared by the browser
+ * upload and the server's reading of a file sent from the mobile app.
+ */
+export function sheetToRows(sheet: readonly (readonly unknown[])[]): { rows: CsvRow[]; rowNumbers: number[] } {
+  const [header, ...body] = sheet
+  if (!header) return { rows: [], rowNumbers: [] }
+  const headers = header.map((h) => String(h ?? '').trim())
+  const rows: CsvRow[] = []
+  const rowNumbers: number[] = []
+  body.forEach((cells, i) => {
+    const values = headers.map((_, c) => (cells[c] == null ? '' : String(cells[c]).trim()))
+    if (values.every((v) => v === '')) return
+    rows.push(Object.fromEntries(headers.map((h, c) => [h, values[c]])))
+    rowNumbers.push(i + 2)
+  })
+  return { rows, rowNumbers }
+}
+
+/**
  * Turn uploaded rows into questions. Rows with problems are reported, not
  * guessed at; duplicates of an earlier question are reported too.
  */

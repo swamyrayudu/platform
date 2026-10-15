@@ -1,21 +1,22 @@
 // ============================================================
 // app/api/admin/resources/route.ts — Admin: list and record resources
 // ============================================================
-// GET   every resource, published or not, with download counts
+// GET   every resource, published or not, with download counts, and every folder
 // POST  { path, fileName, title, description, category, subject, medium,
-//         access, is_published } — step 2 of an upload, after the browser
+//         access, is_published, folder_id } — step 2 of an upload, after the browser
 //         has put the PDF at `path` (see ./upload-url).
 // ============================================================
 
 import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth/session'
 import { checkFields, type ResourceFields } from '@/lib/resources/config'
-import { createResource, isResourcePath, listAllResources } from '@/lib/resources/store'
+import { createResource, isResourcePath, listAllResources, listFolders } from '@/lib/resources/store'
 import { resourcesError } from '@/lib/resources/respond'
 
 export const GET = requireAdmin(async () => {
   try {
-    return NextResponse.json({ success: true, resources: await listAllResources() })
+    const resources = await listAllResources()
+    return NextResponse.json({ success: true, resources, folders: await listFolders(resources, true) })
   } catch (err) {
     return resourcesError(err, 'Could not load resources.')
   }

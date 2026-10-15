@@ -1,7 +1,7 @@
 // ============================================================
 // app/api/admin/resources/[id]/route.ts — Admin: edit or delete one
 // ============================================================
-// PATCH   any of { title, description, category, subject, medium, access, is_published }
+// PATCH   any of { title, description, category, subject, medium, access, is_published, folder_id }
 // DELETE  the resource and its PDF
 // ============================================================
 

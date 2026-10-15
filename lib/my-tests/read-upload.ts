@@ -8,7 +8,7 @@
 import { readSheet } from 'read-excel-file/browser'
 import { parseCsv, type CsvRow } from '@/lib/questions/csv'
 import { readCsvFile } from '@/lib/questions/csv-upload'
-import { rowsToQuestions, type ReadResult } from './format'
+import { rowsToQuestions, sheetToRows, type ReadResult } from './format'
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024
 
@@ -25,18 +25,7 @@ async function readRows(file: File): Promise<{ rows: CsvRow[]; rowNumbers: numbe
   } catch {
     throw new Error(`${file.name}: could not read this Excel file. Save it again as .xlsx or CSV.`)
   }
-  const [header, ...body] = sheet
-  if (!header) return { rows: [], rowNumbers: [] }
-  const headers = header.map((h) => String(h ?? '').trim())
-  const rows: CsvRow[] = []
-  const rowNumbers: number[] = []
-  body.forEach((cells, i) => {
-    const values = headers.map((_, c) => (cells[c] == null ? '' : String(cells[c]).trim()))
-    if (values.every((v) => v === '')) return
-    rows.push(Object.fromEntries(headers.map((h, c) => [h, values[c]])))
-    rowNumbers.push(i + 2)
-  })
-  return { rows, rowNumbers }
+  return sheetToRows(sheet)
 }
 
 /** Read every chosen file, in order, into one list of questions plus row problems. */

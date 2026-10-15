@@ -10,17 +10,19 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { ArrowLeft, Eye, EyeOff, ExternalLink, Library, Loader2, Pencil, RefreshCw, Trash2, Upload } from 'lucide-react'
+import { ArrowLeft, Check, Eye, EyeOff, ExternalLink, Folder, FolderPlus, Library, Loader2, Pencil, RefreshCw, Trash2, Upload, X } from 'lucide-react'
 import { SUBJECT_LIST } from '@/app/components/dsc-sgt/practice/setup/SubjectSelector'
 import {
   RESOURCE_CATEGORIES, categoryLabel, fileProblem, formatBytes,
-  type AdminResource, type ResourceFields,
+  type AdminResource, type ResourceFields, type ResourceFolder,
 } from '@/lib/resources/config'
 import { openSignedLink, requestLink } from '@/lib/resources/open-link'
 
 const EMPTY: ResourceFields = {
-  title: '', description: '', category: 'study_material', subject: 'All', medium: 'both', access: 'free', is_published: true,
+  title: '', description: '', category: 'study_material', subject: 'All', medium: 'both', access: 'free', is_published: true, folder_id: null,
 }
+
+type Listing = { resources: AdminResource[]; folders?: ResourceFolder[] }
 
 const input = 'w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground'
 const label = 'block text-[11px] font-medium text-muted-foreground'
@@ -56,7 +58,7 @@ async function api<T>(url: string, method = 'GET', body?: unknown): Promise<T> {
   return json as T
 }
 
-function FieldsForm({ value, onChange }: { value: ResourceFields; onChange: (v: ResourceFields) => void }) {
+function FieldsForm({ value, onChange, folders }: { value: ResourceFields; onChange: (v: ResourceFields) => void; folders: ResourceFolder[] }) {
   const set = <K extends keyof ResourceFields>(k: K, v: ResourceFields[K]) => onChange({ ...value, [k]: v })
   return (
     <div className="grid gap-3 sm:grid-cols-2">
@@ -65,6 +67,13 @@ function FieldsForm({ value, onChange }: { value: ResourceFields; onChange: (v: 
       </label>
       <label className={`${label} sm:col-span-2`}>Description (optional)
         <textarea className={`${input} mt-1`} rows={2} maxLength={2000} value={value.description} onChange={(e) => set('description', e.target.value)} />
+      </label>
+      <label className={`${label} sm:col-span-2`}>Folder
+        <select className={`${input} mt-1`} value={value.folder_id ?? ''} onChange={(e) => set('folder_id', e.target.value || null)}>
+          <option value="">No folder</option>
+          {folders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+        </select>
+        {folders.length === 0 && <span className="mt-1 block">Create folders in the Folders section above to group files, e.g. Previous papers.</span>}
       </label>
       <label className={label}>Category
         <select className={`${input} mt-1`} value={value.category} onChange={(e) => set('category', e.target.value as ResourceFields['category'])}>
@@ -108,15 +117,17 @@ export default function AdminResourcesPage() {
   const [progress, setProgress] = useState<number | null>(null)
   const [editing, setEditing] = useState<{ id: string; fields: ResourceFields } | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  const [folders, setFolders] = useState<ResourceFolder[]>([])
+  const [folderFilter, setFolderFilter] = useState<string>('all')
 
-  const show = useCallback((data: { resources: AdminResource[] }) => setResources(data.resources), [])
+  const show = useCallback((data: Listing) => { setResources(data.resources); setFolders(data.folders ?? []) }, [])
   const fail = useCallback((err: unknown) => {
     if ((err as { code?: string })?.code === 'NOT_SET_UP') setNotSetUp(true)
     else setError(err instanceof Error ? err.message : 'Could not load resources.')
   }, [])
   useEffect(() => {
     let current = true
-    api<{ resources: AdminResource[] }>('/api/admin/resources')
+    api<Listing>('/api/admin/resources')
       .then((d) => current && show(d))
       .catch((e) => current && fail(e))
     return () => {
@@ -125,7 +136,7 @@ export default function AdminResourcesPage() {
   }, [show, fail])
   const reload = () => {
     setError(null)
-    api<{ resources: AdminResource[] }>('/api/admin/resources').then(show).catch(fail)
+    api<Listing>('/api/admin/resources').then(show).catch(fail)
   }
 
   const chooseFile = (f: File | null) => {
@@ -186,6 +197,11 @@ export default function AdminResourcesPage() {
     }
   }
 
+  // Folder counts follow uploads, moves and deletes without a reload.
+  const counted = folders.map((f) => ({ ...f, file_count: (resources ?? []).filter((r) => r.folder_id === f.id).length }))
+  const folderName = (id: string | null) => folders.find((f) => f.id === id)?.name
+  const listed = (resources ?? []).filter((r) => folderFilter === 'all' || (folderFilter === 'none' ? !r.folder_id : r.folder_id === folderFilter))
+
   const preview = (id: string) =>
     openSignedLink(() => requestLink(`/api/admin/resources/${id}/preview`)).catch((err) =>
       toast.error(err instanceof Error ? err.message : 'Could not open the file.'))
@@ -220,6 +236,8 @@ export default function AdminResourcesPage() {
         </div>
       )}
 
+      {!notSetUp && <FoldersSection folders={counted} onChange={setFolders} />}
+
       <section className="mb-8 rounded-2xl border border-border bg-card p-5">
         <h2 className="mb-4 text-sm font-medium text-foreground">Upload a PDF</h2>
         <label className="mb-4 flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-border bg-muted/20 p-5 text-center hover:border-primary/50">
@@ -228,7 +246,7 @@ export default function AdminResourcesPage() {
           {file && <span className="text-[11px] text-muted-foreground">{formatBytes(file.size)}</span>}
           <input type="file" accept="application/pdf,.pdf" className="sr-only" onChange={(e) => { chooseFile(e.target.files?.[0] ?? null); e.target.value = '' }} />
         </label>
-        <FieldsForm value={fields} onChange={setFields} />
+        <FieldsForm value={fields} onChange={setFields} folders={folders} />
         <div className="mt-4 flex items-center gap-3">
           <button
             onClick={upload}
@@ -252,12 +270,23 @@ export default function AdminResourcesPage() {
       )}
       {resources?.length === 0 && <p className="text-sm text-muted-foreground">No resources yet. Upload the first PDF above.</p>}
 
+      {!!resources?.length && folders.length > 0 && (
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="text-sm font-medium text-foreground">Files</h2>
+          <select value={folderFilter} onChange={(e) => setFolderFilter(e.target.value)} aria-label="Show files in folder" className="rounded-xl border border-border bg-background px-3 py-1.5 text-xs text-foreground">
+            <option value="all">All files</option>
+            <option value="none">Not in a folder</option>
+            {folders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+          </select>
+        </div>
+      )}
+
       <div className="space-y-3">
-        {resources?.map((r) => (
+        {listed.map((r) => (
           <article key={r.id} className="rounded-2xl border border-border bg-card p-4">
             {editing?.id === r.id ? (
               <div>
-                <FieldsForm value={editing.fields} onChange={(f) => setEditing({ id: r.id, fields: f })} />
+                <FieldsForm value={editing.fields} onChange={(f) => setEditing({ id: r.id, fields: f })} folders={folders} />
                 <div className="mt-3 flex gap-2">
                   <button
                     onClick={async () => { if (await patch(r.id, editing.fields)) setEditing(null) }}
@@ -274,6 +303,7 @@ export default function AdminResourcesPage() {
                 <div className="min-w-0">
                   <h3 className="truncate text-sm font-medium text-foreground">{r.title}</h3>
                   <p className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+                    {folderName(r.folder_id) && <><span className="inline-flex items-center gap-1 font-medium text-foreground"><Folder className="h-3 w-3" />{folderName(r.folder_id)}</span>·</>}
                     <span>{categoryLabel(r.category)}</span>·<span>{r.subject === 'All' ? 'All subjects' : r.subject}</span>·
                     <span>{r.medium === 'both' ? 'Both mediums' : r.medium === 'telugu' ? 'Telugu' : 'English'}</span>·
                     <span>{formatBytes(r.size_bytes)}</span>·<span>{r.download_count} opens</span>
@@ -294,7 +324,7 @@ export default function AdminResourcesPage() {
                     {r.is_published ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                   </button>
                   <button
-                    onClick={() => setEditing({ id: r.id, fields: { title: r.title, description: r.description, category: r.category, subject: r.subject, medium: r.medium, access: r.access, is_published: r.is_published } })}
+                    onClick={() => setEditing({ id: r.id, fields: { title: r.title, description: r.description, category: r.category, subject: r.subject, medium: r.medium, access: r.access, is_published: r.is_published, folder_id: r.folder_id } })}
                     title="Edit details"
                     className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground"
                   >
@@ -310,5 +340,108 @@ export default function AdminResourcesPage() {
         ))}
       </div>
     </main>
+  )
+}
+
+/** Create, rename and delete folders. Deleting keeps the files, outside any folder. */
+function FoldersSection({ folders, onChange }: { folders: ResourceFolder[]; onChange: (update: (prev: ResourceFolder[]) => ResourceFolder[]) => void }) {
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [renaming, setRenaming] = useState<{ id: string; name: string; description: string } | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
+
+  const create = async () => {
+    if (!name.trim()) return
+    setCreating(true)
+    try {
+      const { folder } = await api<{ folder: ResourceFolder }>('/api/admin/resources/folders', 'POST', { name, description })
+      onChange((prev) => [...prev, folder].sort((a, b) => a.name.localeCompare(b.name)))
+      setName('')
+      setDescription('')
+      toast.success(`Folder "${folder.name}" created`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not create the folder.')
+    } finally {
+      setCreating(false)
+    }
+  }
+  const save = async () => {
+    if (!renaming || !renaming.name.trim()) return
+    setBusy(renaming.id)
+    try {
+      const { folder } = await api<{ folder: ResourceFolder }>(`/api/admin/resources/folders/${renaming.id}`, 'PATCH', { name: renaming.name, description: renaming.description })
+      onChange((prev) => prev.map((f) => (f.id === folder.id ? { ...f, ...folder } : f)).sort((a, b) => a.name.localeCompare(b.name)))
+      setRenaming(null)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not rename the folder.')
+    } finally {
+      setBusy(null)
+    }
+  }
+  const remove = async (f: ResourceFolder) => {
+    const kept = f.file_count ? ` Its ${f.file_count} file${f.file_count === 1 ? '' : 's'} stay, outside any folder.` : ''
+    if (!window.confirm(`Delete the folder "${f.name}"?${kept}`)) return
+    setBusy(f.id)
+    try {
+      await api(`/api/admin/resources/folders/${f.id}`, 'DELETE')
+      onChange((prev) => prev.filter((x) => x.id !== f.id))
+      toast.success('Folder deleted')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not delete the folder.')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  return (
+    <section className="mb-8 rounded-2xl border border-border bg-card p-5">
+      <h2 className="text-sm font-medium text-foreground">Folders</h2>
+      <p className="mt-1 text-[11px] text-muted-foreground">Group files, e.g. every previous paper in a &ldquo;Previous papers&rdquo; folder. Candidates open a folder to see its files.</p>
+      <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_1.4fr_auto]">
+        <input className={input} placeholder="Folder name, e.g. Previous papers" value={name} maxLength={120} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void create() }} />
+        <input className={input} placeholder="Description (optional)" value={description} maxLength={500} onChange={(e) => setDescription(e.target.value)} />
+        <button onClick={create} disabled={!name.trim() || creating} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-primary px-4 text-xs font-medium text-primary-foreground disabled:opacity-50">
+          {creating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FolderPlus className="h-3.5 w-3.5" />} New folder
+        </button>
+      </div>
+      {folders.length > 0 && (
+        <ul className="mt-4 divide-y divide-border rounded-xl border border-border">
+          {folders.map((f) => (
+            <li key={f.id} className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center">
+              {renaming?.id === f.id ? (
+                <div className="grid flex-1 gap-2 sm:grid-cols-[1fr_1.4fr]">
+                  <input className={input} value={renaming.name} maxLength={120} onChange={(e) => setRenaming({ ...renaming, name: e.target.value })} aria-label="Folder name" />
+                  <input className={input} value={renaming.description} maxLength={500} onChange={(e) => setRenaming({ ...renaming, description: e.target.value })} aria-label="Folder description" placeholder="Description (optional)" />
+                </div>
+              ) : (
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+                    <Folder className="h-4 w-4 text-primary" /> {f.name}
+                    <span className="text-[11px] font-normal text-muted-foreground">{f.file_count} file{f.file_count === 1 ? '' : 's'}</span>
+                  </p>
+                  {f.description && <p className="mt-0.5 pl-6 text-[11px] text-muted-foreground">{f.description}</p>}
+                </div>
+              )}
+              <div className="flex shrink-0 gap-1.5">
+                {renaming?.id === f.id ? (
+                  <>
+                    <button onClick={save} disabled={busy === f.id || !renaming.name.trim()} title="Save" className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground disabled:opacity-50"><Check className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => setRenaming(null)} title="Cancel" className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => setRenaming({ id: f.id, name: f.name, description: f.description })} title="Rename" className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground"><Pencil className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => remove(f)} disabled={busy === f.id} title="Delete folder" className="rounded-full border border-border p-2 text-muted-foreground hover:text-destructive disabled:opacity-50">
+                      {busy === f.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    </button>
+                  </>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   )
 }

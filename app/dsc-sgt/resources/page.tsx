@@ -3,21 +3,24 @@
 // ============================================================
 // app/dsc-sgt/resources/page.tsx — Books, study material, bit banks (PDFs)
 // ============================================================
+// Folders the admin made (e.g. "Previous papers") come first, then files in
+// no folder; opening a folder shows its files. Search looks in every folder.
+// ============================================================
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { Crown, Download, ExternalLink, FileText, Library, Loader2, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Crown, Download, ExternalLink, FileText, Folder, Library, Loader2, Search } from 'lucide-react'
 import { usePremium } from '@/app/components/dsc-sgt/PremiumContext'
-import { RESOURCE_CATEGORIES, categoryLabel, formatBytes, type PublicResource } from '@/lib/resources/config'
+import { RESOURCE_CATEGORIES, categoryLabel, formatBytes, type PublicResource, type ResourceFolder } from '@/lib/resources/config'
 import { openSignedLink, requestLink } from '@/lib/resources/open-link'
 
 type Medium = 'all' | 'telugu' | 'english'
 
-async function fetchResources(): Promise<PublicResource[]> {
+async function fetchResources(): Promise<{ resources: PublicResource[]; folders: ResourceFolder[] }> {
   const res = await fetch('/api/dsc-sgt/resources')
   const json = await res.json()
   if (!res.ok || !json.success) throw Object.assign(new Error(json.error || 'Could not load resources.'), { code: json.code })
-  return json.resources
+  return { resources: json.resources, folders: json.folders ?? [] }
 }
 
 export default function ResourcesPage() {
@@ -30,6 +33,8 @@ export default function ResourcesPage() {
   const [subject, setSubject] = useState('all')
   const [search, setSearch] = useState('')
   const [opening, setOpening] = useState<string | null>(null)
+  const [folders, setFolders] = useState<ResourceFolder[]>([])
+  const [folderId, setFolderId] = useState<string | null>(null)
 
   const fail = useCallback((err: unknown) => {
     if ((err as { code?: string })?.code === 'NOT_SET_UP') setNotSetUp(true)
@@ -37,7 +42,7 @@ export default function ResourcesPage() {
   }, [])
   useEffect(() => {
     let current = true
-    fetchResources().then((r) => current && setResources(r)).catch((e) => current && fail(e))
+    fetchResources().then((r) => { if (current) { setResources(r.resources); setFolders(r.folders) } }).catch((e) => current && fail(e))
     return () => {
       current = false
     }
@@ -51,7 +56,16 @@ export default function ResourcesPage() {
       (subject === 'all' || r.subject === subject || r.subject === 'All') &&
       (!term || r.title.toLowerCase().includes(term) || r.description.toLowerCase().includes(term)))
   }, [resources, medium, subject, search])
-  const shown = narrowed.filter((r) => category === 'all' || r.category === category)
+  const searching = search.trim() !== ''
+  const folder = folders.find((x) => x.id === folderId) ?? null
+  // The view: one folder's files, every match while searching, or the files in no folder.
+  const scoped = narrowed.filter((r) => searching || (folder ? r.folder_id === folder.id : true))
+  const matching = scoped.filter((r) => category === 'all' || r.category === category)
+  const shown = searching || folder ? matching : matching.filter((r) => !r.folder_id || !folders.some((x) => x.id === r.folder_id))
+  const folderCards = searching || folder ? [] : folders
+    .map((x) => ({ ...x, matches: matching.filter((r) => r.folder_id === x.id).length }))
+    .filter((x) => x.matches > 0)
+  const folderName = (id: string | null) => folders.find((x) => x.id === id)?.name
   const subjects = useMemo(
     () => [...new Set((resources ?? []).map((r) => r.subject).filter((s) => s !== 'All'))].sort(),
     [resources]
@@ -112,8 +126,8 @@ export default function ResourcesPage() {
         <>
           <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex gap-2 overflow-x-auto pb-1">
-              {tab('all', 'All', narrowed.length)}
-              {RESOURCE_CATEGORIES.map((c) => tab(c.value, c.label, narrowed.filter((r) => r.category === c.value).length))}
+              {tab('all', 'All', scoped.length)}
+              {RESOURCE_CATEGORIES.map((c) => tab(c.value, c.label, scoped.filter((r) => r.category === c.value).length))}
             </div>
             <div className="flex flex-wrap gap-2">
               <label className="relative">
@@ -140,9 +154,42 @@ export default function ResourcesPage() {
             </div>
           </div>
 
-          {shown.length === 0 && (
+          {folder && (
+            <div className="mb-4">
+              <nav className="flex items-center gap-1.5 text-xs text-muted-foreground" aria-label="Breadcrumb">
+                <button type="button" onClick={() => setFolderId(null)} className="inline-flex items-center gap-1 font-semibold text-primary hover:underline cursor-pointer">
+                  <ChevronLeft className="h-3.5 w-3.5" /> All resources
+                </button>
+                <span>/</span>
+                <span className="font-semibold text-foreground">{folder.name}</span>
+              </nav>
+              {folder.description && <p className="mt-1.5 text-xs text-muted-foreground">{folder.description}</p>}
+            </div>
+          )}
+
+          {folderCards.length > 0 && (
+            <section className="mb-6">
+              <h2 className="mb-2 text-sm font-bold text-foreground">Folders</h2>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {folderCards.map((x) => (
+                  <button key={x.id} type="button" onClick={() => setFolderId(x.id)}
+                    className="flex items-center gap-3 rounded-3xl border border-border/80 bg-card p-4 text-left shadow-xs transition hover:border-primary/50 cursor-pointer">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10"><Folder className="h-5 w-5 text-amber-600" /></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-bold text-foreground">{x.name}</span>
+                      <span className="block text-[11px] text-muted-foreground">{x.matches} file{x.matches === 1 ? '' : 's'}{x.description ? ` · ${x.description}` : ''}</span>
+                    </span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+          {folderCards.length > 0 && shown.length > 0 && <h2 className="mb-2 text-sm font-bold text-foreground">Files</h2>}
+
+          {shown.length === 0 && folderCards.length === 0 && (
             <div className="rounded-3xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
-              {resources.length === 0 ? 'No resources yet. Check back soon.' : 'No resources match these filters.'}
+              {resources.length === 0 ? 'No resources yet. Check back soon.' : folder ? 'No files in this folder match these filters.' : 'No resources match these filters.'}
             </div>
           )}
 
@@ -164,6 +211,9 @@ export default function ResourcesPage() {
                       </div>
                     </div>
                     <h2 className="mt-3 text-sm font-bold text-foreground">{r.title}</h2>
+                    {searching && folderName(r.folder_id) && (
+                      <p className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 dark:text-amber-400"><Folder className="h-3 w-3" /> {folderName(r.folder_id)}</p>
+                    )}
                     <p className="mt-1 text-[11px] text-muted-foreground">
                       {r.subject === 'All' ? 'All subjects' : r.subject} · {r.medium === 'both' ? 'Telugu & English' : r.medium === 'telugu' ? 'Telugu' : 'English'} · PDF {formatBytes(r.size_bytes)}
                     </p>

@@ -5,6 +5,12 @@ import { NextResponse } from 'next/server'
 export function resourcesError(err: unknown, fallback: string) {
   const message = err instanceof Error ? err.message
     : typeof err === 'object' && err && 'message' in err ? String((err as { message: unknown }).message) : fallback
+  if (/folder_id|resource_folders/i.test(message)) {
+    return NextResponse.json(
+      { success: false, code: 'FOLDERS_NOT_SET_UP', error: 'Folders are not set up yet. Run migration 20261015120000_resource_folders.sql in the Supabase SQL Editor.' },
+      { status: 503 }
+    )
+  }
   if (/'public\.resources'|relation "?(public\.)?resources"?|bucket not found|increment_resource_downloads/i.test(message)) {
     return NextResponse.json(
       { success: false, code: 'NOT_SET_UP', error: 'Resources are not available yet.' },

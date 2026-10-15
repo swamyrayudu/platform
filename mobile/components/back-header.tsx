@@ -1,13 +1,19 @@
-import type { ReactNode } from 'react';
+import { useContext, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, type Href } from 'expo-router';
 import { Heading } from './heading';
+import { TabShellContext } from './tab-shell-context';
 import { colors } from '@/utils/theme';
 
-/** Page heading with a back button, for screens opened from the More tab. */
-export function BackHeader({title, subtitle, fallback, action}: {title: string; subtitle?: string; fallback: Href; action?: ReactNode}) {
-  const back = () => { if (router.canGoBack()) router.back(); else router.replace(fallback); };
+/**
+ * Page heading with a back button. Inside the tab bar (pages opened from More)
+ * it goes to its parent page, since tab history can lead back to Home instead;
+ * on full-screen pages it goes back.
+ */
+export function BackHeader({title, subtitle, fallback, action, onBack}: {title: string; subtitle?: string; fallback: Href; action?: ReactNode; onBack?: () => void}) {
+  const inTabs = useContext(TabShellContext);
+  const back = () => { if (onBack) onBack(); else if (!inTabs && router.canGoBack()) router.back(); else router.navigate(fallback); };
   return <View style={styles.header}>
     <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={6} onPress={back} style={({pressed}) => [styles.back, pressed && {opacity: .6}]}>
       <Ionicons name="arrow-back" size={22} color={colors.primary}/>

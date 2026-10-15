@@ -62,6 +62,8 @@ function StudyPlan({roadmap, medium}: {roadmap: Roadmap; medium: PlanMedium}) {
   const weeks = useMemo(() => weeksOf(days), [days]);
   const [today] = useState(() => dayStart(Date.now()));
   const [progress, setProgress] = useState<RoadmapProgress>({start: null, done: []});
+  // Nothing can be ticked until the saved progress is read, or a quick tap would overwrite it.
+  const [loaded, setLoaded] = useState(false);
   const [week, setWeek] = useState(1);
   const [prompt, setPrompt] = useState<RoadmapDay | null>(null);
 
@@ -70,6 +72,7 @@ function StudyPlan({roadmap, medium}: {roadmap: Roadmap; medium: PlanMedium}) {
     void roadmapProgress.read(medium).then(saved => {
       if (!live) return;
       setProgress(saved);
+      setLoaded(true);
       const n = saved.start ? planDayNumber(saved.start, today) : 0;
       if (n >= 1 && n <= days.length) setWeek(Math.ceil(n / 7));
     });
@@ -93,7 +96,7 @@ function StudyPlan({roadmap, medium}: {roadmap: Roadmap; medium: PlanMedium}) {
 
   return <>
     {/* Today */}
-    {!progress.start ? <Card>
+    {!loaded ? <Loading/> : !progress.start ? <Card>
       <Heading>Start your 90-day plan</Heading>
       <Body>Each day shows what to study, with practice and an AI study prompt.</Body>
       <Button icon="play-outline" label="Start today" onPress={() => setStart(isoDate(today))}/>
@@ -167,7 +170,7 @@ function StudyPlan({roadmap, medium}: {roadmap: Roadmap; medium: PlanMedium}) {
               {d.day === current ? <View style={styles.todayBadge}><Text style={styles.todayBadgeText}>Today</Text></View> : null}
             </View>
             <DayContent day={d}/>
-            <DayActions day={d} done={done.has(d.day)} onToggle={toggle} onPrompt={setPrompt}/>
+            {loaded ? <DayActions day={d} done={done.has(d.day)} onToggle={toggle} onPrompt={setPrompt}/> : null}
           </View>;
         })}
       </View>
