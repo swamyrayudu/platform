@@ -35,6 +35,9 @@ export interface PublicResource {
   created_at: string
 }
 
+/** A roadmap day's study notes: what the roadmap needs to open (or download) the PDF. */
+export type RoadmapNote = Pick<PublicResource, 'id' | 'title' | 'access' | 'size_bytes'>
+
 export interface AdminResource extends PublicResource {
   is_published: boolean
   download_count: number

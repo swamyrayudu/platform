@@ -13,7 +13,11 @@ export interface RoadmapDay {
   action: PlanAction; prompt: string;
   /** Phase 1 study days: what Practice opens (subject, and keys that pick its topics). */
   practice?: { subject: string; keys: string[] };
+  /** The day's study notes PDF in this medium (servers from Oct 2026); null when there are none. */
+  notes?: RoadmapNote | null;
 }
+/** A Resource PDF, as much as the roadmap needs to download and open it. */
+export interface RoadmapNote { id: string; title: string; access: 'free' | 'pro'; size_bytes: number }
 export interface ExamPart {
   id: string; name: string; teluguName?: string; marks: number;
   split?: { content: number; methodology: number };

@@ -19,7 +19,10 @@ import {
   type ResourceFields,
   type ResourceFolder,
   type ResourcesRoot,
+  type RoadmapNote,
 } from './config'
+
+export type { RoadmapNote }
 
 export const RESOURCES_BUCKET = 'resources'
 
@@ -122,6 +125,32 @@ export async function loadFolderResources(folderId: string): Promise<{ folder: R
   if (!folder) return null
   const resources = ((files.data ?? []) as unknown as PublicResource[]).sort(byReadingOrder)
   return { folder: { ...(folder as Omit<ResourceFolder, 'file_count'>), file_count: resources.length }, resources }
+}
+
+/** "DSC SGT Day07 Weekly Test 1…" → 7. The day number must follow the word Day. */
+const dayInTitle = (title: string) => {
+  const match = /\bday\s*0*(\d{1,2})\b/i.exec(title)
+  return match ? Number(match[1]) : null
+}
+
+/**
+ * Each roadmap day's study-material PDF in this medium, by day number. The
+ * admin names the files "… DayNN …" (as the uploaded roadmap notes are); a
+ * file for this medium wins over one marked for both.
+ */
+export async function roadmapNotes(medium: 'english' | 'telugu'): Promise<Map<number, RoadmapNote>> {
+  const { data, error } = await supabaseAdmin.from('resources')
+    .select('id, title, access, size_bytes, medium')
+    .eq('is_published', true).eq('category', 'study_material').in('medium', [medium, 'both']).ilike('title', '%day%')
+  if (error) throw error
+  const notes = new Map<number, RoadmapNote & { medium: string }>()
+  for (const row of (data ?? []) as (RoadmapNote & { medium: string })[]) {
+    const day = dayInTitle(row.title)
+    if (!day) continue
+    const held = notes.get(day)
+    if (!held || (held.medium === 'both' && row.medium === medium)) notes.set(day, row)
+  }
+  return new Map([...notes].map(([day, { id, title, access, size_bytes }]) => [day, { id, title, access, size_bytes }]))
 }
 
 /** Published files whose title or description contains the term, in every folder (at most 100). */

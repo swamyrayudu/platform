@@ -6,8 +6,9 @@
 // Reads top to bottom: today's study, the daily habits, how the study days
 // follow the exam's marks, then the schedule one week at a time. Weeks 1–8, 9–10 and 11–13 are exactly the three phases, so
 // the week picker is grouped by phase. Text is kept to what a candidate acts on.
-// Every day has an AI prompt (lib/study-prompt.ts) to copy into ChatGPT,
-// Gemini or Claude to learn that day's topics in depth.
+// Each day's main action is its study notes PDF in this medium (uploaded to
+// Resources), read here in the same viewer as Resources; Pro notes ask free
+// users to upgrade. Mock and review days link to Mock tests / Performance.
 //
 // Plan content: lib/study-plan.ts, one version per medium (only the topics
 // differ; the rest is English in both). The start date and ticked days are a
@@ -15,16 +16,18 @@
 // the page works without it.
 // ============================================================
 
-import React, { useRef, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { toast } from 'sonner'
-import { ArrowRight, Check, ChevronLeft, ChevronRight, Copy, ExternalLink, Flame, Sparkles } from 'lucide-react'
+import { ArrowRight, BookOpen, Check, ChevronLeft, ChevronRight, Crown, Flame } from 'lucide-react'
 import {
   DAILY_HABITS, PLAN_PHASES, ROUTINE_TASKS, SUBJECT_LABEL, getStudyPlan,
   type PlanAction, type PlanMedium, type PlanSubject, type StudyDay,
 } from '@/lib/study-plan'
 import { partSummary } from '@/lib/roadmap-summary'
-import { studyPrompt } from '@/lib/study-prompt'
+import type { RoadmapNote } from '@/lib/resources/config'
+import { requestLink } from '@/lib/resources/open-link'
+import { usePremium } from '@/app/components/dsc-sgt/PremiumContext'
+import PdfViewer from '@/app/components/dsc-sgt/resources/PdfViewer'
 
 const DAY_MS = 86_400_000
 
@@ -52,15 +55,8 @@ const SUBJECT_DOT: Record<PlanSubject, string> = {
   test: 'bg-lime-600', mock: 'bg-rose-500', revision: 'bg-slate-400', rest: 'bg-zinc-300',
 }
 
-/** Where to paste the prompt. Each link copies it first. */
-const AI_TOOLS = [
-  { name: 'ChatGPT', href: 'https://chatgpt.com/' },
-  { name: 'Gemini', href: 'https://gemini.google.com/app' },
-  { name: 'Claude', href: 'https://claude.ai/new' },
-]
-
-const ACTION: Record<Exclude<PlanAction, 'none'>, { href: string; label: string }> = {
-  practice: { href: '/dsc-sgt/practice', label: 'Practice' },
+/** Mock and review days link to their page; study days have their notes instead. */
+const ACTION: Partial<Record<PlanAction, { href: string; label: string }>> = {
   mock: { href: '/dsc-sgt/mock-tests', label: 'Mock tests' },
   performance: { href: '/dsc-sgt/performance', label: 'Performance' },
 }
@@ -94,6 +90,24 @@ export default function StudyPlan({ medium }: { medium: PlanMedium }) {
   const currentDay = todayDay !== null && todayDay >= 1 && todayDay <= plan.length ? todayDay : null
   const [week, setWeek] = useState(() => (currentDay ? Math.ceil(currentDay / 7) : 1))
 
+  // Each day's study notes, by day number; days without notes just show no button.
+  const { isPremium, openModal } = usePremium()
+  const [notes, setNotes] = useState<Record<number, RoadmapNote>>({})
+  const [reading, setReading] = useState<RoadmapNote | null>(null)
+  useEffect(() => {
+    let live = true
+    fetch(`/api/dsc-sgt/resources?roadmap=${medium}`)
+      .then((res) => res.json())
+      .then((json) => { if (live && json?.success) setNotes(json.notes ?? {}) })
+      .catch(() => { /* The plan works without notes. */ })
+    return () => { live = false }
+  }, [medium])
+  const openNotes = (note: RoadmapNote) => (note.access === 'pro' && !isPremium ? openModal('roadmap_notes') : setReading(note))
+  const readingId = reading?.id
+  const getUrl = useCallback(() => requestLink(`/api/dsc-sgt/resources/${readingId}/link`), [readingId])
+  const closeReader = useCallback(() => setReading(null), [])
+  const notesFor = (d: StudyDay) => ({ note: notes[d.day], locked: notes[d.day]?.access === 'pro' && !isPremium, onNotes: openNotes })
+
   const startTime = start ? new Date(`${start}T00:00:00`).getTime() : null
   const dateOf = (day: number) => (startTime === null ? null : startTime + (day - 1) * DAY_MS)
 
@@ -116,11 +130,6 @@ export default function StudyPlan({ medium }: { medium: PlanMedium }) {
     })
   }
 
-  const promptFor = (d: StudyDay) => studyPrompt(d, plan, medium)
-  // A study day's Practice opens practice set to that day's subject and topics.
-  const hrefFor = (d: StudyDay) => d.action === 'practice' && d.practice
-    ? `${ACTION.practice.href}?${new URLSearchParams({ medium, day: String(d.day) })}`
-    : d.action === 'none' ? '' : ACTION[d.action].href
   const days = weeks[week - 1]
   const firstDate = dateOf(days[0].day)
   const lastDate = dateOf(days[days.length - 1].day)
@@ -136,8 +145,7 @@ export default function StudyPlan({ medium }: { medium: PlanMedium }) {
         done={done}
         onStart={chooseStart}
         onToggle={toggleDone}
-        promptFor={promptFor}
-        hrefFor={hrefFor}
+        notesFor={notesFor}
       />
 
       {/* ── Every day ── */}
@@ -236,7 +244,7 @@ export default function StudyPlan({ medium }: { medium: PlanMedium }) {
                   </div>
                   <div className="min-w-0 flex-1">
                     <DayDetails day={d} />
-                    <DayActions day={d} done={done.has(d.day)} onToggle={toggleDone} prompt={promptFor(d)} href={hrefFor(d)} />
+                    <DayActions day={d} done={done.has(d.day)} onToggle={toggleDone} {...notesFor(d)} />
                   </div>
                 </li>
               )
@@ -244,11 +252,15 @@ export default function StudyPlan({ medium }: { medium: PlanMedium }) {
           </ol>
         </div>
       </section>
+
+      {reading && <PdfViewer title={reading.title} getUrl={getUrl} onClose={closeReader} />}
     </div>
   )
 }
 
-function TodayCard({ plan, start, todayDay, currentDay, today, done, onStart, onToggle, promptFor, hrefFor }: {
+type NotesProps = { note?: RoadmapNote; locked: boolean; onNotes: (note: RoadmapNote) => void }
+
+function TodayCard({ plan, start, todayDay, currentDay, today, done, onStart, onToggle, notesFor }: {
   plan: StudyDay[]
   start: string | null
   todayDay: number | null
@@ -257,8 +269,7 @@ function TodayCard({ plan, start, todayDay, currentDay, today, done, onStart, on
   done: Set<number>
   onStart: (iso: string) => void
   onToggle: (day: number) => void
-  promptFor: (day: StudyDay) => string
-  hrefFor: (day: StudyDay) => string
+  notesFor: (day: StudyDay) => NotesProps
 }) {
   const dateInput = (
     <input
@@ -310,7 +321,7 @@ function TodayCard({ plan, start, todayDay, currentDay, today, done, onStart, on
             Today · {shortDate(today)} · Day {currentDay} of {plan.length}
           </p>
           <DayDetails day={day} large />
-          <DayActions day={day} done={done.has(day.day)} onToggle={onToggle} prompt={promptFor(day)} href={hrefFor(day)} large />
+          <DayActions day={day} done={done.has(day.day)} onToggle={onToggle} {...notesFor(day)} large />
         </div>
         {footer}
       </section>
@@ -351,111 +362,59 @@ function DayDetails({ day, large }: { day: StudyDay; large?: boolean }) {
   )
 }
 
-function DayActions({ day, done, onToggle, prompt, href, large }: {
+/** Study notes first and big; then Done, and the Mock tests / Performance link on those days. */
+function DayActions({ day, done, onToggle, note, locked, onNotes, large }: NotesProps & {
   day: StudyDay
   done: boolean
   onToggle: (day: number) => void
-  prompt: string
-  /** Where the day's action button goes. */
-  href: string
   large?: boolean
 }) {
-  const [showPrompt, setShowPrompt] = useState(false)
-  const size = large ? 'px-3.5 py-2 text-sm' : 'px-2.5 py-1 text-xs'
+  const link = ACTION[day.action]
+  const small = large ? 'h-11 px-4 text-sm' : 'h-10 px-3.5 text-sm'
   return (
-    <>
-      <div className={`flex flex-wrap items-center gap-2 ${large ? 'mt-4' : 'mt-2.5'}`}>
+    <div className={`flex flex-wrap items-center gap-2.5 ${large ? 'mt-5' : 'mt-3'}`}>
+      {note && (
         <button
           type="button"
-          onClick={() => onToggle(day.day)}
-          aria-pressed={done}
-          aria-label={`Day ${day.day} done`}
-          className={`inline-flex items-center gap-1.5 rounded-lg border font-semibold transition cursor-pointer ${size} ${
-            done
-              ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
-              : 'border-border bg-background text-muted-foreground hover:text-foreground'
+          onClick={() => onNotes(note)}
+          title={note.title}
+          aria-label={`Study notes for day ${day.day}${locked ? ', Pro' : ''}`}
+          className={`inline-flex items-center justify-center gap-2 rounded-xl font-bold shadow-sm transition cursor-pointer max-sm:w-full ${
+            large ? 'h-12 px-6 text-base' : 'h-11 px-5 text-sm'
+          } ${
+            locked
+              ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:opacity-90'
+              : 'bg-primary text-primary-foreground hover:bg-primary/90'
           }`}
         >
-          <span className={`flex h-3.5 w-3.5 items-center justify-center rounded-[4px] border ${done ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-muted-foreground/60'}`}>
-            {done && <Check className="h-2.5 w-2.5" strokeWidth={4} />}
-          </span>
-          Done
+          {locked ? <Crown className="h-4.5 w-4.5" /> : <BookOpen className="h-4.5 w-4.5" />}
+          {locked ? 'Unlock study notes' : 'Read study notes'}
         </button>
-        {day.action !== 'none' && (
-          <Link
-            href={href}
-            className={`inline-flex items-center gap-1 rounded-lg font-semibold ${size} ${
-              large ? 'bg-primary text-primary-foreground hover:opacity-90' : 'text-primary hover:underline'
-            }`}
-          >
-            {ACTION[day.action].label} <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        )}
-        <button
-          type="button"
-          onClick={() => setShowPrompt(!showPrompt)}
-          aria-expanded={showPrompt}
-          className={`inline-flex items-center gap-1.5 rounded-lg border font-semibold transition cursor-pointer ${size} ${
-            showPrompt ? 'border-violet-500/40 bg-violet-500/10 text-violet-700 dark:text-violet-300' : 'border-border bg-background text-muted-foreground hover:text-foreground'
-          }`}
+      )}
+      <button
+        type="button"
+        onClick={() => onToggle(day.day)}
+        aria-pressed={done}
+        aria-label={`Day ${day.day} done`}
+        className={`inline-flex items-center gap-2 rounded-xl border font-semibold transition cursor-pointer ${small} ${
+          done
+            ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+            : 'border-border bg-background text-muted-foreground hover:text-foreground'
+        }`}
+      >
+        <span className={`flex h-4 w-4 items-center justify-center rounded-[5px] border ${done ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-muted-foreground/60'}`}>
+          {done && <Check className="h-3 w-3" strokeWidth={4} />}
+        </span>
+        {done ? 'Done' : 'Mark done'}
+      </button>
+      {link && (
+        <Link
+          href={link.href}
+          className={`inline-flex items-center gap-1.5 rounded-xl border border-primary/40 font-semibold text-primary transition hover:bg-primary/5 ${small}`}
         >
-          <Sparkles className="h-3.5 w-3.5 text-violet-500" /> AI prompt
-        </button>
-      </div>
-      {showPrompt && <PromptPanel prompt={prompt} />}
-    </>
-  )
-}
-
-/** The day's prompt, to copy into an AI tool. */
-function PromptPanel({ prompt }: { prompt: string }) {
-  const [copied, setCopied] = useState(false)
-  const box = useRef<HTMLTextAreaElement>(null)
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(prompt)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      box.current?.select()
-      toast.error('Could not copy. The prompt is selected: copy it yourself.')
-    }
-  }
-  return (
-    <div className="mt-3 rounded-xl border border-violet-500/30 bg-violet-500/5 p-3">
-      <p className="mb-2 text-xs font-semibold text-foreground">Learn this in depth with an AI tool</p>
-      <textarea
-        ref={box}
-        readOnly
-        value={prompt}
-        rows={7}
-        aria-label="AI study prompt"
-        className="w-full resize-y rounded-lg border border-border bg-background p-2.5 font-mono text-[11px] leading-relaxed text-foreground"
-      />
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={copy}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 cursor-pointer"
-        >
-          {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-          {copied ? 'Copied' : 'Copy prompt'}
-        </button>
-        <span className="text-[11px] text-muted-foreground">Copy and open:</span>
-        {AI_TOOLS.map((tool) => (
-          <a
-            key={tool.name}
-            href={tool.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => void copy()}
-            className="inline-flex items-center gap-1 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground hover:border-primary/50"
-          >
-            {tool.name} <ExternalLink className="h-3 w-3 text-muted-foreground" />
-          </a>
-        ))}
-      </div>
-      <p className="mt-2 text-[11px] text-muted-foreground">AI tools can make mistakes. Check facts against your textbooks.</p>
+          {link.label} <ArrowRight className="h-4 w-4" />
+        </Link>
+      )}
     </div>
   )
 }

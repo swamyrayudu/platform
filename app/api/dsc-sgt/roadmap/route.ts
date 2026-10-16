@@ -5,6 +5,8 @@
 // the phases, daily habits and days-by-marks, plus the exam pattern,
 // syllabus and dates. The website renders the same modules directly; serving
 // them here keeps one source, so the app shows plan changes without a release.
+// Each day also carries its study-notes PDF in this medium (`notes`, or null),
+// which the app downloads into its private storage to read offline.
 // ============================================================
 
 import { NextResponse } from 'next/server'
@@ -15,10 +17,16 @@ import { DAILY_HABITS, PLAN_PHASES, ROUTINE_TASKS, SUBJECT_LABEL, getStudyPlan }
 import { studyPrompt } from '@/lib/study-prompt'
 import { partSummary } from '@/lib/roadmap-summary'
 import { PATTERN_FACTS, syllabusFor } from '@/lib/exam-syllabus'
+import { roadmapNotes, type RoadmapNote } from '@/lib/resources/store'
 
 export const GET = requireAuth(async (request) => {
   const medium = new URL(request.url).searchParams.get('medium') === 'telugu' ? 'telugu' : 'english'
   const plan = getStudyPlan(medium)
+  // The plan still loads if the notes cannot be read; the days just have none.
+  const notes = await roadmapNotes(medium).catch((err) => {
+    console.error('[roadmap] notes', err)
+    return new Map<number, RoadmapNote>()
+  })
   return NextResponse.json({
     success: true,
     medium,
@@ -28,6 +36,7 @@ export const GET = requireAuth(async (request) => {
       // The everyday task is implied by the Practice button, as on the website.
       task: ROUTINE_TASKS.has(d.task) ? null : d.task,
       prompt: studyPrompt(d, plan, medium),
+      notes: notes.get(d.day) ?? null,
     })),
     phases: PLAN_PHASES,
     habits: DAILY_HABITS,

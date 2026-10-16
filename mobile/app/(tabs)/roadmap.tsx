@@ -1,28 +1,35 @@
 // Exam roadmap: the 90-day plan (per medium) and the exam pattern & syllabus.
 // The content comes from the website (/api/dsc-sgt/roadmap), so it matches
 // the website and updates without an app release. The start date and ticked
-// days stay on this device, per medium.
+// days stay on this device, per medium. The last roadmap is kept on the phone
+// (services/roadmap-offline.ts), so the plan opens offline too. A day's Notes
+// downloads its study PDF into the app once (it then also appears under
+// Resources > Downloaded) and opens it, with or without internet.
 import { useEffect, useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Screen, Card, Body, Button, Loading, ErrorState, Stats, Heading } from '@/components/ui';
 import { BackHeader } from '@/components/back-header';
 import { useAuth } from '@/store/auth';
-import { roadmapService } from '@/services/learning-service';
+import { loadRoadmap } from '@/services/roadmap-offline';
+import { pdfDownloads } from '@/services/pdf-downloads';
+import { showsPlans } from '@/services/payment-service';
+import { ApiError } from '@/services/api-client';
+import { hasActiveSubscription } from '@/utils/subscription';
 import { roadmapProgress, type RoadmapProgress } from '@/services/roadmap-progress';
 import { DAY_MS, dayStart, isoDate, parseIso, planDayNumber, shiftIso, shortDate, weeksOf } from '@/utils/roadmap';
 import { colors } from '@/utils/theme';
-import type { PlanAction, PlanMedium, PlanSubject, Roadmap, RoadmapDay, SyllabusPart, SyllabusUnit } from '@/types/learning';
+import type { PlanAction, PlanMedium, PlanSubject, Roadmap, RoadmapDay, RoadmapNote, SyllabusPart, SyllabusUnit } from '@/types/learning';
 
 const SUBJECT_COLOR: Record<PlanSubject, string> = {
   psychology: '#8B5CF6', perspectives: '#C026D3', mathematics: '#3B82F6', telugu: '#F97316', science: '#10B981',
   english: '#0EA5E9', social: '#F59E0B', gk: '#14B8A6', test: '#65A30D', mock: '#F43F5E', revision: '#94A3B8', rest: '#A1A1AA',
 };
-const ACTION: Record<Exclude<PlanAction, 'none'>, {label: string; href: '/practice' | '/mocks' | '/performance'}> = {
-  practice: {label: 'Practice', href: '/practice'}, mock: {label: 'Mock tests', href: '/mocks'}, performance: {label: 'Progress', href: '/performance'},
+/** Mock and review days link to their screen; study days have their notes instead. */
+const ACTION: Partial<Record<PlanAction, {label: string; href: '/mocks' | '/performance'}>> = {
+  mock: {label: 'Mock tests', href: '/mocks'}, performance: {label: 'Progress', href: '/performance'},
 };
 
 type Tab = 'plan' | 'exam';
@@ -31,7 +38,7 @@ export default function RoadmapScreen() {
   const {user} = useAuth();
   const [tab, setTab] = useState<Tab>('plan');
   const [medium, setMedium] = useState<PlanMedium>(user?.educationMedium === 'telugu' ? 'telugu' : 'english');
-  const roadmap = useQuery({queryKey: ['roadmap', medium], queryFn: () => roadmapService.get(medium), staleTime: 60 * 60 * 1000});
+  const roadmap = useQuery({queryKey: ['roadmap', medium], queryFn: () => loadRoadmap(medium), staleTime: 60 * 60 * 1000});
   return <Screen title="Exam roadmap" refreshing={roadmap.isRefetching} onRefresh={() => void roadmap.refetch()}
     pageHeader={<BackHeader title="Exam roadmap" subtitle="AP DSC 2026 · SGT" fallback="/more"/>}>
     <Segmented value={tab} onChange={setTab} items={[{value: 'plan', label: 'Study plan'}, {value: 'exam', label: 'Exam pattern'}]}/>
@@ -66,7 +73,30 @@ function StudyPlan({roadmap, medium}: {roadmap: Roadmap; medium: PlanMedium}) {
   // Nothing can be ticked until the saved progress is read, or a quick tap would overwrite it.
   const [loaded, setLoaded] = useState(false);
   const [week, setWeek] = useState(1);
-  const [prompt, setPrompt] = useState<RoadmapDay | null>(null);
+
+  // Study notes: downloaded once into the app, then opened from there (offline too).
+  const {user} = useAuth();
+  const pro = hasActiveSubscription(user);
+  const cache = useQueryClient();
+  const saved = useQuery({queryKey: ['pdf-downloads'], queryFn: pdfDownloads.list});
+  const savedIds = new Set((saved.data ?? []).map(d => d.id));
+  const [noteError, setNoteError] = useState<string | null>(null);
+  const download = useMutation({
+    mutationFn: (note: RoadmapNote) => pdfDownloads.download({id: note.id, title: note.title, access: note.access, size_bytes: note.size_bytes}),
+    onMutate: () => setNoteError(null),
+    onSuccess: (_, note) => { void cache.invalidateQueries({queryKey: ['pdf-downloads']}); readNote(note); },
+    onError: err => setNoteError(err instanceof ApiError && err.code === 'PRO_REQUIRED' ? 'These notes are for Pro members.'
+      : err instanceof ApiError && err.status === 0 ? 'No internet. Connect once to download these notes; after that they open offline.'
+      : err instanceof Error ? err.message : 'Could not download these notes.'),
+  });
+  const notesFor = (d: RoadmapDay): NotesState | null => {
+    const note = d.notes;
+    if (!note) return null;
+    const state = note.access === 'pro' && !pro ? 'locked' : savedIds.has(note.id) ? 'saved' : download.isPending && download.variables?.id === note.id ? 'saving' : 'download';
+    const onPress = () => state === 'locked' ? (showsPlans ? router.push('/subscription') : undefined)
+      : state === 'saved' ? readNote(note) : state === 'download' ? download.mutate(note) : undefined;
+    return {state, onPress};
+  };
 
   useEffect(() => {
     let live = true;
@@ -96,16 +126,17 @@ function StudyPlan({roadmap, medium}: {roadmap: Roadmap; medium: PlanMedium}) {
   const shown = weeks[week - 1] ?? [];
 
   return <>
+    {noteError ? <Text style={styles.error}>{noteError}</Text> : null}
     {/* Today */}
     {!loaded ? <Loading/> : !progress.start ? <Card>
       <Heading>Start your 90-day plan</Heading>
-      <Body>Each day shows what to study, with practice and an AI study prompt.</Body>
+      <Body>Each day shows what to study, with its study notes to read in the app, also offline.</Body>
       <Button icon="play-outline" label="Start today" onPress={() => setStart(isoDate(today))}/>
     </Card> : <View style={[styles.today, current !== null && {borderColor: colors.primary}]}>
       {current !== null ? <>
         <Text style={styles.eyebrow}>Today · {shortDate(today)} · Day {current} of {days.length}</Text>
         <DayContent day={days[current - 1]} large/>
-        <DayActions day={days[current - 1]} medium={medium} done={done.has(current)} onToggle={toggle} onPrompt={setPrompt} large/>
+        <DayActions day={days[current - 1]} medium={medium} done={done.has(current)} onToggle={toggle} notes={notesFor(days[current - 1])} large/>
       </> : <Heading>{todayNumber !== null && todayNumber < 1 ? `Starts in ${1 - todayNumber} day${todayNumber === 0 ? '' : 's'}` : '90 days complete'}</Heading>}
       <View style={styles.progressFooter}>
         <View style={styles.startRow}>
@@ -171,12 +202,11 @@ function StudyPlan({roadmap, medium}: {roadmap: Roadmap; medium: PlanMedium}) {
               {d.day === current ? <View style={styles.todayBadge}><Text style={styles.todayBadgeText}>Today</Text></View> : null}
             </View>
             <DayContent day={d}/>
-            {loaded ? <DayActions day={d} medium={medium} done={done.has(d.day)} onToggle={toggle} onPrompt={setPrompt}/> : null}
+            {loaded ? <DayActions day={d} medium={medium} done={done.has(d.day)} onToggle={toggle} notes={notesFor(d)}/> : null}
           </View>;
         })}
       </View>
     </View>
-    {prompt ? <PromptSheet day={prompt} onClose={() => setPrompt(null)}/> : null}
   </>;
 }
 
@@ -189,52 +219,39 @@ function DayContent({day, large}: {day: RoadmapDay; large?: boolean}) {
   </View>;
 }
 
-/** A study day's Practice opens practice set to that day's subject and topics. */
-function openAction(day: RoadmapDay, medium: PlanMedium) {
-  if (day.action === 'practice' && day.practice) {
-    router.push({pathname: '/practice', params: {subject: day.practice.subject, medium, day: String(day.day), title: day.title, keys: day.practice.keys.join('\n')}});
-  } else if (day.action !== 'none') router.push(ACTION[day.action].href);
-}
+/** Opens a downloaded PDF in the app's viewer, which reads it from the phone. */
+const readNote = (note: RoadmapNote) =>
+  router.push({pathname: '/pdf/[id]', params: {id: note.id, title: note.title, access: note.access, size: String(note.size_bytes)}});
 
-function DayActions({day, medium, done, onToggle, onPrompt, large}: {day: RoadmapDay; medium: PlanMedium; done: boolean; onToggle: (day: number) => void; onPrompt: (day: RoadmapDay) => void; large?: boolean}) {
-  return <View style={[styles.actions, large && {marginTop: 6}]}>
-    <Pressable accessibilityRole="checkbox" accessibilityState={{checked: done}} accessibilityLabel={`Day ${day.day} done`} onPress={() => onToggle(day.day)}
-      style={[styles.pill, done && styles.pillDone]}>
-      <Ionicons name={done ? 'checkbox' : 'square-outline'} size={17} color={done ? colors.green : colors.muted}/>
-      <Text style={[styles.pillText, done && {color: colors.green}]}>Done</Text>
-    </Pressable>
-    {day.action !== 'none' ? <Pressable accessibilityRole="link" onPress={() => openAction(day, medium)}
-      style={[styles.pill, large && styles.pillPrimary]}>
-      <Text style={[styles.pillText, {color: large ? '#fff' : colors.primary}]}>{ACTION[day.action].label}</Text>
-      <Ionicons name="arrow-forward" size={15} color={large ? '#fff' : colors.primary}/>
+type NotesState = {state: 'locked' | 'saved' | 'saving' | 'download'; onPress: () => void};
+const NOTES_LABEL = {locked: showsPlans ? 'Unlock study notes' : 'Study notes · Pro', saved: 'Read study notes', saving: 'Downloading…', download: 'Download study notes'} as const;
+const NOTES_ICON = {locked: 'lock-closed', saved: 'book', download: 'download-outline'} as const;
+
+/** Study notes first and full width; then Done, and Mock tests / Progress on those days. */
+function DayActions({day, done, onToggle, notes, large}: {day: RoadmapDay; medium: PlanMedium; done: boolean; onToggle: (day: number) => void; notes: NotesState | null; large?: boolean}) {
+  const link = ACTION[day.action];
+  const locked = notes?.state === 'locked';
+  return <View style={[styles.actions, large && {marginTop: 8}]}>
+    {notes ? <Pressable accessibilityRole="button" accessibilityLabel={`${NOTES_LABEL[notes.state]}, day ${day.day}`}
+      disabled={notes.state === 'saving' || (locked && !showsPlans)} onPress={notes.onPress}
+      style={({pressed}) => [styles.notesButton, large && styles.notesButtonLarge, locked && styles.notesLocked, pressed && {opacity: .8}]}>
+      {notes.state === 'saving' ? <ActivityIndicator size="small" color="#fff"/>
+        : <Ionicons name={NOTES_ICON[notes.state]} size={large ? 20 : 18} color={locked ? colors.gold : '#fff'}/>}
+      <Text style={[styles.notesText, large && {fontSize: 16}, locked && {color: colors.gold}]}>{NOTES_LABEL[notes.state]}</Text>
+      {notes.state === 'saved' ? <View style={styles.offlineTag}><Text style={styles.offlineText}>Offline</Text></View> : null}
     </Pressable> : null}
-    <Pressable accessibilityRole="button" accessibilityLabel={`AI study prompt for day ${day.day}`} onPress={() => onPrompt(day)} style={[styles.pill, styles.pillAi]}>
-      <Ionicons name="sparkles-outline" size={15} color="#7C3AED"/>
-      <Text style={[styles.pillText, {color: '#6D28D9'}]}>AI prompt</Text>
-    </Pressable>
+    <View style={styles.inline}>
+      <Pressable accessibilityRole="checkbox" accessibilityState={{checked: done}} accessibilityLabel={`Day ${day.day} done`} onPress={() => onToggle(day.day)}
+        style={[styles.pill, done && styles.pillDone]}>
+        <Ionicons name={done ? 'checkbox' : 'square-outline'} size={18} color={done ? colors.green : colors.muted}/>
+        <Text style={[styles.pillText, done && {color: colors.green}]}>{done ? 'Done' : 'Mark done'}</Text>
+      </Pressable>
+      {link ? <Pressable accessibilityRole="link" onPress={() => router.push(link.href)} style={[styles.pill, styles.pillLink]}>
+        <Text style={[styles.pillText, {color: colors.primary}]}>{link.label}</Text>
+        <Ionicons name="arrow-forward" size={15} color={colors.primary}/>
+      </Pressable> : null}
+    </View>
   </View>;
-}
-
-function PromptSheet({day, onClose}: {day: RoadmapDay; onClose: () => void}) {
-  const share = () => { void Share.share({message: day.prompt}); };
-  return <Modal visible transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent navigationBarTranslucent>
-    <Pressable accessibilityLabel="Close" style={styles.backdrop} onPress={onClose}/>
-    <SafeAreaView edges={['bottom']} style={styles.sheet}>
-      <View style={styles.handle}/>
-      <View style={styles.sheetHeader}>
-        <View style={{flex: 1, minWidth: 0}}>
-          <Heading>AI study prompt</Heading>
-          <Text style={styles.muted}>Day {day.day} · {day.title}</Text>
-        </View>
-        <IconButton icon="close" label="Close" onPress={onClose}/>
-      </View>
-      <ScrollView style={styles.promptBox} contentContainerStyle={{padding: 12}}>
-        <Text selectable style={styles.promptText}>{day.prompt}</Text>
-      </ScrollView>
-      <Button icon="share-outline" label="Send to an AI app" onPress={share}/>
-      <Text style={styles.hint}>Choose ChatGPT, Gemini or Claude, or Copy and paste it in. AI can make mistakes: check facts against your textbooks.</Text>
-    </SafeAreaView>
-  </Modal>;
 }
 
 function IconButton({icon, label, onPress, disabled}: {icon: 'add' | 'remove' | 'refresh' | 'chevron-back' | 'chevron-forward' | 'close'; label: string; onPress: () => void; disabled?: boolean}) {
@@ -370,18 +387,18 @@ const styles = StyleSheet.create({
   title: {fontSize: 15, lineHeight: 22, fontWeight: '700', color: colors.ink}, titleLarge: {fontSize: 19, lineHeight: 27, fontWeight: '800', color: colors.ink},
   topic: {fontSize: 13, lineHeight: 20, color: colors.muted}, topicLarge: {fontSize: 14, lineHeight: 22, color: colors.muted},
   task: {fontSize: 12, lineHeight: 18, fontWeight: '600', color: colors.ink, marginTop: 2},
-  actions: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
+  actions: {gap: 10},
   pill: {flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 38, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card},
-  pillDone: {borderColor: '#A7D7BF', backgroundColor: colors.greenSoft}, pillPrimary: {borderColor: colors.primary, backgroundColor: colors.primary},
-  pillAi: {borderColor: '#DDD6FE', backgroundColor: '#F5F3FF'}, pillText: {fontSize: 13, fontWeight: '700', color: colors.muted},
+  pillDone: {borderColor: '#A7D7BF', backgroundColor: colors.greenSoft},
+  pillLink: {borderColor: colors.primary},
+  notesButton: {flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 50, paddingHorizontal: 16, borderRadius: 14, backgroundColor: colors.primary},
+  notesButtonLarge: {minHeight: 56, borderRadius: 16},
+  notesLocked: {backgroundColor: '#FCF4E6', borderWidth: 1, borderColor: '#F3DFB8'},
+  notesText: {fontSize: 15, fontWeight: '800', color: '#fff'},
+  offlineTag: {paddingHorizontal: 7, paddingVertical: 2, borderRadius: 7, backgroundColor: 'rgba(255,255,255,.22)'},
+  offlineText: {fontSize: 10, fontWeight: '800', color: '#fff'},
+  error: {fontSize: 13, lineHeight: 19, color: colors.red}, pillText: {fontSize: 13, fontWeight: '700', color: colors.muted},
   iconButton: {width: 36, height: 36, borderRadius: 11, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center'},
-  backdrop: {flex: 1, backgroundColor: 'rgba(27,26,46,.45)'},
-  sheet: {maxHeight: '85%', padding: 18, paddingTop: 10, gap: 12, borderTopLeftRadius: 26, borderTopRightRadius: 26, backgroundColor: colors.card},
-  handle: {alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border},
-  sheetHeader: {flexDirection: 'row', alignItems: 'center', gap: 10},
-  promptBox: {flexGrow: 0, maxHeight: 340, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background},
-  promptText: {fontSize: 12, lineHeight: 19, color: colors.ink},
-  hint: {fontSize: 11, lineHeight: 17, color: colors.muted, textAlign: 'center'},
   markRow: {flexDirection: 'row', alignItems: 'center', gap: 10},
   markName: {fontSize: 14, lineHeight: 21, fontWeight: '600', color: colors.ink}, markValue: {fontSize: 16, fontWeight: '800', color: colors.primary},
   syllabus: {borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, overflow: 'hidden'},

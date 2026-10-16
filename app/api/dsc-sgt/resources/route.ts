@@ -7,6 +7,7 @@
 //   ?view=root     folders with file counts, and the files in no folder
 //   ?folder=<id>   one folder and its files (loaded when it is opened)
 //   ?search=<text> matching files in every folder
+//   ?roadmap=<medium> each roadmap day's study-notes PDF: { notes: { [day]: note } }
 //   (none)         every file and folder: what older app updates expect
 //
 // Files come in reading order (Day 1 → Day 28): lib/resources/config.ts.
@@ -14,7 +15,7 @@
 
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
-import { listFolders, listPublishedResources, loadFolderResources, loadResourcesRoot, searchPublishedResources } from '@/lib/resources/store'
+import { listFolders, listPublishedResources, loadFolderResources, loadResourcesRoot, roadmapNotes, searchPublishedResources } from '@/lib/resources/store'
 import { resourcesError } from '@/lib/resources/respond'
 
 const isUuid = (v: string) => /^[0-9a-f-]{36}$/i.test(v)
@@ -24,6 +25,12 @@ export const GET = requireAuth(async (request) => {
     const params = new URL(request.url).searchParams
     const folderId = params.get('folder')
     const search = params.get('search')
+    const roadmap = params.get('roadmap')
+
+    if (roadmap !== null) {
+      const notes = await roadmapNotes(roadmap === 'telugu' ? 'telugu' : 'english')
+      return NextResponse.json({ success: true, notes: Object.fromEntries(notes) })
+    }
 
     if (folderId !== null) {
       const found = isUuid(folderId) ? await loadFolderResources(folderId) : null
