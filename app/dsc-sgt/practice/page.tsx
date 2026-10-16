@@ -10,7 +10,8 @@
 //   - 'history': Student's past practice archive & retries
 // ============================================================
 
-import React, { use, useState } from 'react'
+import React, { Suspense, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { useAuth } from '@/app/contexts/AuthContext'
 import { resolvePreferredMedium } from '@/lib/medium-preference'
@@ -28,17 +29,22 @@ import type {
 
 type ViewMode = 'setup' | 'exam' | 'results' | 'history'
 
-type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
-
 /** ?medium=…&day=… from a roadmap day's Practice button. */
-function roadmapLink(query: Awaited<SearchParams>): { medium: PracticeMedium; day: number } | null {
-  const medium = query.medium
-  const day = Number(query.day)
+function roadmapLink(query: URLSearchParams): { medium: PracticeMedium; day: number } | null {
+  const medium = query.get('medium')
+  const day = Number(query.get('day'))
   return (medium === 'english' || medium === 'telugu') && Number.isInteger(day) && day > 0 ? { medium, day } : null
 }
 
-export default function PracticePage({ searchParams }: { searchParams: SearchParams }) {
-  const roadmap = roadmapLink(use(searchParams))
+// The query is read with useSearchParams, not the page's searchParams prop: this
+// page is prerendered as static (the layout renders nothing until the user is
+// known), and a static page's prop never carries the query in production.
+export default function PracticePage() {
+  return <Suspense fallback={null}><Practice /></Suspense>
+}
+
+function Practice() {
+  const roadmap = roadmapLink(useSearchParams())
   const { user } = useAuth()
   const { isPremium, openModal } = usePremium()
   const [view, setView] = useState<ViewMode>('setup')

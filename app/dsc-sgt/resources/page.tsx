@@ -11,8 +11,8 @@
 // browser's own viewer.
 // ============================================================
 
-import React, { use, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, BookOpen, ChevronRight, Crown, FileText, Folder, Library, Search, X } from 'lucide-react'
 import { usePremium } from '@/app/components/dsc-sgt/PremiumContext'
 import {
@@ -23,7 +23,6 @@ import { requestLink } from '@/lib/resources/open-link'
 import PdfViewer from '@/app/components/dsc-sgt/resources/PdfViewer'
 
 type Medium = 'all' | 'telugu' | 'english'
-type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
 
 const PATH = '/dsc-sgt/resources'
 
@@ -40,9 +39,16 @@ const countFor = (f: ResourceFolder, medium: Medium) =>
   medium === 'english' ? f.english_count ?? f.file_count : medium === 'telugu' ? f.telugu_count ?? f.file_count : f.file_count
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
 
-export default function ResourcesPage({ searchParams }: { searchParams: SearchParams }) {
-  const query = use(searchParams)
-  const folderId = typeof query.folder === 'string' ? query.folder : null
+// The folder is read with useSearchParams, not the page's searchParams prop: this
+// page is prerendered as static (the layout renders nothing until the user is
+// known), and a static page's prop never carries ?folder= in production, so a
+// folder would never open.
+export default function ResourcesPage() {
+  return <Suspense fallback={<FolderSkeleton />}><Resources /></Suspense>
+}
+
+function Resources() {
+  const folderId = useSearchParams().get('folder')
   const router = useRouter()
   const { isPremium, openModal } = usePremium()
 
