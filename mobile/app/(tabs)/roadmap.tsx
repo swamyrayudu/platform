@@ -1,4 +1,7 @@
 // Exam roadmap: the 90-day plan (per medium) and the exam pattern & syllabus.
+// The plan reads top to bottom: progress, today's study, the week picker and
+// that week's days. Each day is one card: what to study, its study notes (the
+// main button) and a tick to mark it done.
 // The content comes from the website (/api/dsc-sgt/roadmap), so it matches
 // the website and updates without an app release. The start date and ticked
 // days stay on this device, per medium. The last roadmap is kept on the phone
@@ -42,10 +45,10 @@ export default function RoadmapScreen() {
   return <Screen title="Exam roadmap" refreshing={roadmap.isRefetching} onRefresh={() => void roadmap.refetch()}
     pageHeader={<BackHeader title="Exam roadmap" subtitle="AP DSC 2026 · SGT" fallback="/more"/>}>
     <Segmented value={tab} onChange={setTab} items={[{value: 'plan', label: 'Study plan'}, {value: 'exam', label: 'Exam pattern'}]}/>
-    {/* The medium sets the plan's topics and the syllabus language. */}
+    {/* The medium sets the plan's topics, its notes and the syllabus language. */}
     <View style={styles.mediumRow}>
-      <Text style={styles.muted}>Medium</Text>
-      <Segmented small value={medium} onChange={setMedium} items={[{value: 'telugu', label: 'Telugu'}, {value: 'english', label: 'English'}]}/>
+      <Text style={styles.mediumLabel}>Medium</Text>
+      <Segmented small value={medium} onChange={setMedium} items={[{value: 'telugu', label: 'తెలుగు'}, {value: 'english', label: 'English'}]}/>
     </View>
     {roadmap.isPending ? <Loading/> : null}
     {roadmap.error ? <ErrorState error={roadmap.error} retry={() => void roadmap.refetch()}/> : null}
@@ -127,98 +130,107 @@ function StudyPlan({roadmap, medium}: {roadmap: Roadmap; medium: PlanMedium}) {
   const dateOf = (day: number) => startTime === null ? null : startTime + (day - 1) * DAY_MS;
   const shown = weeks[week - 1] ?? [];
 
+  const [editStart, setEditStart] = useState(false);
+  const phaseOf = (w: number) => roadmap.phases.find(p => p.phase === weeks[w - 1]?.[0]?.phase);
+  const percent = Math.round(done.size / days.length * 100);
+
+  if (!loaded) return <Loading/>;
   return <>
     {noteError ? <Text style={styles.error}>{noteError}</Text> : null}
-    {/* Today */}
-    {!loaded ? <Loading/> : !progress.start ? <Card>
+
+    {/* Progress */}
+    {!progress.start ? <Card>
       <Heading>Start your 90-day plan</Heading>
-      <Body>Each day shows what to study, with its study notes to read in the app, also offline.</Body>
+      <Body>Every day shows what to study and its study notes. Download the notes once and read them even without internet.</Body>
       <Button icon="play-outline" label="Start today" onPress={() => setStart(isoDate(today))}/>
-    </Card> : <View style={[styles.today, current !== null && {borderColor: colors.primary}]}>
-      {current !== null ? <>
-        <Text style={styles.eyebrow}>Today · {shortDate(today)} · Day {current} of {days.length}</Text>
-        <DayContent day={days[current - 1]} large/>
-        <DayActions day={days[current - 1]} medium={medium} done={done.has(current)} onToggle={toggle} notes={notesFor(days[current - 1])} large/>
-      </> : <Heading>{todayNumber !== null && todayNumber < 1 ? `Starts in ${1 - todayNumber} day${todayNumber === 0 ? '' : 's'}` : '90 days complete'}</Heading>}
-      <View style={styles.progressFooter}>
-        <View style={styles.startRow}>
-          <Text style={styles.muted}>Started {shortDate(parseIso(progress.start))}</Text>
-          <View style={styles.inline}>
-            <IconButton icon="remove" label="Start one day earlier" onPress={() => setStart(shiftIso(progress.start!, -1))}/>
-            <IconButton icon="add" label="Start one day later" onPress={() => setStart(shiftIso(progress.start!, 1))}/>
-            <IconButton icon="refresh" label="Restart from today" onPress={() => setStart(isoDate(today))}/>
-          </View>
+    </Card> : <View style={styles.progress}>
+      <View style={styles.progressTop}>
+        <View style={{flex: 1, minWidth: 0}}>
+          <Text style={styles.progressDay}>{current !== null ? `Day ${current}` : todayNumber !== null && todayNumber < 1 ? `Starts in ${1 - todayNumber} day${todayNumber === 0 ? '' : 's'}` : 'Plan complete'}<Text style={styles.progressOf}>{current !== null ? ` of ${days.length}` : ''}</Text></Text>
+          <Text style={styles.muted}>{done.size} of {days.length} days done · {percent}%</Text>
         </View>
-        <View style={styles.bar}><View style={[styles.barFill, {width: `${Math.round(done.size / days.length * 100)}%`}]}/></View>
-        <Text style={styles.muted}>{done.size}/{days.length} days done</Text>
+        <Pressable accessibilityRole="button" onPress={() => setEditStart(!editStart)} hitSlop={6} style={styles.changeLink}>
+          <Ionicons name="calendar-outline" size={15} color={colors.primary}/>
+          <Text style={styles.changeText}>{editStart ? 'Close' : 'Start date'}</Text>
+        </Pressable>
       </View>
+      <View style={styles.bar}><View style={[styles.barFill, {width: `${percent}%`}]}/></View>
+      {editStart ? <View style={styles.startEditor}>
+        <Text style={styles.muted}>Started on <Text style={styles.strong}>{shortDate(parseIso(progress.start))}</Text></Text>
+        <View style={styles.inline}>
+          <SmallButton label="− 1 day" onPress={() => setStart(shiftIso(progress.start!, -1))}/>
+          <SmallButton label="+ 1 day" onPress={() => setStart(shiftIso(progress.start!, 1))}/>
+          <SmallButton label="From today" onPress={() => setStart(isoDate(today))}/>
+        </View>
+      </View> : null}
     </View>}
 
-    {/* Every day */}
-    <View style={styles.habits}>
-      <View style={styles.inline}><Ionicons name="flame-outline" size={16} color="#F97316"/><Text style={styles.habitTitle}>Every day</Text></View>
-      {roadmap.habits.map(h => <Text key={h} style={styles.habit}>• {h}</Text>)}
-    </View>
+    {/* Today */}
+    {current !== null ? <View style={{gap: 8}}>
+      <Text style={styles.sectionTitle}>Today · {shortDate(today)}</Text>
+      <DayCard day={days[current - 1]} date={null} done={done.has(current)} onToggle={toggle} notes={notesFor(days[current - 1])} highlight/>
+    </View> : null}
 
-    {/* Schedule */}
+    {/* Weeks */}
     <View style={{gap: 10}}>
-      <Heading>Schedule</Heading>
-      <View style={styles.wrap}>
-        {roadmap.parts.map(p => <View key={p.part} style={styles.partChip}>
-          <Text style={styles.partText}><Text style={styles.partLabel}>{p.label}</Text> {p.marks}M · {p.days}d{p.extra ?? ''}</Text>
-        </View>)}
-      </View>
+      <Text style={styles.sectionTitle}>All 90 days</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.weekStrip}>
-        {roadmap.phases.map(phase => <View key={phase.phase} style={{gap: 6}}>
-          <Text style={styles.phaseLabel}><Text style={styles.partLabel}>{phase.title}</Text> · {phase.days}</Text>
-          <View style={styles.inline}>
-            {weeks.map((w, i) => {
-              if (w[0]?.phase !== phase.phase) return null;
-              const n = i + 1; const selected = n === week;
-              const complete = w.every(d => done.has(d.day)); const isCurrent = current !== null && Math.ceil(current / 7) === n;
-              return <Pressable key={n} accessibilityRole="button" accessibilityLabel={`Week ${n}${isCurrent ? ', this week' : ''}`} accessibilityState={{selected}} onPress={() => setWeek(n)}
-                style={[styles.weekButton, complete && styles.weekDone, selected && styles.weekSelected]}>
-                {complete && !selected ? <Ionicons name="checkmark" size={18} color={colors.green}/> : <Text style={[styles.weekText, selected && {color: '#fff'}]}>{n}</Text>}
-                {isCurrent ? <View style={styles.currentDot}/> : null}
-              </Pressable>;
-            })}
-          </View>
-        </View>)}
-      </ScrollView>
-
-      <View style={styles.weekCard}>
-        <View style={styles.weekHeader}>
-          <View style={{flex: 1, minWidth: 0}}>
-            <Text style={styles.weekTitle}>Week {week}</Text>
-            <Text style={styles.muted}>Days {shown[0]?.day}–{shown[shown.length - 1]?.day}{startTime !== null && shown.length ? ` · ${shortDate(dateOf(shown[0].day)!)} – ${shortDate(dateOf(shown[shown.length - 1].day)!)}` : ''}</Text>
-          </View>
-          <IconButton icon="chevron-back" label="Previous week" disabled={week === 1} onPress={() => setWeek(week - 1)}/>
-          <IconButton icon="chevron-forward" label="Next week" disabled={week === weeks.length} onPress={() => setWeek(week + 1)}/>
-        </View>
-        {shown.map(d => {
-          const date = dateOf(d.day);
-          return <View key={d.day} style={[styles.dayRow, d.day === current && styles.dayToday]}>
-            <View style={styles.dayHead}>
-              <Text style={styles.dayNumber}>Day {d.day}</Text>
-              {date !== null ? <Text style={styles.muted}>{shortDate(date)}</Text> : null}
-              {d.day === current ? <View style={styles.todayBadge}><Text style={styles.todayBadgeText}>Today</Text></View> : null}
-            </View>
-            <DayContent day={d}/>
-            {loaded ? <DayActions day={d} medium={medium} done={done.has(d.day)} onToggle={toggle} notes={notesFor(d)}/> : null}
-          </View>;
+        {weeks.map((w, i) => {
+          const n = i + 1; const selected = n === week;
+          const complete = w.every(d => done.has(d.day)); const isCurrent = current !== null && Math.ceil(current / 7) === n;
+          return <Pressable key={n} accessibilityRole="button" accessibilityLabel={`Week ${n}${isCurrent ? ', this week' : ''}${complete ? ', done' : ''}`} accessibilityState={{selected}} onPress={() => setWeek(n)}
+            style={[styles.weekChip, complete && styles.weekDone, selected && styles.weekSelected]}>
+            {complete && !selected ? <Ionicons name="checkmark-circle" size={15} color={colors.green}/> : null}
+            <Text style={[styles.weekText, selected && {color: '#fff'}]}>Week {n}</Text>
+            {isCurrent ? <View style={[styles.currentDot, selected && {backgroundColor: '#fff'}]}/> : null}
+          </Pressable>;
         })}
+      </ScrollView>
+      <View style={styles.weekHeader}>
+        <IconButton icon="chevron-back" label="Previous week" disabled={week === 1} onPress={() => setWeek(week - 1)}/>
+        <View style={{flex: 1, minWidth: 0, alignItems: 'center'}}>
+          <Text style={styles.weekTitle}>Week {week}{phaseOf(week) ? ` · ${phaseOf(week)!.title}` : ''}</Text>
+          <Text style={styles.muted}>Days {shown[0]?.day}–{shown[shown.length - 1]?.day}{startTime !== null && shown.length ? ` · ${shortDate(dateOf(shown[0].day)!)} – ${shortDate(dateOf(shown[shown.length - 1].day)!)}` : ''}</Text>
+        </View>
+        <IconButton icon="chevron-forward" label="Next week" disabled={week === weeks.length} onPress={() => setWeek(week + 1)}/>
       </View>
+      {shown.map(d => <DayCard key={d.day} day={d} date={dateOf(d.day)} today={d.day === current} done={done.has(d.day)} onToggle={toggle} notes={notesFor(d)}/>)}
     </View>
   </>;
 }
 
-function DayContent({day, large}: {day: RoadmapDay; large?: boolean}) {
-  return <View style={{gap: 5}}>
-    <View style={styles.inline}><View style={[styles.dot, {backgroundColor: SUBJECT_COLOR[day.subject]}]}/><Text style={styles.subject}>{day.subject_label}</Text></View>
-    <Text style={large ? styles.titleLarge : styles.title}>{day.title}</Text>
-    {day.topics.map(t => <Text key={t} style={large ? styles.topicLarge : styles.topic}>• {t}</Text>)}
+/** One day: number and date with a tick to mark it done, the subject, title and topics, then its study notes. */
+function DayCard({day, date, today, done, onToggle, notes, highlight}: {day: RoadmapDay; date: number | null; today?: boolean; done: boolean; onToggle: (day: number) => void; notes: NotesState | null; highlight?: boolean}) {
+  const link = ACTION[day.action];
+  return <View style={[styles.dayCard, (highlight || today) && styles.dayCardToday, done && styles.dayCardDone]}>
+    <View style={styles.dayHead}>
+      <View style={[styles.dayBadge, {backgroundColor: SUBJECT_COLOR[day.subject]}]}><Text style={styles.dayBadgeText}>{day.day}</Text></View>
+      <View style={{flex: 1, minWidth: 0}}>
+        <Text style={styles.subject} numberOfLines={1}>{day.subject_label}{date !== null ? ` · ${shortDate(date)}` : ''}</Text>
+        {today ? <Text style={styles.todayTag}>Today</Text> : null}
+      </View>
+      <Pressable accessibilityRole="checkbox" accessibilityState={{checked: done}} accessibilityLabel={`Mark day ${day.day} done`} hitSlop={8} onPress={() => onToggle(day.day)}
+        style={[styles.tick, done && styles.tickDone]}>
+        <Ionicons name="checkmark" size={18} color={done ? '#fff' : colors.border}/>
+      </Pressable>
+    </View>
+    <Text style={highlight ? styles.titleLarge : styles.title}>{day.title}</Text>
+    <View style={{gap: 3}}>
+      {day.topics.map(t => <View key={t} style={styles.topicRow}><View style={styles.topicDot}/><Text style={highlight ? styles.topicLarge : styles.topic}>{t}</Text></View>)}
+    </View>
     {day.task ? <Text style={styles.task}>{day.task}</Text> : null}
+    {notes ? <NotesButton notes={notes} large={highlight}/> : null}
+    {link ? <Pressable accessibilityRole="link" onPress={() => router.push(link.href)} style={({pressed}) => [styles.linkButton, pressed && {opacity: .7}]}>
+      <Text style={styles.linkText}>{link.label}</Text>
+      <Ionicons name="arrow-forward" size={16} color={colors.primary}/>
+    </Pressable> : null}
   </View>;
+}
+
+function SmallButton({label, onPress}: {label: string; onPress: () => void}) {
+  return <Pressable accessibilityRole="button" onPress={onPress} style={({pressed}) => [styles.smallButton, pressed && {opacity: .6}]}>
+    <Text style={styles.smallButtonText}>{label}</Text>
+  </Pressable>;
 }
 
 /** Opens a downloaded PDF in the app's viewer, which reads it from the phone. */
@@ -229,32 +241,18 @@ type NotesState = {state: 'locked' | 'saved' | 'saving' | 'download' | 'soon'; o
 const NOTES_LABEL = {locked: showsPlans ? 'Unlock study notes' : 'Study notes · Pro', saved: 'Read study notes', saving: 'Downloading…', download: 'Download study notes', soon: 'Study notes · coming soon'} as const;
 const NOTES_ICON = {locked: 'lock-closed', saved: 'book', download: 'download-outline', soon: 'time-outline'} as const;
 
-/** Study notes first and full width; then Done, and Mock tests / Progress on those days. */
-function DayActions({day, done, onToggle, notes, large}: {day: RoadmapDay; medium: PlanMedium; done: boolean; onToggle: (day: number) => void; notes: NotesState | null; large?: boolean}) {
-  const link = ACTION[day.action];
-  const locked = notes?.state === 'locked';
-  const soon = notes?.state === 'soon';
-  return <View style={[styles.actions, large && {marginTop: 8}]}>
-    {notes ? <Pressable accessibilityRole="button" accessibilityLabel={`${NOTES_LABEL[notes.state]}, day ${day.day}`}
-      disabled={soon || notes.state === 'saving' || (locked && !showsPlans)} onPress={notes.onPress}
-      style={({pressed}) => [styles.notesButton, large && styles.notesButtonLarge, locked && styles.notesLocked, soon && styles.notesSoon, pressed && {opacity: .8}]}>
-      {notes.state === 'saving' ? <ActivityIndicator size="small" color="#fff"/>
-        : <Ionicons name={NOTES_ICON[notes.state]} size={large ? 20 : 18} color={locked ? colors.gold : soon ? colors.muted : '#fff'}/>}
-      <Text style={[styles.notesText, large && {fontSize: 16}, locked && {color: colors.gold}, soon && {color: colors.muted}]}>{NOTES_LABEL[notes.state]}</Text>
-      {notes.state === 'saved' ? <View style={styles.offlineTag}><Text style={styles.offlineText}>Offline</Text></View> : null}
-    </Pressable> : null}
-    <View style={styles.inline}>
-      <Pressable accessibilityRole="checkbox" accessibilityState={{checked: done}} accessibilityLabel={`Day ${day.day} done`} onPress={() => onToggle(day.day)}
-        style={[styles.pill, done && styles.pillDone]}>
-        <Ionicons name={done ? 'checkbox' : 'square-outline'} size={18} color={done ? colors.green : colors.muted}/>
-        <Text style={[styles.pillText, done && {color: colors.green}]}>{done ? 'Done' : 'Mark done'}</Text>
-      </Pressable>
-      {link ? <Pressable accessibilityRole="link" onPress={() => router.push(link.href)} style={[styles.pill, styles.pillLink]}>
-        <Text style={[styles.pillText, {color: colors.primary}]}>{link.label}</Text>
-        <Ionicons name="arrow-forward" size={15} color={colors.primary}/>
-      </Pressable> : null}
-    </View>
-  </View>;
+/** The day's study notes: download once, then read in the app, offline too. */
+function NotesButton({notes, large}: {notes: NotesState; large?: boolean}) {
+  const locked = notes.state === 'locked';
+  const soon = notes.state === 'soon';
+  return <Pressable accessibilityRole="button" accessibilityLabel={NOTES_LABEL[notes.state]}
+    disabled={soon || notes.state === 'saving' || (locked && !showsPlans)} onPress={notes.onPress}
+    style={({pressed}) => [styles.notesButton, large && styles.notesButtonLarge, locked && styles.notesLocked, soon && styles.notesSoon, pressed && {opacity: .8}]}>
+    {notes.state === 'saving' ? <ActivityIndicator size="small" color="#fff"/>
+      : <Ionicons name={NOTES_ICON[notes.state]} size={large ? 20 : 18} color={locked ? colors.gold : soon ? colors.muted : '#fff'}/>}
+    <Text style={[styles.notesText, large && {fontSize: 16}, locked && {color: colors.gold}, soon && {color: colors.muted}]}>{NOTES_LABEL[notes.state]}</Text>
+    {notes.state === 'saved' ? <View style={styles.offlineTag}><Ionicons name="cloud-done-outline" size={12} color="#fff"/><Text style={styles.offlineText}>Offline</Text></View> : null}
+  </Pressable>;
 }
 
 function IconButton({icon, label, onPress, disabled}: {icon: 'add' | 'remove' | 'refresh' | 'chevron-back' | 'chevron-forward' | 'close'; label: string; onPress: () => void; disabled?: boolean}) {
@@ -356,53 +354,61 @@ function ExamPattern({roadmap, medium}: {roadmap: Roadmap; medium: PlanMedium}) 
 
 const styles = StyleSheet.create({
   muted: {fontSize: 12, lineHeight: 18, color: colors.muted},
+  strong: {fontWeight: '700', color: colors.ink},
   inline: {flexDirection: 'row', alignItems: 'center', gap: 8},
-  wrap: {flexDirection: 'row', flexWrap: 'wrap', gap: 6},
+  error: {fontSize: 13, lineHeight: 19, color: colors.red},
+  // Header
   segmented: {flexDirection: 'row', flexGrow: 1, padding: 4, gap: 4, borderRadius: 16, backgroundColor: colors.primarySoft},
   segment: {flex: 1, minHeight: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12},
-  segmentSmall: {flex: 0, minHeight: 36},
+  segmentSmall: {flex: 0, minHeight: 34, paddingHorizontal: 14},
   segmentActive: {backgroundColor: colors.card, shadowColor: '#000', shadowOpacity: .06, shadowRadius: 4, shadowOffset: {width: 0, height: 1}, elevation: 1},
   segmentText: {fontSize: 13, fontWeight: '600', color: colors.muted}, segmentTextActive: {color: colors.ink, fontWeight: '700'},
   mediumRow: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10},
-  today: {padding: 16, gap: 10, borderRadius: 22, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card},
-  eyebrow: {fontSize: 12, fontWeight: '700', color: colors.primary},
-  progressFooter: {gap: 8, marginTop: 6, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border},
-  startRow: {flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8},
-  bar: {height: 6, borderRadius: 4, backgroundColor: colors.border, overflow: 'hidden'}, barFill: {height: 6, backgroundColor: colors.primary},
-  habits: {padding: 14, gap: 4, borderRadius: 18, backgroundColor: '#FFF7ED', borderWidth: 1, borderColor: '#FED7AA'},
-  habitTitle: {fontSize: 13, fontWeight: '700', color: colors.ink}, habit: {fontSize: 12, lineHeight: 19, color: colors.muted},
-  partChip: {paddingHorizontal: 9, paddingVertical: 5, borderRadius: 10, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card},
-  partText: {fontSize: 11, color: colors.muted}, partLabel: {fontWeight: '700', color: colors.ink},
-  weekStrip: {gap: 16, paddingVertical: 4},
-  phaseLabel: {fontSize: 11, color: colors.muted},
-  weekButton: {width: 42, height: 42, borderRadius: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center'},
+  mediumLabel: {fontSize: 13, fontWeight: '600', color: colors.muted},
+  // Progress
+  progress: {padding: 16, gap: 10, borderRadius: 20, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card},
+  progressTop: {flexDirection: 'row', alignItems: 'center', gap: 10},
+  progressDay: {fontSize: 22, fontWeight: '800', color: colors.ink}, progressOf: {fontSize: 15, fontWeight: '600', color: colors.muted},
+  changeLink: {flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, backgroundColor: colors.primarySoft},
+  changeText: {fontSize: 12, fontWeight: '700', color: colors.primary},
+  bar: {height: 8, borderRadius: 4, backgroundColor: colors.border, overflow: 'hidden'}, barFill: {height: 8, borderRadius: 4, backgroundColor: colors.primary},
+  startEditor: {gap: 8, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border},
+  smallButton: {paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background},
+  smallButtonText: {fontSize: 12, fontWeight: '700', color: colors.ink},
+  sectionTitle: {fontSize: 12, fontWeight: '800', letterSpacing: .6, textTransform: 'uppercase', color: colors.muted},
+  // Weeks
+  weekStrip: {gap: 8, paddingVertical: 2, paddingRight: 8},
+  weekChip: {flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 38, paddingHorizontal: 13, borderRadius: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card},
   weekDone: {borderColor: '#A7D7BF', backgroundColor: colors.greenSoft}, weekSelected: {borderColor: colors.primary, backgroundColor: colors.primary},
-  weekText: {fontSize: 14, fontWeight: '700', color: colors.ink},
-  currentDot: {position: 'absolute', top: -3, right: -3, width: 10, height: 10, borderRadius: 5, backgroundColor: '#F97316', borderWidth: 2, borderColor: colors.background},
-  weekCard: {borderRadius: 22, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, overflow: 'hidden'},
-  weekHeader: {flexDirection: 'row', alignItems: 'center', gap: 6, padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border},
+  weekText: {fontSize: 13, fontWeight: '700', color: colors.ink},
+  currentDot: {width: 7, height: 7, borderRadius: 4, backgroundColor: '#F97316'},
+  weekHeader: {flexDirection: 'row', alignItems: 'center', gap: 8},
   weekTitle: {fontSize: 15, fontWeight: '800', color: colors.ink},
-  dayRow: {padding: 14, gap: 8, borderBottomWidth: 1, borderBottomColor: colors.border}, dayToday: {backgroundColor: colors.primarySoft},
-  dayHead: {flexDirection: 'row', alignItems: 'center', gap: 8},
-  dayNumber: {fontSize: 14, fontWeight: '800', color: colors.ink},
-  todayBadge: {paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, backgroundColor: colors.primary}, todayBadgeText: {fontSize: 10, fontWeight: '700', color: '#fff'},
-  dot: {width: 8, height: 8, borderRadius: 4}, subject: {fontSize: 12, fontWeight: '600', color: colors.muted},
-  title: {fontSize: 15, lineHeight: 22, fontWeight: '700', color: colors.ink}, titleLarge: {fontSize: 19, lineHeight: 27, fontWeight: '800', color: colors.ink},
-  topic: {fontSize: 13, lineHeight: 20, color: colors.muted}, topicLarge: {fontSize: 14, lineHeight: 22, color: colors.muted},
-  task: {fontSize: 12, lineHeight: 18, fontWeight: '600', color: colors.ink, marginTop: 2},
-  actions: {gap: 10},
-  pill: {flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 38, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card},
-  pillDone: {borderColor: '#A7D7BF', backgroundColor: colors.greenSoft},
-  pillLink: {borderColor: colors.primary},
-  notesButton: {flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 50, paddingHorizontal: 16, borderRadius: 14, backgroundColor: colors.primary},
+  // Day card
+  dayCard: {padding: 14, gap: 9, borderRadius: 20, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card},
+  dayCardToday: {borderColor: colors.primary, borderWidth: 1.5},
+  dayCardDone: {backgroundColor: '#FBFCFB'},
+  dayHead: {flexDirection: 'row', alignItems: 'center', gap: 10},
+  dayBadge: {width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center'},
+  dayBadgeText: {fontSize: 14, fontWeight: '800', color: '#fff'},
+  subject: {fontSize: 12, fontWeight: '700', color: colors.muted},
+  todayTag: {fontSize: 11, fontWeight: '800', color: colors.primary},
+  tick: {width: 34, height: 34, borderRadius: 17, borderWidth: 2, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card},
+  tickDone: {borderColor: colors.green, backgroundColor: colors.green},
+  title: {fontSize: 16, lineHeight: 23, fontWeight: '800', color: colors.ink}, titleLarge: {fontSize: 19, lineHeight: 27, fontWeight: '800', color: colors.ink},
+  topicDot: {width: 5, height: 5, borderRadius: 3, marginTop: 8, backgroundColor: colors.muted},
+  topic: {flex: 1, fontSize: 13, lineHeight: 20, color: colors.muted}, topicLarge: {flex: 1, fontSize: 14, lineHeight: 22, color: colors.muted},
+  task: {fontSize: 12, lineHeight: 18, fontWeight: '600', color: colors.ink},
+  notesButton: {flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 50, marginTop: 4, paddingHorizontal: 16, borderRadius: 14, backgroundColor: colors.primary},
   notesButtonLarge: {minHeight: 56, borderRadius: 16},
   notesLocked: {backgroundColor: '#FCF4E6', borderWidth: 1, borderColor: '#F3DFB8'},
   notesSoon: {backgroundColor: colors.background, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.border},
   notesText: {fontSize: 15, fontWeight: '800', color: '#fff'},
-  offlineTag: {paddingHorizontal: 7, paddingVertical: 2, borderRadius: 7, backgroundColor: 'rgba(255,255,255,.22)'},
+  offlineTag: {flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 7, backgroundColor: 'rgba(255,255,255,.22)'},
   offlineText: {fontSize: 10, fontWeight: '800', color: '#fff'},
-  error: {fontSize: 13, lineHeight: 19, color: colors.red}, pillText: {fontSize: 13, fontWeight: '700', color: colors.muted},
-  iconButton: {width: 36, height: 36, borderRadius: 11, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center'},
+  linkButton: {flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 46, marginTop: 4, borderRadius: 14, borderWidth: 1, borderColor: colors.primary},
+  linkText: {fontSize: 14, fontWeight: '700', color: colors.primary},
+  iconButton: {width: 38, height: 38, borderRadius: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center'},
   markRow: {flexDirection: 'row', alignItems: 'center', gap: 10},
   markName: {fontSize: 14, lineHeight: 21, fontWeight: '600', color: colors.ink}, markValue: {fontSize: 16, fontWeight: '800', color: colors.primary},
   syllabus: {borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, overflow: 'hidden'},
