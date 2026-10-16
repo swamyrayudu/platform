@@ -18,7 +18,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, BookOpen, Check, ChevronLeft, ChevronRight, Crown, Flame } from 'lucide-react'
+import { ArrowRight, BookOpen, Check, ChevronLeft, ChevronRight, Clock, Crown, Flame } from 'lucide-react'
 import {
   DAILY_HABITS, PLAN_PHASES, ROUTINE_TASKS, SUBJECT_LABEL, getStudyPlan,
   type PlanAction, type PlanMedium, type PlanSubject, type StudyDay,
@@ -92,21 +92,27 @@ export default function StudyPlan({ medium }: { medium: PlanMedium }) {
 
   // Each day's study notes, by day number; days without notes just show no button.
   const { isPremium, openModal } = usePremium()
-  const [notes, setNotes] = useState<Record<number, RoadmapNote>>({})
+  const [notes, setNotes] = useState<Record<number, RoadmapNote> | null>(null)
   const [reading, setReading] = useState<RoadmapNote | null>(null)
   useEffect(() => {
     let live = true
     fetch(`/api/dsc-sgt/resources?roadmap=${medium}`)
       .then((res) => res.json())
-      .then((json) => { if (live && json?.success) setNotes(json.notes ?? {}) })
-      .catch(() => { /* The plan works without notes. */ })
+      .then((json) => { if (live) setNotes(json?.success ? json.notes ?? {} : {}) })
+      .catch(() => { if (live) setNotes({}) /* The plan works without notes. */ })
     return () => { live = false }
   }, [medium])
   const openNotes = (note: RoadmapNote) => (note.access === 'pro' && !isPremium ? openModal('roadmap_notes') : setReading(note))
   const readingId = reading?.id
   const getUrl = useCallback(() => requestLink(`/api/dsc-sgt/resources/${readingId}/link`), [readingId])
   const closeReader = useCallback(() => setReading(null), [])
-  const notesFor = (d: StudyDay) => ({ note: notes[d.day], locked: notes[d.day]?.access === 'pro' && !isPremium, onNotes: openNotes })
+  // A study day without notes yet says they are coming (not mock or rest days, and not before the list loads).
+  const notesFor = (d: StudyDay) => ({
+    note: notes?.[d.day],
+    locked: notes?.[d.day]?.access === 'pro' && !isPremium,
+    soon: notes !== null && !notes[d.day] && d.subject !== 'mock' && d.subject !== 'rest',
+    onNotes: openNotes,
+  })
 
   const startTime = start ? new Date(`${start}T00:00:00`).getTime() : null
   const dateOf = (day: number) => (startTime === null ? null : startTime + (day - 1) * DAY_MS)
@@ -258,7 +264,7 @@ export default function StudyPlan({ medium }: { medium: PlanMedium }) {
   )
 }
 
-type NotesProps = { note?: RoadmapNote; locked: boolean; onNotes: (note: RoadmapNote) => void }
+type NotesProps = { note?: RoadmapNote; locked: boolean; soon: boolean; onNotes: (note: RoadmapNote) => void }
 
 function TodayCard({ plan, start, todayDay, currentDay, today, done, onStart, onToggle, notesFor }: {
   plan: StudyDay[]
@@ -363,7 +369,7 @@ function DayDetails({ day, large }: { day: StudyDay; large?: boolean }) {
 }
 
 /** Study notes first and big; then Done, and the Mock tests / Performance link on those days. */
-function DayActions({ day, done, onToggle, note, locked, onNotes, large }: NotesProps & {
+function DayActions({ day, done, onToggle, note, locked, soon, onNotes, large }: NotesProps & {
   day: StudyDay
   done: boolean
   onToggle: (day: number) => void
@@ -390,6 +396,16 @@ function DayActions({ day, done, onToggle, note, locked, onNotes, large }: Notes
           {locked ? <Crown className="h-4.5 w-4.5" /> : <BookOpen className="h-4.5 w-4.5" />}
           {locked ? 'Unlock study notes' : 'Read study notes'}
         </button>
+      )}
+      {!note && soon && (
+        <span
+          aria-label={`Study notes for day ${day.day} coming soon`}
+          className={`inline-flex items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted/40 font-semibold text-muted-foreground max-sm:w-full ${
+            large ? 'h-12 px-6 text-base' : 'h-11 px-5 text-sm'
+          }`}
+        >
+          <Clock className="h-4.5 w-4.5" /> Study notes · coming soon
+        </span>
       )}
       <button
         type="button"

@@ -91,6 +91,8 @@ function StudyPlan({roadmap, medium}: {roadmap: Roadmap; medium: PlanMedium}) {
   });
   const notesFor = (d: RoadmapDay): NotesState | null => {
     const note = d.notes;
+    // null: the server has no notes for this day yet (older servers send nothing).
+    if (note === null && d.subject !== 'mock' && d.subject !== 'rest') return {state: 'soon', onPress: () => {}};
     if (!note) return null;
     const state = note.access === 'pro' && !pro ? 'locked' : savedIds.has(note.id) ? 'saved' : download.isPending && download.variables?.id === note.id ? 'saving' : 'download';
     const onPress = () => state === 'locked' ? (showsPlans ? router.push('/subscription') : undefined)
@@ -223,21 +225,22 @@ function DayContent({day, large}: {day: RoadmapDay; large?: boolean}) {
 const readNote = (note: RoadmapNote) =>
   router.push({pathname: '/pdf/[id]', params: {id: note.id, title: note.title, access: note.access, size: String(note.size_bytes)}});
 
-type NotesState = {state: 'locked' | 'saved' | 'saving' | 'download'; onPress: () => void};
-const NOTES_LABEL = {locked: showsPlans ? 'Unlock study notes' : 'Study notes · Pro', saved: 'Read study notes', saving: 'Downloading…', download: 'Download study notes'} as const;
-const NOTES_ICON = {locked: 'lock-closed', saved: 'book', download: 'download-outline'} as const;
+type NotesState = {state: 'locked' | 'saved' | 'saving' | 'download' | 'soon'; onPress: () => void};
+const NOTES_LABEL = {locked: showsPlans ? 'Unlock study notes' : 'Study notes · Pro', saved: 'Read study notes', saving: 'Downloading…', download: 'Download study notes', soon: 'Study notes · coming soon'} as const;
+const NOTES_ICON = {locked: 'lock-closed', saved: 'book', download: 'download-outline', soon: 'time-outline'} as const;
 
 /** Study notes first and full width; then Done, and Mock tests / Progress on those days. */
 function DayActions({day, done, onToggle, notes, large}: {day: RoadmapDay; medium: PlanMedium; done: boolean; onToggle: (day: number) => void; notes: NotesState | null; large?: boolean}) {
   const link = ACTION[day.action];
   const locked = notes?.state === 'locked';
+  const soon = notes?.state === 'soon';
   return <View style={[styles.actions, large && {marginTop: 8}]}>
     {notes ? <Pressable accessibilityRole="button" accessibilityLabel={`${NOTES_LABEL[notes.state]}, day ${day.day}`}
-      disabled={notes.state === 'saving' || (locked && !showsPlans)} onPress={notes.onPress}
-      style={({pressed}) => [styles.notesButton, large && styles.notesButtonLarge, locked && styles.notesLocked, pressed && {opacity: .8}]}>
+      disabled={soon || notes.state === 'saving' || (locked && !showsPlans)} onPress={notes.onPress}
+      style={({pressed}) => [styles.notesButton, large && styles.notesButtonLarge, locked && styles.notesLocked, soon && styles.notesSoon, pressed && {opacity: .8}]}>
       {notes.state === 'saving' ? <ActivityIndicator size="small" color="#fff"/>
-        : <Ionicons name={NOTES_ICON[notes.state]} size={large ? 20 : 18} color={locked ? colors.gold : '#fff'}/>}
-      <Text style={[styles.notesText, large && {fontSize: 16}, locked && {color: colors.gold}]}>{NOTES_LABEL[notes.state]}</Text>
+        : <Ionicons name={NOTES_ICON[notes.state]} size={large ? 20 : 18} color={locked ? colors.gold : soon ? colors.muted : '#fff'}/>}
+      <Text style={[styles.notesText, large && {fontSize: 16}, locked && {color: colors.gold}, soon && {color: colors.muted}]}>{NOTES_LABEL[notes.state]}</Text>
       {notes.state === 'saved' ? <View style={styles.offlineTag}><Text style={styles.offlineText}>Offline</Text></View> : null}
     </Pressable> : null}
     <View style={styles.inline}>
@@ -394,6 +397,7 @@ const styles = StyleSheet.create({
   notesButton: {flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 50, paddingHorizontal: 16, borderRadius: 14, backgroundColor: colors.primary},
   notesButtonLarge: {minHeight: 56, borderRadius: 16},
   notesLocked: {backgroundColor: '#FCF4E6', borderWidth: 1, borderColor: '#F3DFB8'},
+  notesSoon: {backgroundColor: colors.background, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.border},
   notesText: {fontSize: 15, fontWeight: '800', color: '#fff'},
   offlineTag: {paddingHorizontal: 7, paddingVertical: 2, borderRadius: 7, backgroundColor: 'rgba(255,255,255,.22)'},
   offlineText: {fontSize: 10, fontWeight: '800', color: '#fff'},
