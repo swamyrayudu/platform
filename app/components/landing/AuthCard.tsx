@@ -1,11 +1,16 @@
 // ============================================================
 // app/components/landing/AuthCard.tsx — Sign-in card
 // ============================================================
+// "Continue with Email" and "Continue with Google". Email + password is only
+// for accounts an admin made (for example the Google Play reviewer's), and the
+// email button shows only while the admin switch at /admin/login-accounts is
+// on. Both end in the same session (app/page.tsx).
+// ============================================================
 'use client'
 
 import React, { useState } from 'react'
 import Link from 'next/link'
-import { Mail, Lock, Eye, EyeOff, Check } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, Check, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface AuthCardProps {
@@ -13,6 +18,9 @@ interface AuthCardProps {
   rateLimit: { limited: boolean; retryAfter?: number }
   isSigningIn: boolean
   gsiButtonRef: React.RefObject<HTMLDivElement | null>
+  /** The admin switch; while false there is no email option at all. */
+  emailEnabled: boolean
+  onEmailSignIn: (email: string, password: string) => Promise<void>
 }
 
 const ASSURANCES = [
@@ -21,28 +29,24 @@ const ASSURANCES = [
   'Your account is protected with Google authentication.',
 ]
 
-export default function AuthCard({
-  error,
-  rateLimit,
-  isSigningIn,
-  gsiButtonRef,
-}: AuthCardProps) {
+const inputClass =
+  'h-11 w-full rounded-full border border-border bg-background pl-11 pr-11 text-xs text-foreground transition-all placeholder:text-muted-foreground focus:border-ring/60 focus:outline-none focus:ring-2 focus:ring-ring/15'
+const iconClass = 'absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground'
+
+export default function AuthCard({ error, rateLimit, isSigningIn, gsiButtonRef, emailEnabled, onEmailSignIn }: AuthCardProps) {
+  const [emailOpen, setEmailOpen] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
+  const showEmail = emailOpen && emailEnabled
 
-  const handleEmailSignIn = (e: React.FormEvent) => {
+  const submit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email.trim() || !password.trim()) {
-      toast.error('Missing fields', {
-        description: 'Please enter both your email and password.',
-      })
+    if (!email.trim() || !password) {
+      toast.error('Missing fields', { description: 'Please enter both your email and password.' })
       return
     }
-    toast.info('Google Sign-In Recommended', {
-      description: 'Please click "Continue with Google" above for instant, secure authentication.',
-    })
+    void onEmailSignIn(email.trim(), password)
   }
 
   return (
@@ -73,93 +77,92 @@ export default function AuthCard({
         </div>
       )}
 
-      {/* Google sign-in */}
-      <div className="mt-6 flex w-full justify-center">
-        {isSigningIn ? (
-          <div
-            id="google-signin-loading"
-            className="flex h-11 w-full items-center justify-center gap-2.5 rounded-full border border-border bg-card text-xs font-medium text-foreground"
+      {/* Choice: email or Google. The Google button stays mounted (only hidden)
+          so Google's rendered button survives opening the email panel. */}
+      <div className={showEmail ? 'hidden' : 'mt-6 space-y-3'}>
+        {emailEnabled && (
+          <button
+            type="button"
+            onClick={() => setEmailOpen(true)}
+            disabled={isSigningIn}
+            className="bloom-pill bloom-pill-dark flex w-full items-center justify-center gap-2 py-3 text-[13px] disabled:opacity-60"
           >
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted border-t-primary" />
-            <span>Signing in to rsdeducation…</span>
-          </div>
-        ) : (
-          <div
-            id="google-signin-button"
-            ref={gsiButtonRef}
-            className="flex w-full justify-center"
-            style={{ minHeight: '44px' }}
-          />
+            <Mail className="h-4 w-4" strokeWidth={1.8} />
+            Continue with Email
+          </button>
         )}
-      </div>
-
-      {/* Divider */}
-      <div className="my-5 flex items-center gap-3">
-        <div className="h-px flex-1 bg-border" />
-        <span className="text-[11px] text-muted-foreground">or continue with email</span>
-        <div className="h-px flex-1 bg-border" />
-      </div>
-
-      {/* Email & password */}
-      <form onSubmit={handleEmailSignIn} className="space-y-3">
-        <div className="relative">
-          <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" strokeWidth={1.6} />
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter your email"
-            className="h-11 w-full rounded-full border border-border bg-background pl-11 pr-4 text-xs text-foreground transition-all placeholder:text-muted-foreground focus:border-ring/60 focus:outline-none focus:ring-2 focus:ring-ring/15"
-          />
-        </div>
-
-        <div className="relative">
-          <Lock className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" strokeWidth={1.6} />
-          <input
-            type={showPassword ? 'text' : 'password'}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter your password"
-            className="h-11 w-full rounded-full border border-border bg-background pl-11 pr-11 text-xs text-foreground transition-all placeholder:text-muted-foreground focus:border-ring/60 focus:outline-none focus:ring-2 focus:ring-ring/15"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword((v) => !v)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-          >
-            {showPassword ? <EyeOff className="h-4 w-4" strokeWidth={1.6} /> : <Eye className="h-4 w-4" strokeWidth={1.6} />}
-          </button>
-        </div>
-
-        {/* Remember me & forgot password */}
-        <div className="flex items-center justify-between px-1 text-xs">
-          <label className="flex cursor-pointer items-center gap-2 text-muted-foreground transition-colors hover:text-foreground">
-            <input
-              type="checkbox"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-              className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-ring"
+        <div className="flex w-full justify-center">
+          {isSigningIn ? (
+            <div
+              id="google-signin-loading"
+              className="flex h-11 w-full items-center justify-center gap-2.5 rounded-full border border-border bg-card text-xs font-medium text-foreground"
+            >
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted border-t-primary" />
+              <span>Signing in to rsdeducation…</span>
+            </div>
+          ) : (
+            <div
+              id="google-signin-button"
+              ref={gsiButtonRef}
+              className="flex w-full justify-center"
+              style={{ minHeight: '44px' }}
             />
-            <span>Remember me</span>
-          </label>
+          )}
+        </div>
+      </div>
 
+      {/* Email + password */}
+      {showEmail && (
+        <div className="mt-6">
           <button
             type="button"
-            onClick={() =>
-              toast.info('Password Reset', {
-                description: 'Sign in with your Google account for automatic recovery.',
-              })
-            }
-            className="font-medium text-foreground underline-offset-4 hover:underline"
+            onClick={() => setEmailOpen(false)}
+            className="mb-4 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground cursor-pointer"
           >
-            Forgot password?
+            <ArrowLeft className="h-3.5 w-3.5" />
+            All sign-in options
           </button>
-        </div>
+          <h3 className="text-sm font-semibold text-foreground">Sign in with email</h3>
 
-        <button type="submit" className="bloom-pill bloom-pill-dark w-full py-3 text-[13px]">
-          Continue
-        </button>
-      </form>
+          <form onSubmit={submit} className="mt-4 space-y-3">
+            <div className="relative">
+              <Mail className={iconClass} strokeWidth={1.6} />
+              <input
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                className={inputClass}
+              />
+            </div>
+
+            <div className="relative">
+              <Lock className={iconClass} strokeWidth={1.6} />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                className={inputClass}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" strokeWidth={1.6} /> : <Eye className="h-4 w-4" strokeWidth={1.6} />}
+              </button>
+            </div>
+
+            <button type="submit" disabled={isSigningIn} className="bloom-pill bloom-pill-dark w-full py-3 text-[13px] disabled:opacity-60">
+              {isSigningIn ? 'Signing in…' : 'Sign in'}
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Assurances */}
       <div className="mt-6 space-y-2.5 border-t border-border pt-5 text-xs text-muted-foreground">

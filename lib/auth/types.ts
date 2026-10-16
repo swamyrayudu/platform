@@ -14,6 +14,8 @@ export type LearningGoal = 'mock_test' | 'practice' | 'ai_support' | 'other'
 
 export type SecurityEventType =
   | 'GOOGLE_LOGIN'
+  | 'PASSWORD_LOGIN'
+  | 'PASSWORD_LOGIN_FAILED'
   | 'NEW_DEVICE_LOGIN'
   | 'SESSION_REVOKED'
   | 'MANUAL_LOGOUT'

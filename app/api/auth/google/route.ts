@@ -6,26 +6,22 @@
 // 2. Verify Google ID token server-side
 // 3. Get trusted client IP → HMAC hash
 // 4. Find/create user
-// 5. DB: revoke old session → create new session (atomic)
-// 6. Issue access token + refresh token
-// 7. Web: set HttpOnly cookies | Mobile: return JSON
-// 8. After the response: upsert device, write the audit entry
+// 5–8. lib/auth/issue-session.ts: revoke old session → create new one,
+//      issue tokens, web cookies | mobile JSON, then device + audit rows
 //
 // Everything on the critical path is a network round trip, so the ordering
 // above is load-bearing: anything the browser does not need before it is
 // signed in has been moved out of it.
 // ============================================================
 
-import { NextResponse, after } from 'next/server'
 import { createHash } from 'crypto'
 import { verifyGoogleIdToken } from '@/lib/auth/google'
-import { findOrCreateUser, upsertDevice, revokeActiveSession, createSession, logSecurityEvent } from '@/lib/auth/db'
+import { findOrCreateUser } from '@/lib/auth/db'
 import { getHashedIp } from '@/lib/auth/ip'
-import { signAccessToken, generateOpaqueToken, hashRefreshToken } from '@/lib/auth/crypto'
-import { setAuthCookies, setOnboardingCookie, getAuthNonceFromCookies, clearAuthNonceCookie } from '@/lib/auth/cookies'
+import { getAuthNonceFromCookies } from '@/lib/auth/cookies'
+import { issueSession } from '@/lib/auth/issue-session'
 import { checkRateLimit } from '@/lib/auth/rate-limit'
-import { handleAuthError, AuthError } from '@/lib/auth/errors'
-import { toPublicUser } from '@/lib/auth/types'
+import { handleAuthError } from '@/lib/auth/errors'
 import type { Platform, DeviceInfo } from '@/lib/auth/types'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
@@ -144,78 +140,11 @@ export async function POST(request: Request): Promise<Response> {
       userAgent: typeof userAgent === 'string' ? userAgent : (request.headers.get('user-agent') ?? 'unknown'),
     }
 
-    // ---- Generate tokens BEFORE transaction -------------------------
-    // (so we have the hash to store)
-    const refreshToken = generateOpaqueToken()
-    const refreshTokenHash = hashRefreshToken(refreshToken)
-
-    // ---- Atomic DB transaction: revoke old → create new session ----
-    // Supabase JS doesn't support multi-statement transactions directly,
-    // so we call our RPC or execute steps sequentially with proper error handling.
-    // The partial unique index (sessions_one_active_per_user) at DB level
-    // guarantees only one ACTIVE session exists even under concurrent logins.
-
-    await revokeActiveSession(user.id, 'NEW_DEVICE_LOGIN')
-    const session = await createSession(
-      user.id,
-      deviceInfo,
-      ipHash,
-      refreshTokenHash,
-      user.session_version
-    )
-
-    // ---- Bookkeeping, after the response ------------------------
-    // Neither the device row nor the audit entry is read back before the user
-    // is signed in, and sessions.device_id carries no foreign key to devices,
-    // so making the browser wait on two more writes bought nothing. They still
-    // run on the same invocation — `after` defers them past the response
-    // rather than dropping them.
-    after(async () => {
-      await upsertDevice(user.id, deviceInfo, ipHash)
-      await logSecurityEvent({
-        userId: user.id,
-        eventType: 'NEW_DEVICE_LOGIN',
-        deviceId: deviceInfo.deviceId,
-        ipHash,
-        metadata: {
-          platform: deviceInfo.platform,
-          isNewUser: user.created_at === user.updated_at,
-        },
-      })
+    // ---- Session, tokens, cookies or JSON (lib/auth/issue-session.ts) ----
+    return await issueSession(user, deviceInfo, ipHash, {
+      eventType: 'NEW_DEVICE_LOGIN',
+      metadata: { isNewUser: user.created_at === user.updated_at },
     })
-
-    // ---- Sign access token -------------------------------------
-    const accessToken = await signAccessToken({
-      sub: user.id,
-      sid: session.id,
-      sv: user.session_version,
-    })
-
-    // ---- Return tokens -----------------------------------------
-    const publicUser = toPublicUser(user)
-
-    if ((platform as Platform) === 'WEB') {
-      // Web: set HttpOnly cookies, don't return tokens in body
-      const response = NextResponse.json({ user: publicUser, sessionId: session.id })
-      setAuthCookies(response, { accessToken, refreshToken })
-      // Burn the nonce: one sign-in per issued value.
-      clearAuthNonceCookie(response)
-      // Set onboarding cookie if already completed (returning user)
-      if (user.onboarding_completed) {
-        setOnboardingCookie(response)
-      }
-      return response
-    } else {
-      // Mobile: return tokens in JSON body; client stores in secure storage
-      const response = NextResponse.json({
-        accessToken,
-        refreshToken,
-        user: publicUser,
-        sessionId: session.id,
-      })
-      clearAuthNonceCookie(response)
-      return response
-    }
   } catch (err) {
     return handleAuthError(err)
   }

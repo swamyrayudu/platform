@@ -7,6 +7,7 @@ import { clearAuthCookies } from './cookies'
 
 export type AuthErrorCode =
   | 'AUTH_INVALID_TOKEN'
+  | 'INVALID_CREDENTIALS'
   | 'UNAUTHORIZED'
   | 'SESSION_REVOKED'
   | 'SESSION_EXPIRED'
@@ -64,6 +65,7 @@ export function errorResponse(
 /** Map common AuthError codes to their default HTTP status. */
 export const AUTH_ERROR_STATUS: Record<AuthErrorCode, number> = {
   AUTH_INVALID_TOKEN: 401,
+  INVALID_CREDENTIALS: 401,
   UNAUTHORIZED: 401,
   SESSION_REVOKED: 401,
   SESSION_EXPIRED: 401,

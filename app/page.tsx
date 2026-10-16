@@ -72,9 +72,29 @@ export default function Home() {
   }, [user, loading, router])
 
   // Handle Google Identity Services (GSI) credential
-  const handleCredentialResponse = async (response: { credential: string }) => {
+  const handleCredentialResponse = (response: { credential: string }) => {
     // Dismiss the One Tap card so it does not hang around over the redirect.
     window.google?.accounts?.id?.cancel()
+    return signIn('/api/auth/google', { idToken: response.credential })
+  }
+
+  // Email + password, for accounts an admin created (no public sign-up).
+  const handlePasswordSignIn = (email: string, password: string) =>
+    signIn('/api/auth/password', { email, password })
+
+  // "Continue with Email" only while the admin switch is on.
+  const [emailEnabled, setEmailEnabled] = useState(false)
+  useEffect(() => {
+    let live = true
+    fetch('/api/auth/password', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => { if (live) setEmailEnabled(data?.enabled === true) })
+      .catch(() => undefined)
+    return () => { live = false }
+  }, [])
+
+  // Shared by both: POST the credential, adopt the user, route on.
+  const signIn = async (endpoint: string, credential: Record<string, string>) => {
     setIsSigningIn(true)
     setError(null)
     setRateLimit({ limited: false })
@@ -84,12 +104,12 @@ export default function Home() {
     try {
       const deviceId = getOrCreateDeviceId()
 
-      const res = await fetch('/api/auth/google', {
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          idToken: response.credential,
+          ...credential,
           deviceId,
           platform: 'WEB',
           userAgent: navigator.userAgent,
@@ -125,6 +145,14 @@ export default function Home() {
         const errorMsg = 'Your sign-in session expired. Please try again.'
         setError(errorMsg)
         toast.error('Sign-in expired', { description: errorMsg })
+        return
+      }
+
+      // The email route explains itself (wrong password, switched off…).
+      if (typeof data.message === 'string') {
+        const errorMsg = data.message
+        setError(errorMsg)
+        toast.error('Could not sign in', { description: errorMsg })
         return
       }
 
@@ -343,6 +371,8 @@ export default function Home() {
               rateLimit={rateLimit}
               isSigningIn={isSigningIn}
               gsiButtonRef={gsiButtonRef}
+              emailEnabled={emailEnabled}
+              onEmailSignIn={handlePasswordSignIn}
             />
           </section>
 

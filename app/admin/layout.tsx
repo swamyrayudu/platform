@@ -34,6 +34,7 @@ import {
   ListFilter,
   Users,
   Library,
+  KeyRound,
 } from 'lucide-react'
 import { useAuth } from '@/app/contexts/AuthContext'
 import { LoadingScreen } from '@/components/ui/loading-screen'
@@ -42,6 +43,7 @@ import TopNav from '@/app/components/home/TopNav'
 const ADMIN_NAV = [
   { href: '/admin', label: 'Overview', icon: LayoutDashboard },
   { href: '/admin/users', label: 'Users', icon: Users },
+  { href: '/admin/login-accounts', label: 'Login accounts', icon: KeyRound },
   { href: '/admin/payments', label: 'Payments', icon: CreditCard },
   { href: '/admin/question-bank', label: 'Question bank', icon: Database },
   { href: '/admin/mock-tests', label: 'Mock modules', icon: FileCheck2 },

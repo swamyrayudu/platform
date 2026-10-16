@@ -8,6 +8,7 @@
 
 type Endpoint =
   | 'google'
+  | 'password'
   | 'refresh'
   | 'logout'
   | 'payment_order'
@@ -18,6 +19,9 @@ type Endpoint =
 // ---- Limits per endpoint --------------------------------------
 const LIMITS: Record<Endpoint, { max: number; windowMs: number }> = {
   google:  { max: 10, windowMs: 15 * 60 * 1000 }, // 10 req / 15 min
+  // Email + password sign-in: per IP and, separately, per email, so guessing
+  // one account's password is slow from anywhere.
+  password: { max: 10, windowMs: 15 * 60 * 1000 }, // 10 tries / 15 min
   refresh: { max: 20, windowMs: 15 * 60 * 1000 }, // 20 req / 15 min
   logout:  { max: 10, windowMs: 15 * 60 * 1000 }, // 10 req / 15 min
   payment_order:  { max: 10, windowMs: 15 * 60 * 1000 }, // 10 orders / 15 min per user

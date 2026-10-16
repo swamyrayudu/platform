@@ -87,6 +87,34 @@ export async function findOrCreateUser(
     return updated as DbUser
   }
 
+  // An account an admin made for this email (lib/auth/password-accounts.ts)
+  // has a 'local:' placeholder for google_id. Google has verified the email,
+  // so the first Google sign-in links to that account instead of failing on
+  // the duplicate email.
+  const { data: local, error: localErr } = await supabaseAdmin
+    .from('users')
+    .select('*')
+    .eq('email', profile.email.toLowerCase())
+    .like('google_id', 'local:%')
+    .maybeSingle()
+  if (localErr) {
+    console.error('[DB] findOrCreateUser local lookup error:', localErr)
+    throw new AuthError('INTERNAL_ERROR', 500)
+  }
+  if (local) {
+    const { data: linked, error: linkErr } = await supabaseAdmin
+      .from('users')
+      .update({ google_id: profile.googleId, avatar_url: (local as DbUser).avatar_url ?? profile.avatarUrl })
+      .eq('id', (local as DbUser).id)
+      .select('*')
+      .single()
+    if (linkErr) {
+      console.error('[DB] findOrCreateUser link error:', linkErr)
+      throw new AuthError('INTERNAL_ERROR', 500)
+    }
+    return linked as DbUser
+  }
+
   // Create new user
   const { data: created, error: insertErr } = await supabaseAdmin
     .from('users')
