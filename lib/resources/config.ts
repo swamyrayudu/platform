@@ -59,6 +59,16 @@ export interface ResourceFolder {
   created_at: string
   /** Files in the folder: published ones for candidates, all for admins. */
   file_count: number
+  /** Candidates' Resources page: published files for each medium ("both" counts in each). */
+  english_count?: number
+  telugu_count?: number
+}
+
+/** Candidates' Resources page: what each view loads (GET /api/dsc-sgt/resources). */
+export interface ResourcesRoot {
+  folders: ResourceFolder[]
+  /** Published files in no folder. */
+  resources: PublicResource[]
 }
 
 const isUuid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v)
@@ -78,6 +88,17 @@ export function checkFolder(input: unknown, partial = false): { fields: { name?:
     fields.description = description
   }
   return { fields }
+}
+
+const titleCollator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' })
+
+/**
+ * Reading order: by title, with numbers compared as numbers, so "Day 2" comes
+ * before "Day 10" and a series reads Day 1 → Day 28 whatever the upload order.
+ * Same titles keep upload order.
+ */
+export function byReadingOrder(a: { title: string; created_at: string }, b: { title: string; created_at: string }): number {
+  return titleCollator.compare(a.title, b.title) || a.created_at.localeCompare(b.created_at)
 }
 
 export function categoryLabel(value: string): string {

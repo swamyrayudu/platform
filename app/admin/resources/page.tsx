@@ -10,10 +10,10 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { ArrowLeft, Check, Eye, EyeOff, ExternalLink, Folder, FolderPlus, Library, Loader2, Pencil, RefreshCw, Trash2, Upload, X } from 'lucide-react'
+import { ArrowLeft, Check, ChevronDown, Eye, EyeOff, ExternalLink, Folder, FolderPlus, Library, Loader2, Pencil, RefreshCw, Trash2, Upload, X } from 'lucide-react'
 import { SUBJECT_LIST } from '@/app/components/dsc-sgt/practice/setup/SubjectSelector'
 import {
-  RESOURCE_CATEGORIES, categoryLabel, fileProblem, formatBytes,
+  RESOURCE_CATEGORIES, byReadingOrder, categoryLabel, fileProblem, formatBytes,
   type AdminResource, type ResourceFields, type ResourceFolder,
 } from '@/lib/resources/config'
 import { openSignedLink, requestLink } from '@/lib/resources/open-link'
@@ -23,6 +23,9 @@ const EMPTY: ResourceFields = {
 }
 
 type Listing = { resources: AdminResource[]; folders?: ResourceFolder[] }
+
+/** Files per page inside each folder section. */
+const PAGE_SIZE = 10
 
 const input = 'w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground'
 const label = 'block text-[11px] font-medium text-muted-foreground'
@@ -128,6 +131,9 @@ export default function AdminResourcesPage() {
   const [busy, setBusy] = useState<string | null>(null)
   const [folders, setFolders] = useState<ResourceFolder[]>([])
   const [folderFilter, setFolderFilter] = useState<string>('all')
+  // Per folder section: current page and whether it is collapsed.
+  const [pageOf, setPageOf] = useState<Record<string, number>>({})
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
 
   const show = useCallback((data: Listing) => { setResources(data.resources); setFolders(data.folders ?? []) }, [])
   const fail = useCallback((err: unknown) => {
@@ -230,7 +236,13 @@ export default function AdminResourcesPage() {
   // Folder counts follow uploads, moves and deletes without a reload.
   const counted = folders.map((f) => ({ ...f, file_count: (resources ?? []).filter((r) => r.folder_id === f.id).length }))
   const folderName = (id: string | null) => folders.find((f) => f.id === id)?.name
-  const listed = (resources ?? []).filter((r) => folderFilter === 'all' || (folderFilter === 'none' ? !r.folder_id : r.folder_id === folderFilter))
+  // One section per folder (then files in no folder), each in reading order (Day 1 → Day 28).
+  const sorted = [...(resources ?? [])].sort(byReadingOrder)
+  const inKnownFolder = (r: AdminResource) => !!r.folder_id && folders.some((f) => f.id === r.folder_id)
+  const groups = [
+    ...folders.map((f) => ({ key: f.id, name: f.name, files: sorted.filter((r) => r.folder_id === f.id) })),
+    { key: 'none', name: 'Not in a folder', files: sorted.filter((r) => !inKnownFolder(r)) },
+  ].filter((g) => g.files.length > 0 && (folderFilter === 'all' || folderFilter === g.key))
 
   const preview = (id: string) =>
     openSignedLink(() => requestLink(`/api/admin/resources/${id}/preview`)).catch((err) =>
@@ -348,19 +360,76 @@ export default function AdminResourcesPage() {
       )}
       {resources?.length === 0 && <p className="text-sm text-muted-foreground">No resources yet. Upload the first PDF above.</p>}
 
-      {!!resources?.length && folders.length > 0 && (
+      {!!resources?.length && (
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-sm font-medium text-foreground">Files</h2>
-          <select value={folderFilter} onChange={(e) => setFolderFilter(e.target.value)} aria-label="Show files in folder" className="rounded-xl border border-border bg-background px-3 py-1.5 text-xs text-foreground">
-            <option value="all">All files</option>
-            <option value="none">Not in a folder</option>
-            {folders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
-          </select>
+          <h2 className="text-sm font-medium text-foreground">Files by folder</h2>
+          {folders.length > 0 && (
+            <select value={folderFilter} onChange={(e) => setFolderFilter(e.target.value)} aria-label="Show files in folder" className="rounded-xl border border-border bg-background px-3 py-1.5 text-xs text-foreground">
+              <option value="all">All folders</option>
+              <option value="none">Not in a folder</option>
+              {folders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+            </select>
+          )}
         </div>
       )}
 
-      <div className="space-y-3">
-        {listed.map((r) => (
+      <div className="space-y-5">
+        {groups.map((g) => {
+          const pages = Math.max(1, Math.ceil(g.files.length / PAGE_SIZE))
+          const page = Math.min(pageOf[g.key] ?? 1, pages)
+          const from = (page - 1) * PAGE_SIZE
+          const isOpen = !collapsed[g.key]
+          return (
+            <section key={g.key} className="rounded-2xl border border-border bg-muted/10">
+              <button
+                type="button"
+                onClick={() => setCollapsed((c) => ({ ...c, [g.key]: isOpen }))}
+                aria-expanded={isOpen}
+                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+              >
+                <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
+                  <Folder className="h-4 w-4 shrink-0 text-primary" />
+                  <span className="truncate">{g.name}</span>
+                  <span className="shrink-0 text-[11px] font-normal text-muted-foreground">{g.files.length} file{g.files.length === 1 ? '' : 's'}</span>
+                </span>
+                <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition ${isOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {isOpen && (
+                <div className="space-y-3 px-3 pb-3">
+                  {g.files.slice(from, from + PAGE_SIZE).map(renderFile)}
+                  {pages > 1 && (
+                    <div className="flex flex-wrap items-center justify-between gap-2 px-1 pt-1 text-[11px] text-muted-foreground">
+                      <span>{from + 1}–{Math.min(from + PAGE_SIZE, g.files.length)} of {g.files.length}</span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setPageOf((p) => ({ ...p, [g.key]: page - 1 }))}
+                          disabled={page <= 1}
+                          className="rounded-full border border-border px-3 py-1 font-medium text-foreground disabled:opacity-40"
+                        >
+                          Previous
+                        </button>
+                        <span className="px-2">Page {page} of {pages}</span>
+                        <button
+                          onClick={() => setPageOf((p) => ({ ...p, [g.key]: page + 1 }))}
+                          disabled={page >= pages}
+                          className="rounded-full border border-border px-3 py-1 font-medium text-foreground disabled:opacity-40"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+          )
+        })}
+      </div>
+    </main>
+  )
+
+  function renderFile(r: AdminResource) {
+    return (
           <article key={r.id} className="rounded-2xl border border-border bg-card p-4">
             {editing?.id === r.id ? (
               <div>
@@ -415,10 +484,8 @@ export default function AdminResourcesPage() {
               </div>
             )}
           </article>
-        ))}
-      </div>
-    </main>
-  )
+    )
+  }
 }
 
 /** Create, rename and delete folders. Deleting keeps the files, outside any folder. */

@@ -13,10 +13,12 @@
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import {
   MAX_RESOURCE_BYTES,
+  byReadingOrder,
   type AdminResource,
   type PublicResource,
   type ResourceFields,
   type ResourceFolder,
+  type ResourcesRoot,
 } from './config'
 
 export const RESOURCES_BUCKET = 'resources'
@@ -46,15 +48,99 @@ export function isFoldersMissing(err: unknown): boolean {
 }
 const withoutFolder = <T,>(rows: T[]) => rows.map((r) => ({ ...r, folder_id: null }))
 
+/** Published resources in reading order (Day 1 → Day 28), which the website and app show as sent. */
 export async function listPublishedResources(): Promise<PublicResource[]> {
   const query = (columns: string) => supabaseAdmin.from('resources')
-    .select(columns).eq('is_published', true).order('created_at', { ascending: false })
+    .select(columns).eq('is_published', true).order('created_at', { ascending: true })
   const { data, error } = await query(PUBLIC_COLUMNS)
-  if (!error) return (data ?? []) as unknown as PublicResource[]
+  if (!error) return ((data ?? []) as unknown as PublicResource[]).sort(byReadingOrder)
   if (!isFoldersMissing(error)) throw error
   const fallback = await query(BASE_COLUMNS)
   if (fallback.error) throw fallback.error
-  return withoutFolder((fallback.data ?? []) as unknown as PublicResource[])
+  return withoutFolder((fallback.data ?? []) as unknown as PublicResource[]).sort(byReadingOrder)
+}
+
+/**
+ * Candidates' Resources page, top level: folders with published-file counts
+ * (from the resource_folder_stats view, migration 20261016120000) and the
+ * published files in no folder. A folder's files load when it is opened.
+ */
+export async function loadResourcesRoot(): Promise<ResourcesRoot> {
+  const looseQuery = (columns: string) => supabaseAdmin.from('resources').select(columns).eq('is_published', true)
+  const loose = await looseQuery(PUBLIC_COLUMNS).is('folder_id', null)
+  if (loose.error) {
+    // Before the folders migration every file is loose and there are no folders.
+    if (!isFoldersMissing(loose.error)) throw loose.error
+    return { folders: [], resources: await listPublishedResources() }
+  }
+  const [{ data: folderRows, error: folderError }, stats] = await Promise.all([
+    supabaseAdmin.from('resource_folders').select('id, name, description, created_at'),
+    folderStats(),
+  ])
+  if (folderError) throw folderError
+  const folders = ((folderRows ?? []) as Omit<ResourceFolder, 'file_count'>[])
+    .map((f) => {
+      const s = stats.get(f.id)
+      return { ...f, file_count: s?.file_count ?? 0, english_count: s?.english_count ?? 0, telugu_count: s?.telugu_count ?? 0 }
+    })
+    .filter((f) => f.file_count > 0)
+    .sort((a, b) => folderCollator.compare(a.name, b.name))
+  return { folders, resources: ((loose.data ?? []) as unknown as PublicResource[]).sort(byReadingOrder) }
+}
+
+type FolderStats = { file_count: number; english_count: number; telugu_count: number }
+const folderCollator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' })
+
+/** Published-file counts per folder id; counted from the rows if the view is not created yet. */
+async function folderStats(): Promise<Map<string, FolderStats>> {
+  const counts = new Map<string, FolderStats>()
+  const view = await supabaseAdmin.from('resource_folder_stats').select('folder_id, file_count, english_count, telugu_count')
+  if (!view.error) {
+    for (const row of view.data ?? []) if (row.folder_id) counts.set(row.folder_id as string, row as FolderStats)
+    return counts
+  }
+  const rows = await supabaseAdmin.from('resources').select('folder_id, medium').eq('is_published', true).not('folder_id', 'is', null)
+  if (rows.error) throw rows.error
+  for (const r of rows.data ?? []) {
+    const c = counts.get(r.folder_id as string) ?? { file_count: 0, english_count: 0, telugu_count: 0 }
+    c.file_count++
+    if (r.medium !== 'telugu') c.english_count++
+    if (r.medium !== 'english') c.telugu_count++
+    counts.set(r.folder_id as string, c)
+  }
+  return counts
+}
+
+/** One folder's published files, in reading order; null if there is no such folder. */
+export async function loadFolderResources(folderId: string): Promise<{ folder: ResourceFolder; resources: PublicResource[] } | null> {
+  const [{ data: folder, error: folderError }, files] = await Promise.all([
+    supabaseAdmin.from('resource_folders').select('id, name, description, created_at').eq('id', folderId).maybeSingle(),
+    supabaseAdmin.from('resources').select(PUBLIC_COLUMNS).eq('is_published', true).eq('folder_id', folderId),
+  ])
+  if (folderError) throw folderError
+  if (files.error) throw files.error
+  if (!folder) return null
+  const resources = ((files.data ?? []) as unknown as PublicResource[]).sort(byReadingOrder)
+  return { folder: { ...(folder as Omit<ResourceFolder, 'file_count'>), file_count: resources.length }, resources }
+}
+
+/** Published files whose title or description contains the term, in every folder (at most 100). */
+export async function searchPublishedResources(term: string): Promise<PublicResource[]> {
+  // PostgREST's or() syntax treats , ( ) as separators, and % _ as wildcards.
+  const clean = term.replace(/[,()%_*\\]/g, ' ').trim().slice(0, 80)
+  if (!clean) return []
+  // "Day 2" also finds titles written "Day02" (not "Day2", which would match Day 20–29).
+  const padded = clean.replace(/([a-z])\s+(\d)/gi, '$1$2').replace(/(^|\D)(\d)(?!\d)/g, '$10$2')
+  const terms = [...new Set([clean, padded])]
+  const filter = terms.flatMap((t) => [`title.ilike.%${t}%`, `description.ilike.%${t}%`]).join(',')
+  const query = (columns: string) => supabaseAdmin.from('resources').select(columns).eq('is_published', true)
+    .or(filter).limit(100)
+  const { data, error } = await query(PUBLIC_COLUMNS)
+  if (!error) return ((data ?? []) as unknown as PublicResource[]).sort(byReadingOrder)
+  if (!isFoldersMissing(error)) throw error
+  const fallback = await query(BASE_COLUMNS)
+  if (fallback.error) throw fallback.error
+  return withoutFolder((fallback.data ?? []) as unknown as PublicResource[]).sort(byReadingOrder)
 }
 
 export async function listAllResources(): Promise<AdminResource[]> {

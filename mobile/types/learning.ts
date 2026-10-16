@@ -65,4 +65,8 @@ export interface Resource {
   folder_id?: string | null;
   file_name: string; size_bytes: number; created_at: string;
 }
-export interface ResourceFolder { id: string; name: string; description: string; created_at: string; file_count: number }
+export interface ResourceFolder {
+  id: string; name: string; description: string; created_at: string; file_count: number;
+  /** Published files for each medium ("both" counts in each); from ?view=root. */
+  english_count?: number; telugu_count?: number;
+}

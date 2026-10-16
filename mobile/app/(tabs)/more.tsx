@@ -13,7 +13,9 @@ const PAGES = [
 export default function More() {
   return <Screen title="More" pageHeader={<View style={styles.intro}><Heading>More</Heading><Text style={styles.subtitle}>Plan your preparation and study material.</Text></View>}>
     <View style={styles.list}>
-      {PAGES.map(page => <ChoiceRow key={page.href} title={page.title} detail={page.detail} icon={page.icon} color={page.color} onPress={() => router.push(page.href)}/>)}
+      {/* These are tabs, which keep their last view; `opened` asks the page to start on its main view. */}
+      {PAGES.map(page => <ChoiceRow key={page.href} title={page.title} detail={page.detail} icon={page.icon} color={page.color}
+        onPress={() => router.push({pathname: page.href, params: {opened: String(Date.now())}})}/>)}
     </View>
   </Screen>;
 }

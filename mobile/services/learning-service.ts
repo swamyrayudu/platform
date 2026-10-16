@@ -29,5 +29,8 @@ export const myTestsService = {
 
 export const resourcesService = {
   list: () => api.request<{resources: Resource[]; folders?: ResourceFolder[]}>(`${base}/resources`),
+  /** Folders with counts, and the files in no folder; a folder's files load when it is opened. */
+  root: () => api.request<{resources: Resource[]; folders: ResourceFolder[]}>(`${base}/resources?${query({view: 'root'})}`),
+  folder: (id: string) => api.request<{folder: ResourceFolder; resources: Resource[]}>(`${base}/resources?${query({folder: id})}`),
   link: (id: string, download = false) => api.request<{url: string}>(`${base}/resources/${encodeURIComponent(id)}/link`, 'POST', {download}),
 };
