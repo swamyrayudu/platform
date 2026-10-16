@@ -225,6 +225,9 @@ export const GET = requireAdmin(async (request) => {
       englishQuestions: englishCount,
       teluguQuestions: teluguCount,
       subjects,
+      // One row per practice table (subject + medium): the admin Question bank page.
+      tables: tableCounts.map(({ table, subjectKey, subjectDisplayName, subjectTeluguName, medium, count }) =>
+        ({ table, subjectKey, subjectName: subjectDisplayName, subjectTeluguName, medium, count })),
       timestamp: new Date().toISOString(),
     })
   }
@@ -233,7 +236,10 @@ export const GET = requireAdmin(async (request) => {
   // 2. DOWNLOAD ACTION: Filter, fetch, and format questions
   // -------------------------------------------------------------
   // Filter relevant table configurations based on query parameters
+  // ?table=<name> downloads exactly one practice table (only names in TABLE_CONFIGS).
+  const tableParam = searchParams.get('table')
   const targetConfigs = TABLE_CONFIGS.filter((cfg) => {
+    if (tableParam) return cfg.table === tableParam
     // Check medium match
     if (mediumParam !== 'all' && cfg.medium !== mediumParam) {
       return false
@@ -291,8 +297,9 @@ export const GET = requireAdmin(async (request) => {
   const flatQuestions = tableDataList.flat()
 
   const dateStamp = new Date().toISOString().split('T')[0]
-  const mediumSuffix = mediumParam === 'all' ? 'all_mediums' : `${mediumParam}_medium`
-  const subjectSuffix = subjectParam === 'all' ? 'all_subjects' : subjectParam
+  const single = tableParam ? targetConfigs[0] : null
+  const mediumSuffix = single ? `${single.medium}_medium` : mediumParam === 'all' ? 'all_mediums' : `${mediumParam}_medium`
+  const subjectSuffix = single ? single.subjectKey : subjectParam === 'all' ? 'all_subjects' : subjectParam
 
   // -------------------------------------------------------------
   // JSON EXPORT FORMAT
