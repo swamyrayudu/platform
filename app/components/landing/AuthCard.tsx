@@ -4,14 +4,21 @@
 // "Continue with Email" and "Continue with Google". Email + password is only
 // for accounts an admin made (for example the Google Play reviewer's), and the
 // email button shows only while the admin switch at /admin/login-accounts is
-// on. Both end in the same session (app/page.tsx).
+// on. Both end in the same session (app/page.tsx). Above them, a direct
+// download of the Android APK from this site (public/downloads).
 // ============================================================
 'use client'
 
 import React, { useState } from 'react'
 import Link from 'next/link'
-import { Mail, Lock, Eye, EyeOff, Check, ArrowLeft } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, Check, ArrowLeft, Smartphone, Download } from 'lucide-react'
 import { toast } from 'sonner'
+
+/**
+ * The Android app, served from this site (public/downloads). To release a new
+ * APK, replace that file and update the version and size here.
+ */
+const ANDROID_APK = { href: '/downloads/rsd-education.apk', version: '1.0.3', size: '30 MB' }
 
 interface AuthCardProps {
   error: string | null
@@ -77,9 +84,30 @@ export default function AuthCard({ error, rateLimit, isSigningIn, gsiButtonRef, 
         </div>
       )}
 
+      {/* Android app: a direct APK download, above the sign-in options. */}
+      {!showEmail && (
+        <a
+          href={ANDROID_APK.href}
+          download="rsd-education.apk"
+          type="application/vnd.android.package-archive"
+          className="mt-6 flex items-center gap-3 rounded-2xl border border-border bg-secondary/60 px-4 py-3 transition-colors hover:bg-secondary"
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+            <Smartphone className="h-4 w-4" strokeWidth={1.8} />
+          </span>
+          <span className="min-w-0 flex-1 text-left">
+            <span className="block text-[13px] font-semibold text-foreground">Download the Android app</span>
+            <span className="block text-[11px] text-muted-foreground">
+              APK · v{ANDROID_APK.version} · {ANDROID_APK.size}
+            </span>
+          </span>
+          <Download className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+        </a>
+      )}
+
       {/* Choice: email or Google. The Google button stays mounted (only hidden)
           so Google's rendered button survives opening the email panel. */}
-      <div className={showEmail ? 'hidden' : 'mt-6 space-y-3'}>
+      <div className={showEmail ? 'hidden' : 'mt-4 space-y-3'}>
         {emailEnabled && (
           <button
             type="button"
