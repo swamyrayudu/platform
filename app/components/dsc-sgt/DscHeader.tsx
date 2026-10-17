@@ -35,11 +35,12 @@ export const DSC_NAV_ITEMS = [
   { label: 'Performance', href: '/dsc-sgt/performance', icon: BarChart3 },
 ]
 
-/** Behind "More", so the bar stays on one line. */
+/** Behind "More": the header menu from lg up, the bottom bar's More tab below it. */
 export const DSC_MORE_ITEMS = [
-  { label: 'My Tests', detail: 'Create and take your own tests', href: '/dsc-sgt/my-tests', icon: FilePlus2 },
-  { label: 'Resources', detail: 'Books, study material, bit banks', href: '/dsc-sgt/resources', icon: Library },
-  { label: 'Exam roadmap', detail: 'Paper pattern, syllabus and dates', href: '/dsc-sgt/roadmap', icon: Route },
+  // Same order and wording as the mobile app's More tab.
+  { label: 'Exam roadmap', detail: '90-day plan, exam pattern and syllabus', href: '/dsc-sgt/roadmap', icon: Route },
+  { label: 'My Tests', detail: 'Make a test with AI and take it', href: '/dsc-sgt/my-tests', icon: FilePlus2 },
+  { label: 'Resources', detail: 'Books, study material and bit banks', href: '/dsc-sgt/resources', icon: Library },
 ]
 
 function isItemActive(pathname: string, href: string) {
@@ -295,19 +296,8 @@ function ProfileMenu({
           <span>My profile</span>
         </Link>
 
-        {/* The "More" pages: from lg up they are in the header's More menu, so
-            only below it, where the bottom bar does not list them, are they here. */}
-        {DSC_MORE_ITEMS.map(({ href, label, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            onClick={onClose}
-            className="flex min-h-10 w-full items-center gap-2.5 rounded-xl px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground lg:hidden"
-          >
-            <Icon className="h-4 w-4 shrink-0" strokeWidth={1.7} />
-            <span>{label}</span>
-          </Link>
-        ))}
+        {/* The "More" pages are not here: the header's More menu has them from
+            lg up, the bottom bar's More tab below it. */}
 
         <button
           onClick={() => {

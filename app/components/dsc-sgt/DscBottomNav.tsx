@@ -25,7 +25,8 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BookOpen, FileCheck2, BarChart3, Home } from 'lucide-react'
+import { BookOpen, FileCheck2, BarChart3, Home, LayoutGrid, ChevronRight } from 'lucide-react'
+import { DSC_MORE_ITEMS } from './DscHeader'
 
 /**
  * Height of the bar, as a Tailwind-usable length.
@@ -53,7 +54,7 @@ export function useHideBottomNav(active = true): void {
   }, [setHidden, active])
 }
 
-/** Everything a candidate should be able to reach at any moment. */
+/** Everything a candidate should be able to reach at any moment, plus "More" (DSC_MORE_ITEMS). */
 export const DSC_BOTTOM_NAV_ITEMS = [
   { label: 'Home', href: '/dsc-sgt', icon: Home },
   { label: 'Practice', href: '/dsc-sgt/practice', icon: BookOpen },
@@ -89,42 +90,116 @@ export function BottomNavProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
+const tabClass = (active: boolean) =>
+  // min-h-14 keeps every tab a comfortable thumb target.
+  `flex min-h-14 flex-1 flex-col items-center justify-center gap-1 px-1 py-2 transition-colors ${
+    active ? 'text-primary' : 'text-muted-foreground'
+  }`
+
 function DscBottomNav({ pathname }: { pathname: string }) {
+  // "More" holds the pages that do not fit on the bar (the header's More menu
+  // on desktop, the More tab in the mobile app): a panel just above the bar.
+  const [moreOpen, setMoreOpen] = useState(false)
+  const [lastPath, setLastPath] = useState(pathname)
+  if (lastPath !== pathname) {
+    setLastPath(pathname)
+    setMoreOpen(false)
+  }
+  useEffect(() => {
+    if (!moreOpen) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMoreOpen(false) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [moreOpen])
+
+  const moreActive = moreOpen || DSC_MORE_ITEMS.some((item) => isActive(pathname, item.href))
+
   return (
-    <nav
-      aria-label="Main"
-      // pb from the safe-area inset so the bar clears the iOS home indicator
-      // instead of sitting under it.
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)] lg:hidden"
-    >
-      <div className="mx-auto flex max-w-lg items-stretch justify-around">
-        {DSC_BOTTOM_NAV_ITEMS.map((item) => {
-          const Icon = item.icon
-          const active = isActive(pathname, item.href)
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={active ? 'page' : undefined}
-              // min-h-14 keeps every tab a comfortable thumb target.
-              className={`flex min-h-14 flex-1 flex-col items-center justify-center gap-1 px-1 py-2 transition-colors ${
-                active ? 'text-primary' : 'text-muted-foreground'
-              }`}
-            >
-              <Icon
-                className="h-5 w-5 shrink-0"
-                strokeWidth={active ? 2.2 : 1.7}
-                aria-hidden
-              />
-              <span
-                className={`text-[11px] leading-none ${active ? 'font-semibold' : 'font-medium'}`}
+    <>
+      {moreOpen && (
+        <div className="fixed inset-0 z-40 lg:hidden">
+          <button
+            type="button"
+            aria-label="Close more pages"
+            onClick={() => setMoreOpen(false)}
+            className="absolute inset-0 bg-black/30 animate-in fade-in-0"
+          />
+          <div
+            id="dsc-more-pages"
+            role="menu"
+            aria-label="More pages"
+            className="absolute inset-x-0 mx-auto max-w-lg rounded-t-3xl border border-b-0 border-border bg-popover p-3 pb-4 text-popover-foreground shadow-2xl animate-in slide-in-from-bottom-4"
+            style={{ bottom: BOTTOM_NAV_OFFSET }}
+          >
+            <p className="px-2 pb-2 pt-1 text-sm font-semibold text-foreground">More</p>
+            <div className="space-y-1">
+              {DSC_MORE_ITEMS.map(({ label, detail, href, icon: Icon }) => {
+                const active = isActive(pathname, href)
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    role="menuitem"
+                    aria-current={active ? 'page' : undefined}
+                    onClick={() => setMoreOpen(false)}
+                    className={`flex min-h-14 items-center gap-3 rounded-2xl px-3 transition-colors ${
+                      active ? 'bg-accent text-accent-foreground' : 'hover:bg-accent hover:text-accent-foreground'
+                    }`}
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
+                      <Icon className="h-4 w-4" strokeWidth={1.8} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[13px] font-semibold text-foreground">{label}</span>
+                      <span className="block text-[11px] text-muted-foreground">{detail}</span>
+                    </span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <nav
+        aria-label="Main"
+        // pb from the safe-area inset so the bar clears the iOS home indicator
+        // instead of sitting under it.
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)] lg:hidden"
+      >
+        <div className="mx-auto flex max-w-lg items-stretch justify-around">
+          {DSC_BOTTOM_NAV_ITEMS.map((item) => {
+            const Icon = item.icon
+            const active = !moreOpen && isActive(pathname, item.href)
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? 'page' : undefined}
+                onClick={() => setMoreOpen(false)}
+                className={tabClass(active)}
               >
-                {item.label}
-              </span>
-            </Link>
-          )
-        })}
-      </div>
-    </nav>
+                <Icon className="h-5 w-5 shrink-0" strokeWidth={active ? 2.2 : 1.7} aria-hidden />
+                <span className={`text-[11px] leading-none ${active ? 'font-semibold' : 'font-medium'}`}>
+                  {item.label}
+                </span>
+              </Link>
+            )
+          })}
+          <button
+            type="button"
+            onClick={() => setMoreOpen((v) => !v)}
+            aria-haspopup="menu"
+            aria-expanded={moreOpen}
+            aria-controls="dsc-more-pages"
+            className={tabClass(moreActive)}
+          >
+            <LayoutGrid className="h-5 w-5 shrink-0" strokeWidth={moreActive ? 2.2 : 1.7} aria-hidden />
+            <span className={`text-[11px] leading-none ${moreActive ? 'font-semibold' : 'font-medium'}`}>More</span>
+          </button>
+        </div>
+      </nav>
+    </>
   )
 }
