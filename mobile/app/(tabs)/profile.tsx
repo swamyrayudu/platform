@@ -14,6 +14,7 @@ import { authService } from '@/services/auth-service';
 import { paymentService, showsPlans } from '@/services/payment-service';
 import { api } from '@/services/api-client';
 import { API_BASE_URL } from '@/utils/config';
+import { GOVERNMENT_DISCLAIMER } from '@/utils/legal';
 import { colors } from '@/utils/theme';
 import { hasActiveSubscription, subscriptionDate } from '@/utils/subscription';
 import type { EducationMedium, LearningGoal, PublicDevice } from '@/types/auth';
@@ -202,6 +203,7 @@ export default function Profile() {
         <ProfileAction label="Terms of service" icon="reader-outline" link onPress={()=>void WebBrowser.openBrowserAsync(API_BASE_URL+'/terms')}/>
         <ProfileAction label="Privacy policy" icon="lock-closed-outline" link last onPress={()=>void WebBrowser.openBrowserAsync(API_BASE_URL+'/privacy')}/>
       </View>
+      <Text style={styles.caption}>{GOVERNMENT_DISCLAIMER}</Text>
     </ProfileSection>
 
     <ProfileSection title="Account" icon="person-outline">

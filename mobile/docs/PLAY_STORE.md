@@ -21,24 +21,33 @@ increase on every production build. What is left happens in Google's consoles.
 
 ## 2. Reviewer account (Play Console → App content → App access)
 
-Reviewers must reach every feature, including Pro, and the app only offers Google sign-in.
+Reviewers must reach every feature, including Pro. Students sign in with Google;
+reviewers use an email + password account made by you. There is no public sign-up.
 
-1. Create a new Gmail account just for review. **Turn 2-Step Verification off**: Google's
-   reviewers cannot receive your sign-in codes.
-2. Sign in to the app with it once and finish onboarding, so the account exists.
-3. Give it Pro (preview first, then write):
-   ```bash
-   node --env-file=.env scripts/grant-pro.mjs reviewer@gmail.com
-   ```
-   ```bash
-   node --env-file=.env scripts/grant-pro.mjs reviewer@gmail.com 365 --apply
-   ```
-4. In **App access**, choose "All or some functionality is restricted" and add:
+1. Sign in to the website as admin and open `https://rsdeducation.vercel.app/admin/login-accounts`.
+2. Check that the **Email sign-in** switch is **on**. Keep it on until review is approved,
+   and again whenever you send an update for review. Off hides "Continue with Email"
+   and signs the reviewer out.
+3. Create the account:
+   - Email: one used only for review, e.g. `playreview.rsd@gmail.com`. No mails are
+     sent to it, but use an address you own.
+   - Name: `Play Store reviewer`
+   - Password: 8+ characters with letters and numbers. Keep it only in Play Console,
+     never in this repository.
+   - Tick **Give Pro access for** and enter `365` days.
+4. Test it once on a phone with the Play build: **Continue with Email** → sign in →
+   finish onboarding (language and goals) so the reviewer starts on Home. Then sign out.
+5. In **App access**, choose "All or some functionality is restricted" and add:
    - Name: `Reviewer account`
-   - Username / password: the Gmail address and password
-   - Instructions: `Tap "Continue with Google" and choose this account. It has Pro
-     access, so all practice, topic selection and mock tests are available.
-     Sign-in is Google-only; there is no separate password login.`
+   - Username / password: that email and password
+   - Instructions: `On the sign-in screen tap "Continue with Email" and sign in with
+     this email and password. The account has Pro access, so all practice, topic
+     selection and mock tests are available. Only one device stays signed in at a
+     time: signing in on another device signs out the previous one.`
+
+If the reviewer account stops working, open the same page and save the email again
+with a new password (this also resets its Pro days), then update App access.
+`scripts/grant-pro.mjs` can still give Pro to a Google account that has signed in once.
 
 ## 3. App content answers
 
@@ -56,6 +65,9 @@ Reviewers must reach every feature, including Pro, and the app only offers Googl
 
 Data **collected**. Nothing is **shared**: Supabase, Vercel and Upstash process data
 on your behalf, which Google does not count as sharing.
+
+Passwords exist only for the reviewer account you create, stored as a hash; students
+never enter one, so there is no extra data type to declare for them.
 
 | Data type | Collected | Why | Optional? |
 |---|---|---|---|

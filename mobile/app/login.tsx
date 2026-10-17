@@ -6,6 +6,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '@/store/auth';
 import { API_BASE_URL } from '@/utils/config';
+import { GOVERNMENT_DISCLAIMER } from '@/utils/legal';
 import { colors } from '@/utils/theme';
 import { pageLayout } from '@/utils/layout';
 import type { SignInStage } from '@/services/native-google-flow';
@@ -93,6 +94,7 @@ export default function Login() {
       <View style={styles.about}>
         <Heading style={styles.aboutTitle}>About this app</Heading>
         <Text style={styles.description}>Prepare for AP DSC / SGT with subject practice, methodology and mock tests in English or Telugu. Review explanations and follow your progress.</Text>
+        <Text style={styles.disclaimer}>{GOVERNMENT_DISCLAIMER}</Text>
       </View>
       <View style={styles.legal}>
         <Text style={styles.legalNote}>By continuing, you agree to our terms and privacy policy.</Text>
@@ -115,6 +117,6 @@ const styles=StyleSheet.create({
   passwordRow:{flexDirection:'row',alignItems:'center'},eye:{position:'absolute',right:14,height:50,justifyContent:'center'},
   emailButton:{minHeight:54,borderRadius:14,backgroundColor:colors.primary,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8},emailButtonText:{fontSize:15,fontWeight:'800',color:'#fff'},
   error:{padding:12,borderRadius:12,backgroundColor:colors.redSoft},errorText:{fontSize:13,lineHeight:22,color:colors.red},
-  about:{gap:7,paddingHorizontal:4},aboutTitle:{},
+  about:{gap:7,paddingHorizontal:4},aboutTitle:{},disclaimer:{fontSize:12,lineHeight:19,color:colors.muted},
   legal:{gap:2},legalNote:{fontSize:11,lineHeight:18,textAlign:'center',color:colors.muted},links:{flexDirection:'row',flexWrap:'wrap',justifyContent:'center',gap:12},link:{minHeight:44,paddingHorizontal:12,paddingVertical:12,justifyContent:'center'},linkText:{fontSize:12,lineHeight:20,fontWeight:'600',color:colors.primary,textDecorationLine:'underline'},
 });
