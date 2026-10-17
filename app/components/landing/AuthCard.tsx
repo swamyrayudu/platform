@@ -13,12 +13,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { Mail, Lock, Eye, EyeOff, Check, ArrowLeft, Smartphone, Download } from 'lucide-react'
 import { toast } from 'sonner'
-
-/**
- * The Android app, served from this site (public/downloads). To release a new
- * APK, replace that file and update the version and size here.
- */
-const ANDROID_APK = { href: '/downloads/rsd-education.apk', version: '1.0.3', size: '30 MB' }
+import { ANDROID_APK } from './android-apk'
 
 interface AuthCardProps {
   error: string | null
@@ -88,8 +83,8 @@ export default function AuthCard({ error, rateLimit, isSigningIn, gsiButtonRef, 
       {!showEmail && (
         <a
           href={ANDROID_APK.href}
-          download="rsd-education.apk"
-          type="application/vnd.android.package-archive"
+          download={ANDROID_APK.fileName}
+          type={ANDROID_APK.type}
           className="mt-6 flex items-center gap-3 rounded-2xl border border-border bg-secondary/60 px-4 py-3 transition-colors hover:bg-secondary"
         >
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">

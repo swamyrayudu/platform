@@ -12,8 +12,11 @@ import {
   BookOpen,
   Bot,
   ArrowRight,
+  Smartphone,
+  Download,
 } from 'lucide-react'
 import BloomField from './BloomField'
+import { ANDROID_APK } from './android-apk'
 import DashboardIllustration from './DashboardIllustration'
 import { BrandMark } from '@/components/brand-logo'
 
@@ -114,6 +117,19 @@ export default function HeroContent({ heroGsiRef, googleEnabled = false }: HeroC
               <ArrowRight className="h-4 w-4" />
             </a>
           )}
+
+          {/* The Android app, a direct APK download from this site. */}
+          <a
+            href={ANDROID_APK.href}
+            download={ANDROID_APK.fileName}
+            type={ANDROID_APK.type}
+            className="mt-4 inline-flex min-h-11 items-center gap-2.5 whitespace-nowrap rounded-full border border-white/25 bg-white/10 px-5 text-[13px] font-medium text-white backdrop-blur-sm transition hover:bg-white/20"
+          >
+            <Smartphone className="h-4 w-4 shrink-0 text-bloom-lavender" strokeWidth={1.8} />
+            Download the Android app
+            <span className="hidden text-[11px] text-white/60 sm:inline">APK · {ANDROID_APK.size}</span>
+            <Download className="h-3.5 w-3.5 shrink-0 text-white/70" strokeWidth={1.8} />
+          </a>
         </div>
       </section>
 
