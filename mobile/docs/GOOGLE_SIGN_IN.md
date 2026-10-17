@@ -1,10 +1,27 @@
 # Google sign-in setup and validation
 
-## Current Android and iOS login: browser Google sign-in
+## Current login: in-app on Android, browser as the backup
 
-The user authorized browser sign-in after the rebuilt native module reported
-Google account reauthentication failure. Android now uses the existing browser
-flow, just like iOS, through `expo-web-browser.openAuthSessionAsync`.
+Since 17 October 2026, Android signs in through the in-app Google account sheet
+(Credential Manager, see "Native Android flow" below). The app falls back to the
+browser flow when:
+
+- the installed build has no `RsdGoogleAuth` module, or
+- the account sheet itself fails. Google reports a missing SHA-1, Play services
+  problems and a user pressing Back the same way, so all of these open the browser.
+
+After one sheet failure, the rest of that app run uses the browser.
+Backend errors after Google returns a token are shown, not retried in the browser.
+iOS always uses the browser. This is JavaScript only, so APKs from 1.0.2 onwards
+(which include the module) get it through an in-app update.
+
+In-app sign-in only works once the installed APK's signing SHA-1 is registered
+as an **Android** OAuth client (see "Required Google Cloud settings"). Until then
+every Android sign-in quietly falls back to the browser.
+
+## Browser Google sign-in (iOS, and the Android backup)
+
+The browser flow uses `expo-web-browser.openAuthSessionAsync`.
 
 1. The app checks the existing `/mobile-auth?check=1` readiness contract.
 2. It generates a temporary P-256 key and request state, then opens the existing
@@ -26,10 +43,7 @@ flow, just like iOS, through `expo-web-browser.openAuthSessionAsync`.
 6. Cancellation creates no local session; the temporary private key is wiped on
    success, failure and cancellation. Cold-start callbacks cannot authenticate.
 
-No account chooser is automatically retried. Google sign-in no longer invokes
-the native module or emits its `RSD_GOOGLE_AUTH_SETUP` warning. The unused native
-module remains in the app for compatibility with existing APKs and logout cleanup.
-No dependency, package, scheme, EAS project or native plugin changes were needed.
+No account chooser is automatically retried.
 
 The earlier popup bridge rendered Google's button but the user reported a blank
 Chrome page after account selection. That observation does not identify the
@@ -42,7 +56,7 @@ Authorized JavaScript origins. In that same **Web application** client, add/reta
 the exact Authorized redirect URI `https://rsdeducation.vercel.app/mobile-auth`.
 Keep both backend client IDs matched and retain the existing server `JWT_SECRET`.
 No new client secret or environment secret is required. Android
-package/SHA-1 registration is required for the previous native flow, not this
+package/SHA-1 registration is required for the in-app Android flow, not this
 browser flow. The custom scheme is the app-return URL, not a Google Web OAuth
 redirect URI. Preserve the other existing website redirect settings.
 
@@ -62,9 +76,9 @@ Real-account login and navigation on the phone still require acceptance testing.
 If building a standalone APK later, use `npx eas-cli build --platform android
 --profile preview`; development clients need Metro.
 
-## Previous native Android flow and certificate diagnostics
+## Native Android flow and certificate diagnostics
 
-The previous Android implementation uses Google's Credential Manager. The
+The Android implementation uses Google's Credential Manager. The
 local Expo module `modules/rsd-google-auth` requests only a Google ID token, using
 `GetSignInWithGoogleOption` with the existing backend's exact nonce.
 

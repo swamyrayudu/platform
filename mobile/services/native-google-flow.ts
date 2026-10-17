@@ -2,6 +2,19 @@ import type { PublicUser } from '@/types/auth';
 type GooglePicker = (webClientId:string,nonce:string)=>Promise<string|null>;
 export type SignInStage = 'preparing' | 'choosing' | 'browser' | 'exchanging' | 'profile';
 
+/** Thrown when the phone's own Google account sheet could not give a token (setup, Play services, etc.). */
+export class NativePickerError extends Error {
+  constructor(readonly reason:unknown) { super('In-app Google sign-in is not available on this phone.'); this.name='NativePickerError'; }
+}
+
+// In-app Google first; the browser sign-in when this build has no native module
+// or the account sheet itself fails. Backend errors after a token are not retried.
+export async function withBrowserBackup<T>(native:(()=>Promise<T|null>)|null,browser:()=>Promise<T|null>) {
+  if(!native)return browser();
+  try { return await native(); }
+  catch(error) { if(error instanceof NativePickerError)return browser(); throw error; }
+}
+
 async function signInRequest(url:string,options:RequestInit,transport:typeof fetch) {
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),25000);

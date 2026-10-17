@@ -5,9 +5,9 @@ import * as Crypto from 'expo-crypto';
 import { API_BASE_URL, validateApiUrl } from '@/utils/config';
 import { api } from './api-client';
 import { tokenStore, getDeviceId } from './vault';
-import { clearNativeGoogleSession } from './native-google-auth';
+import { clearNativeGoogleSession, nativeGoogleSignIn } from './native-google-auth';
 import { browserGoogleLogin } from './browser-google-flow';
-import type { SignInStage } from './native-google-flow';
+import { withBrowserBackup, type SignInStage } from './native-google-flow';
 import type { PublicUser, LearningGoal, EducationMedium } from '@/types/auth';
 let signing = false;
 export const authService = {
@@ -19,7 +19,10 @@ export const authService = {
     try {
       validateApiUrl(API_BASE_URL);
       if (new URL(API_BASE_URL).protocol !== 'https:') throw new Error('Google sign-in requires an HTTPS backend.');
-      const tokens=await browserGoogleLogin(API_BASE_URL,Platform.OS==='ios'?'IOS':'ANDROID',await getDeviceId(),Crypto.getRandomBytes,WebBrowser.openAuthSessionAsync,fetch,onProgress);
+      // Android: in-app Google account sheet; the browser is the backup (and iOS's only way).
+      const native=nativeGoogleSignIn();
+      const tokens=await withBrowserBackup(native&&(()=>native(onProgress)),
+        async()=>browserGoogleLogin(API_BASE_URL,Platform.OS==='ios'?'IOS':'ANDROID',await getDeviceId(),Crypto.getRandomBytes,WebBrowser.openAuthSessionAsync,fetch,onProgress));
       if(!tokens)return null;
       await tokenStore.write(tokens);
       onProgress?.('profile');

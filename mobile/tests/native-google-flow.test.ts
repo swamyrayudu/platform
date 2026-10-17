@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nativeGoogleLogin } from '../services/native-google-flow';
+import { nativeGoogleLogin, NativePickerError, withBrowserBackup } from '../services/native-google-flow';
 
 const origin='https://rsd.example',clientId='existing-web.apps.googleusercontent.com',device='fixture-device';
 const nonceResponse=(nonce='nonce')=>Response.json({nonce},{headers:{'Set-Cookie':`dsc_auth_nonce=${nonce}; HttpOnly; Secure; Path=/api/auth; Max-Age=300`}});
@@ -86,4 +86,19 @@ test('native login returns the verified backend profile for overview/onboarding 
     assert.equal(requests.length,2);
     assert.ok(requests.every(url=>!url.endsWith('/me')));
   }
+});
+test('in-app Google is used first and the browser is not opened when it signs in',async()=>{
+  let browserOpened=false;
+  const result=await withBrowserBackup(async()=>'native-tokens',async()=>{browserOpened=true;return 'browser-tokens';});
+  assert.equal(result,'native-tokens');assert.equal(browserOpened,false);
+});
+test('the browser is the backup when the build has no in-app Google or its account sheet fails',async()=>{
+  assert.equal(await withBrowserBackup(null,async()=>'browser-tokens'),'browser-tokens');
+  assert.equal(await withBrowserBackup(async()=>{throw new NativePickerError(new Error('setup'));},async()=>'browser-tokens'),'browser-tokens');
+});
+test('backend failures after the in-app token are shown, not retried in the browser',async()=>{
+  let browserOpened=false;
+  const rejected=new Error('Google sign-in was rejected by RSD Education.');
+  await assert.rejects(withBrowserBackup(async()=>{throw rejected;},async()=>{browserOpened=true;return 'browser-tokens';}),error=>error===rejected);
+  assert.equal(browserOpened,false);
 });
