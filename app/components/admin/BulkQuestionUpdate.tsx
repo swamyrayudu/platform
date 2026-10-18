@@ -163,6 +163,9 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
   const [previewing, setPreviewing] = useState(false)
   const [applying, setApplying] = useState(false)
   const [allowAnswerChange, setAllowAnswerChange] = useState(true)
+  // Deliberately NOT remembered between pastes: each batch has to accept the
+  // consequence for itself.
+  const [allowMidExam, setAllowMidExam] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showAddQuestions, setShowAddQuestions] = useState(false)
   const [importBusy, setImportBusy] = useState(false)
@@ -462,6 +465,7 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
           apply,
           requestId,
           allowAnswerChange,
+          allowMidExam,
           // The range that was actually loaded, not whatever the number
           // boxes say now — editing them after copying must not move the
           // target.
@@ -522,6 +526,7 @@ export default function BulkQuestionUpdate({ topicMode = false }: { topicMode?: 
   // Not a mistake in the paste — a timing problem. Applying is off until the
   // candidates sitting those modules are done.
   const liveBlocked = (summary?.liveLocked ?? 0) > 0
+  const liveOverridden = (summary?.liveOverridden ?? 0) > 0
   const reviewOnly = topicMode && (summary?.changed ?? 0) === 0 && (summary?.unchanged ?? 0) > 0
   const blocked = (summary?.invalid ?? 0) > 0 || ((summary?.changed ?? 0) === 0 && !reviewOnly)
 
@@ -871,7 +876,9 @@ Q000001,"Rewritten stem","opt A","opt B","opt C","opt D",B,"why B is right","జ
             </div>
           )}
 
-          {liveBlocked && !applied && (
+          {/* One block in both states, so the override checkbox never
+              disappears along with the warning it answers. */}
+          {(liveBlocked || liveOverridden) && !applied && (
             <div className="mt-4 flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3.5 text-xs text-destructive">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
@@ -879,10 +886,31 @@ Q000001,"Rewritten stem","opt A","opt B","opt C","opt D",B,"why B is right","జ
                   {summary.liveAttempts} candidate(s) are mid-exam on modules containing these
                   questions.
                 </strong>{' '}
-                {summary.liveLocked} row(s) change an option or the answer key. A stored answer is
-                only the letter they tapped, so moving what B says marks them on an answer they
-                never gave. Wait until those attempts finish, or paste a version that changes only
-                the wording.
+                {liveOverridden ? (
+                  <>
+                    {summary.liveOverridden} row(s) will be written anyway. A stored answer is only
+                    the letter they tapped, so moving what B says marks them on an answer they never
+                    gave.
+                  </>
+                ) : (
+                  <>
+                    {summary.liveLocked} row(s) change an option or the answer key. A stored answer
+                    is only the letter they tapped, so moving what B says marks them on an answer
+                    they never gave. Wait until those attempts finish, or paste a version that
+                    changes only the wording.
+                  </>
+                )}
+                <label className="mt-3 flex items-center gap-2 font-medium">
+                  <input
+                    type="checkbox"
+                    checked={allowMidExam}
+                    onChange={(e) => { setAllowMidExam(e.target.checked); setPreview(null) }}
+                    disabled={busy}
+                    className="h-3.5 w-3.5 accent-destructive"
+                  />
+                  Apply anyway — I accept that {summary.liveAttempts} candidate(s) may be marked on
+                  an answer they never gave
+                </label>
               </span>
             </div>
           )}
@@ -965,7 +993,7 @@ Q000001,"Rewritten stem","opt A","opt B","opt C","opt D",B,"why B is right","జ
                 {wrongRange
                   ? 'Applying is off until the paste matches the range you loaded.'
                   : liveBlocked
-                    ? 'Applying is off while those attempts are in progress.'
+                    ? 'Applying is off while those attempts are in progress — tick the override above to go ahead anyway.'
                     : blocked
                     ? summary.invalid > 0
                       ? 'Fix the invalid rows above — nothing can be written until they are valid.'

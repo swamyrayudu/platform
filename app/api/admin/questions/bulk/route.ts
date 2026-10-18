@@ -362,6 +362,7 @@ export const POST = requireAdmin(async (request, _context, { user }) => {
       csv,
       apply,
       allowAnswerChange,
+      allowMidExam,
       from: fromInput,
       to: toInput,
       topic,
@@ -435,6 +436,10 @@ export const POST = requireAdmin(async (request, _context, { user }) => {
 
     const shouldApply = apply === true
     const answersAllowed = allowAnswerChange !== false
+    // Opt-in, and only ever from an explicit true: the default must stay
+    // "refuse", because the cost of getting this wrong lands on a candidate
+    // sitting the exam, not on the admin who ticked it.
+    const midExamAllowed = allowMidExam === true
     const requestId = typeof requestIdInput === 'string' ? requestIdInput : randomUUID()
     if (shouldApply && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestId)) {
       return NextResponse.json({ success: false, error: 'Invalid update request ID' }, { status: 400 })
@@ -629,6 +634,7 @@ export const POST = requireAdmin(async (request, _context, { user }) => {
     const { lockedUids, attempts: liveAttempts } = await liveAttemptScope(changedUids)
 
     let liveLocked = 0
+    let liveOverridden = 0
     if (lockedUids.size > 0) {
       const writeByeId = new Map(writes.map((w) => [w.id, w.update]))
       for (const result of results) {
@@ -638,7 +644,14 @@ export const POST = requireAdmin(async (request, _context, { user }) => {
         const update = writeByeId.get(result.questionId) ?? {}
         const touchesAnswer = ANSWER_AFFECTING.some((column) => column in update)
 
-        if (touchesAnswer) {
+        if (touchesAnswer && midExamAllowed) {
+          // The admin has accepted the consequence. Say plainly what it is,
+          // and keep the row in the write set.
+          result.warnings.push(
+            'Written while someone is mid-exam on a module with this question — their stored answer for it may no longer mean what they tapped'
+          )
+          liveOverridden++
+        } else if (touchesAnswer) {
           result.status = 'live_locked'
           result.errors.push(
             'Someone is sitting a module with this question right now — changing an option or the answer would mark them on an answer they never gave'
@@ -671,6 +684,7 @@ export const POST = requireAdmin(async (request, _context, { user }) => {
       outOfRange: outOfRangeIds.size,
       liveAttempts,
       liveLocked,
+      liveOverridden,
       missing: allowedIds.size - pastedInRange.size,
       taxonomyChanges: results.filter((r) => r.changesTaxonomy).length,
       newTaxonomyValues,
@@ -689,6 +703,13 @@ export const POST = requireAdmin(async (request, _context, { user }) => {
         rows: results,
         fileErrors,
       })
+    }
+
+    if (liveOverridden > 0) {
+      console.warn(
+        `[BulkUpdate] mid-exam override by ${user.id}: ${liveOverridden} row(s) ` +
+          `on ${table} written while ${liveAttempts} attempt(s) are in progress`
+      )
     }
 
     if (liveLocked > 0) {

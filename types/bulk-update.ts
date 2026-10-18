@@ -126,6 +126,12 @@ export interface BulkPreviewSummary {
    * changing what B says silently repoints it.
    */
   liveLocked: number
+  /**
+   * Rows that WOULD have been refused as liveLocked, but were let through
+   * because the admin ticked the mid-exam override. Reported so the write is
+   * never silent about who it may have affected.
+   */
+  liveOverridden: number
   /** Rows that move topic, subtopic, chapter or difficulty. */
   taxonomyChanges: number
   /**
