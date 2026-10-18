@@ -14,7 +14,8 @@
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import type { DynamicFilterOptions, PracticeFilterState, PracticeMedium } from '@/types/practice'
 import { getAllSubjectMetadata } from './subjects'
-import { meaningful, practiceTablesFor } from './question-loader'
+import { countActiveMatching, meaningful, practiceTablesFor } from './question-loader'
+import { isReviewedOnly, loadReviewedTopics, reviewedOnlyTables } from './reviewed-topics'
 
 interface FilterOptionsResult {
   classes: string[]
@@ -31,6 +32,8 @@ interface FilterParams {
   p_topics: string[]
   p_subtopics: string[]
   p_difficulty: string[]
+  /** Tables served only from admin-reviewed topics — see ./reviewed-topics. */
+  p_reviewed_tables: string[]
 }
 
 interface LightRow {
@@ -52,13 +55,16 @@ export async function loadFilterOptions(
     meta,
     tables: practiceTablesFor(filter.medium, meta.name),
   }))
+  const tables = practiceTablesFor(filter.medium, filter.subject)
+  const countTables = subjectCounts ? [...new Set(subjects.flatMap((s) => s.tables))] : []
   const params: FilterParams = {
-    p_tables: practiceTablesFor(filter.medium, filter.subject),
-    p_count_tables: subjectCounts ? [...new Set(subjects.flatMap((s) => s.tables))] : [],
+    p_tables: tables,
+    p_count_tables: countTables,
     p_class_levels: meaningful(filter.class_levels),
     p_topics: meaningful(filter.topics),
     p_subtopics: meaningful(filter.subtopics),
     p_difficulty: meaningful(filter.difficulty),
+    p_reviewed_tables: reviewedOnlyTables([...tables, ...countTables]),
   }
 
   const { data, error } = await supabaseAdmin.rpc('practice_filter_options', params)
@@ -88,6 +94,7 @@ export async function loadFilterOptions(
   }
 }
 
+/** Every active row, gate or no gate — what the paging below has to cover. */
 async function countActive(table: string): Promise<number> {
   const { count, error } = await supabaseAdmin.from(table)
     .select('question_id', { count: 'exact', head: true })
@@ -123,8 +130,17 @@ async function loadActiveRows(table: string, expected: number): Promise<LightRow
 /** Same answer as public.practice_filter_options, computed from the rows. */
 async function countFromRows(p: FilterParams): Promise<FilterOptionsResult> {
   const tables = [...new Set([...p.p_count_tables, ...p.p_tables])]
-  const counts = Object.fromEntries(await Promise.all(tables.map(async (t) => [t, await countActive(t)] as const)))
-  const pools = await Promise.all(p.p_tables.map((t) => loadActiveRows(t, counts[t])))
+  const active = Object.fromEntries(await Promise.all(tables.map(async (t) => [t, await countActive(t)] as const)))
+  // A gated table's subject total is what practice can draw from, not what the
+  // table holds, so it is counted under its reviewed topics.
+  const counts = Object.fromEntries(await Promise.all(tables.map(async (t) =>
+    [t, isReviewedOnly(t) ? await countActiveMatching(t, {}) : active[t]] as const)))
+  const pools = await Promise.all(p.p_tables.map(async (t) => {
+    const rows = await loadActiveRows(t, active[t])
+    if (!isReviewedOnly(t)) return rows
+    const reviewed = await loadReviewedTopics(t)
+    return rows.filter((r) => r.topic !== null && reviewed.has(r.topic))
+  }))
 
   const lower = (v: string) => v.toLowerCase()
   // Exact name, or a name the comma-joined query string split into pieces.

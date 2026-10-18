@@ -33,6 +33,15 @@ import {
 // In-memory sessions cache for fallback and instant session continuity
 const activeSessionsCache: Map<string, PracticeSession> = new Map()
 
+/** A session that cannot be built — the filters match nothing to serve. */
+export class NoQuestionsError extends Error {
+  readonly code = 'NO_QUESTIONS'
+  constructor() {
+    super('No questions are available for these filters yet. Try another subject, class or topic.')
+    this.name = 'NoQuestionsError'
+  }
+}
+
 /**
  * Strip the answer key from a session that is still in progress.
  *
@@ -241,6 +250,12 @@ export async function createPracticeSession(
   // Only now fetch stems, options and explanations, and only for these. The
   // single-subject path already returned complete rows, so it skips this.
   const selectedQuestions = alreadyHydrated ? chosen : await hydrateQuestions(chosen)
+
+  // Social Studies draws only from admin-reviewed topics, so a filter that
+  // used to return a short session can now return nothing at all. Stop before
+  // persisting: an empty session would still spend a free-tier attempt and
+  // leave the exam screen with no question to show.
+  if (selectedQuestions.length === 0) throw new NoQuestionsError()
 
   const sessionId = crypto.randomUUID()
   const questionIds = selectedQuestions.map((q) => q.question_id || q.id)

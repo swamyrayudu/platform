@@ -4,7 +4,7 @@
 
 import { NextResponse } from 'next/server'
 import { getOptionalAuth } from '@/lib/auth/session'
-import { createPracticeSession, canUserCreatePracticeSession } from '@/lib/practice/db'
+import { createPracticeSession, canUserCreatePracticeSession, NoQuestionsError } from '@/lib/practice/db'
 import type { PracticeFilterState } from '@/types/practice'
 
 export async function POST(request: Request) {
@@ -78,6 +78,9 @@ export async function POST(request: Request) {
       session,
     })
   } catch (err: unknown) {
+    if (err instanceof NoQuestionsError) {
+      return NextResponse.json({ success: false, error: err.message, code: err.code }, { status: 409 })
+    }
     const message = err instanceof Error ? err.message : 'Failed to create practice session'
     console.error('[Practice Create Session Error]', err)
     return NextResponse.json({ success: false, error: message }, { status: 500 })
