@@ -1,0 +1,21 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.rsdappupdate'
+version = '1.0.0'
+
+android {
+  namespace 'expo.modules.rsdappupdate'
+  defaultConfig {
+    versionCode 1
+    versionName '1.0.0'
+  }
+}
+
+dependencies {
+  // Google Play In-App Updates. The Java artifact (not app-update-ktx), like
+  // rsd-play-billing, to avoid Kotlin-metadata coupling with SDK 57's Kotlin.
+  implementation 'com.google.android.play:app-update:2.1.0'
+}

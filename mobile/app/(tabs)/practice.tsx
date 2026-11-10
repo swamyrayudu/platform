@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Screen, Body, Button, Input, ErrorState, Badge } from '@/components/ui';
+import { Screen, Body, Button, Input, ErrorState, Badge, Loading } from '@/components/ui';
 import { TopicPicker } from '@/components/topic-picker';
 import { PracticeMediumTabs, PracticeSubjects, PracticeDataStatus } from '@/components/practice-selectors';
 import { PracticeChoices } from '@/components/practice-choices';
@@ -28,7 +28,32 @@ const modes: {value:PracticeMode;label:string;description:string;icon:'flash-out
 type PracticeParams={subject?:string;topic?:string;medium?:string;day?:string;title?:string;keys?:string};
 export default function Practice() {
   const params=useLocalSearchParams<PracticeParams>();
+  const quota=useQuery({queryKey:['quota'],queryFn:practiceService.quota});
+  // Subject-wise practice is Pro only in the app (the server refuses free accounts too).
+  if(!quota.data) return <Screen title="DSC Practice Zone" pageHeader={<PracticeHeading premium={false}/>}>
+    {quota.error ? <ErrorState error={quota.error} retry={()=>void quota.refetch()}/> : <Loading/>}
+  </Screen>;
+  if(!quota.data.isPremium) return <PracticeLocked/>;
   return <PracticeBuilder key={JSON.stringify([params.subject,params.topic,params.medium,params.day])} params={params}/>;
+}
+function PracticeHeading({premium}:{premium:boolean}) {
+  return <View style={styles.headingRow}>
+    <View style={styles.titleRow}><Heading style={styles.title}>DSC Practice Zone</Heading>{premium?<Badge label="PRO" color={colors.gold}/>:null}</View>
+    <Pressable accessibilityRole="button" accessibilityLabel="Practice history" onPress={()=>router.push('/history')} style={({pressed})=>[styles.history,pressed&&styles.pressed]}><Ionicons name="time-outline" size={21} color={colors.primary}/></Pressable>
+  </View>;
+}
+/** Free accounts: no subject practice in the app, only what Pro unlocks. */
+function PracticeLocked() {
+  return <Screen title="DSC Practice Zone" pageHeader={<PracticeHeading premium={false}/>}>
+    <View style={[styles.panel,styles.locked]}>
+      <View style={styles.lockIcon}><Ionicons name="lock-closed" size={26} color={colors.gold}/></View>
+      <Heading style={styles.lockedTitle}>Practice is for RSD Pro members</Heading>
+      <Text style={styles.lockedText}>Practise every subject and topic in Telugu or English, with answers and explanations, unlimited sessions and up to 150 questions at a time.</Text>
+      {showsPlans
+        ? <View style={styles.lockedAction}><Button icon="ribbon-outline" label="View Pro plans" onPress={()=>router.push('/subscription')}/></View>
+        : <Text style={styles.lockedText}>Practice opens when RSD Pro is active on your account.</Text>}
+    </View>
+  </Screen>;
 }
 function PracticeBuilder({params}:{params:PracticeParams}) {
   const {user}=useAuth();
@@ -65,10 +90,7 @@ function PracticeBuilder({params}:{params:PracticeParams}) {
   const footer=<Button icon={exhausted?'lock-closed-outline':'play-outline'} label={options.checking?'Checking questions…':exhausted?(showsPlans?'View Pro plans':'Practice limit reached'):data?.total_matching_questions===0?'No questions available':`Start practice · ${filter.question_count}`} busy={create.isPending} disabled={!quota.data||!options.ready||invalidCount||(filter.has_timer&&filter.duration_minutes<1)||(exhausted&&!showsPlans)} onPress={()=>{if(!exhausted)create.mutate();else if(showsPlans)router.push('/subscription');}}/>;
   return <Screen title="DSC Practice Zone" pageHeader={null} footer={footer} footerSafeArea={false}>
     <View style={styles.intro}>
-      <View style={styles.headingRow}>
-        <View style={styles.titleRow}><Heading style={styles.title}>DSC Practice Zone</Heading>{premium?<Badge label="PRO" color={colors.gold}/>:null}</View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Practice history" onPress={()=>router.push('/history')} style={({pressed})=>[styles.history,pressed&&styles.pressed]}><Ionicons name="time-outline" size={21} color={colors.primary}/></Pressable>
-      </View>
+      <PracticeHeading premium={premium}/>
       {quota.data ? <View style={[styles.quota,exhausted&&styles.quotaExhausted]}>
         <Text style={styles.quotaText}>{premium?'Unlimited practice':`${quota.data.completedSessions}/${quota.data.allowedSessions} sessions used · Up to ${maxQuestions} questions`}</Text>
         {!premium&&showsPlans ? <Pressable accessibilityRole="button" accessibilityLabel="View Pro plans" onPress={()=>router.push('/subscription')} style={({pressed})=>[styles.plans,pressed&&styles.pressed]}><Ionicons name="ribbon-outline" size={16} color={colors.primary}/><Text style={styles.linkText}>Pro plans</Text><Ionicons name="chevron-forward" size={14} color={colors.primary}/></Pressable> : null}
@@ -150,5 +172,7 @@ const styles=StyleSheet.create({
   switchRow:{flexDirection:'row',alignItems:'center',gap:12,paddingTop:12,borderTopWidth:1,borderTopColor:colors.border},switchCopy:{flex:1,minWidth:0,gap:3},flex:{flex:1,minWidth:0},
   disclosure:{minHeight:44,flexDirection:'row',alignItems:'center',gap:8,paddingVertical:4},pressed:{opacity:.7},
   methodologyHint:{fontSize:12,lineHeight:20,color:'#805717',backgroundColor:'#FCF4E6',padding:10,borderRadius:12},
+  locked:{alignItems:'center',paddingVertical:24,gap:12},lockIcon:{width:56,height:56,borderRadius:18,alignItems:'center',justifyContent:'center',backgroundColor:'#FAF5EB'},
+  lockedTitle:{textAlign:'center'},lockedAction:{alignSelf:'stretch'},lockedText:{fontSize:13,lineHeight:21,color:colors.muted,textAlign:'center'},
   roadmap:{gap:2,padding:12,borderRadius:14,borderWidth:1,borderColor:colors.primarySoft,backgroundColor:colors.card},roadmapTitle:{fontSize:13,lineHeight:20,fontWeight:'700',color:colors.ink},
 });

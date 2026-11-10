@@ -34,17 +34,13 @@ DETAILED RESULTS AND ANSWER REVIEW
 TRACK YOUR PROGRESS
 • Progress reports by subject and topic, so you can see your strong and weak areas.
 • History of all your practice sessions and mock tests.
-• An exam roadmap to plan your preparation.
+• A 90-day exam roadmap with daily study notes: download them once and read them offline.
 
 MAKE YOUR OWN TESTS
 • Create a custom test from the subjects and topics you choose, and take it like a real mock.
 
-STUDY RESOURCES
-• Books, study material and previous papers in one place.
-• Download notes once and read them offline.
-
 RSD PRO
-Start free with a limited number of practice sessions. Upgrade to RSD Pro for full access to practice, topic selection, all mock tests and Pro study resources. Pro is a one-time pass for 1, 3 or 12 months, with no auto-renewal. Buying again simply adds more time. Pro works on the app and on the RSD Education website with the same account.
+Subject-wise and topic-wise practice is part of RSD Pro. Upgrade to RSD Pro for full access to practice, topic selection and all mock tests. Pro is a one-time pass for 1, 3 or 12 months, with no auto-renewal. Buying again simply adds more time. Pro works on the app and on the RSD Education website with the same account.
 
 SIMPLE AND SECURE
 • Sign in with your Google account. No passwords to remember.

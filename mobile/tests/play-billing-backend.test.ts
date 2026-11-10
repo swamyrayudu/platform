@@ -101,7 +101,7 @@ test('RTDN envelopes decode to subscription, voided and test notifications',()=>
 
 // ---- syncPlayPurchase with stubbed Google API + database ---------------------
 
-interface Port {google:Map<string,SubscriptionPurchaseV2>;owners:Map<string,string>;accounts:Map<string,string>;voided:Map<string,(string|null)[]>;rpc:Record<string,unknown>[];acks:string[];events:unknown[];rpcError?:{code:string;message:string}}
+interface Port {google:Map<string,SubscriptionPurchaseV2>;owners:Map<string,string>;accounts:Map<string,string>;voided:Map<string,(string|null)[]>;rpc:Record<string,unknown>[];acks:string[];events:unknown[];rpcError?:{code:string;message:string};ackFails?:boolean;googleDown?:boolean}
 async function loadSync() {
   const out=await build({entryPoints:[resolve('../lib/payments/google-play/sync.ts')],bundle:true,write:false,platform:'node',format:'cjs',plugins:[{name:'ports',setup(b){
     b.onResolve({filter:/supabase-admin$|auth\/db$|^\.\/api$/},args=>({path:args.path,namespace:'port'}));
@@ -109,8 +109,8 @@ async function loadSync() {
       args.path.endsWith('supabase-admin')?'export const supabaseAdmin=globalThis.port.db;':
       args.path.endsWith('auth/db')?'export const logSecurityEvent=async e=>{globalThis.port.events.push(e)};':
       `export class PlayApiError extends Error{constructor(kind,m){super(m);this.kind=kind}}
-       export const getSubscriptionV2=async t=>{const p=globalThis.port.google.get(t);if(!p)throw new PlayApiError('NOT_FOUND','nf');return JSON.parse(JSON.stringify(p))};
-       export const acknowledgeSubscription=async(_p,t)=>{globalThis.port.acks.push(t)};`}));
+       export const getSubscriptionV2=async t=>{if(globalThis.port.googleDown)throw new PlayApiError('UPSTREAM','google down');const p=globalThis.port.google.get(t);if(!p)throw new PlayApiError('NOT_FOUND','nf');return JSON.parse(JSON.stringify(p))};
+       export const acknowledgeSubscription=async(_p,t)=>{if(globalThis.port.ackFails)throw new Error('ack timed out');globalThis.port.acks.push(t)};`}));
   }}]});
   const port:Port={google:new Map(),owners:new Map(),accounts:new Map(),voided:new Map(),rpc:[],acks:[],events:[]};
   // Minimal PostgREST-shaped fake for the reads sync.ts makes.
@@ -211,4 +211,49 @@ test('sync: a voided notice without an order id revokes the current order (conse
   port.google.set('tok-10',v2());port.accounts.set('acct-a','user-a');port.voided.set('tok-10',[null]);
   const r=await sync({purchaseToken:'tok-10',via:'rtdn',claimantUserId:null});
   assert.equal(r.entitled,false);assert.equal(port.rpc[0].p_revoked,true);
+});
+
+// ---- Money safety on the server ------------------------------------------
+
+test('sync: Google acknowledgement fails after saving: Pro is kept, and the next sync acknowledges it',async()=>{
+  const {sync,port}=await loadSync();
+  port.google.set('tok-ack',v2({},{expiryTime:new Date(Date.now()+30*864e5).toISOString()}));
+  port.accounts.set('acct-a','user-a');
+  port.ackFails=true;
+  const first=await sync({purchaseToken:'tok-ack',via:'client',claimantUserId:'user-a'});
+  assert.equal(first.status,'synced');assert.equal(first.entitled,true,'access saved even though the acknowledgement failed');
+  assert.deepEqual(port.acks,[]);
+  port.ackFails=false;
+  const second=await sync({purchaseToken:'tok-ack',via:'rtdn',claimantUserId:null});
+  assert.equal(second.entitled,true);assert.deepEqual(port.acks,['tok-ack'],'retried on the next sync, before Google’s 3-day auto-refund');
+});
+
+test('sync: the app never reports the purchase (phone offline / app closed): Google’s notification alone grants Pro to the buyer',async()=>{
+  const {sync,port}=await loadSync();
+  port.google.set('tok-rtdn',v2({},{expiryTime:new Date(Date.now()+30*864e5).toISOString()}));
+  port.accounts.set('acct-a','user-a');
+  const r=await sync({purchaseToken:'tok-rtdn',via:'rtdn',claimantUserId:null});
+  assert.equal(r.status,'synced');assert.equal(r.userId,'user-a');assert.equal(r.entitled,true);
+  assert.deepEqual(port.acks,['tok-rtdn']);
+  // The app comes back later and reports the same token: same owner, no double grant.
+  const again=await sync({purchaseToken:'tok-rtdn',via:'client',claimantUserId:'user-a'});
+  assert.equal(again.status,'synced');assert.equal(port.rpc.length,2);assert.equal(port.rpc[1].p_user_id,'user-a');
+});
+
+test('sync: Google’s API is down: nothing is granted or stored, and the error asks for a retry',async()=>{
+  const {port,sync}=await loadSync();
+  port.google.set('tok-down',v2());port.googleDown=true;
+  await assert.rejects(sync({purchaseToken:'tok-down',via:'rtdn',claimantUserId:null}),(e:unknown)=>(e as {kind?:string}).kind==='UPSTREAM');
+  assert.equal(port.rpc.length,0);assert.equal(port.acks.length,0);
+});
+
+test('sync: a pending UPI payment is stored without access and is not acknowledged until paid',async()=>{
+  const {sync,port}=await loadSync();
+  port.accounts.set('acct-a','user-a');
+  port.google.set('tok-upi',v2({subscriptionState:'SUBSCRIPTION_STATE_PENDING'},{expiryTime:new Date(Date.now()+30*864e5).toISOString()}));
+  const pending=await sync({purchaseToken:'tok-upi',via:'client',claimantUserId:'user-a'});
+  assert.equal(pending.entitled,false);assert.deepEqual(port.acks,[]);
+  port.google.set('tok-upi',v2({},{expiryTime:new Date(Date.now()+30*864e5).toISOString()}));
+  const paid=await sync({purchaseToken:'tok-upi',via:'rtdn',claimantUserId:null});
+  assert.equal(paid.entitled,true);assert.deepEqual(port.acks,['tok-upi']);
 });

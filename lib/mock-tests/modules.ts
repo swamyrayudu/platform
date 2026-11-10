@@ -96,6 +96,8 @@ export interface ListModulesOptions {
   /** Restrict to one series, e.g. 'grand_mock_v1'. Omit for all. */
   series?: string
   category?: string
+  /** Leave out one category, e.g. 'previous_paper' for the Google Play app. */
+  excludeCategory?: string
   search?: string
   /** 1-based page of MODULES. */
   page?: number
@@ -116,6 +118,7 @@ export async function listMockTestModules(
     medium,
     series,
     category,
+    excludeCategory,
     search,
     page = 1,
     pageSize = MODULE_PAGE_SIZE_DEFAULT,
@@ -134,6 +137,7 @@ export async function listMockTestModules(
 
   if (series) query = query.eq('series', series)
   if (category) query = query.eq('category', category)
+  if (excludeCategory) query = query.neq('category', excludeCategory)
   if (search) query = query.ilike('title', '%' + search + '%')
 
   // Modules first, in module order; legacy rows without a module number last.
@@ -160,7 +164,7 @@ export async function listMockTestModules(
   }
 
   const [mediumCounts, progressByTestId, highestCompleted] = await Promise.all([
-    countPublishedByMedium(series, category),
+    countPublishedByMedium(series, category, excludeCategory),
     userId
       ? loadUserProgressForTests(
           userId,
@@ -206,7 +210,8 @@ export async function listMockTestModules(
 /** Published module counts per medium — drives the English/Telugu tab badges. */
 export async function countPublishedByMedium(
   series?: string,
-  category?: string
+  category?: string,
+  excludeCategory?: string
 ): Promise<Record<ExamMedium, number>> {
   const counts: Record<ExamMedium, number> = { english: 0, telugu: 0 }
 
@@ -219,6 +224,7 @@ export async function countPublishedByMedium(
         .eq('medium', m)
       if (series) q = q.eq('series', series)
       if (category) q = q.eq('category', category)
+      if (excludeCategory) q = q.neq('category', excludeCategory)
       const { count } = await q
       counts[m] = count ?? 0
     })

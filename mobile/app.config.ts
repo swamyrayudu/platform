@@ -12,7 +12,8 @@ export const PLAY_ANDROID_PACKAGE = 'com.karthik.rsdeducation';
 export const DIRECT_ANDROID_PACKAGE = 'com.rsdeducation.student';
 
 // R8 keep rules for code that is only reached by name at runtime.
-const PROGUARD_RULES = `
+// Razorpay's rules only in the website APK: the Play build has no Razorpay.
+const RAZORPAY_RULES = `
 # Razorpay checkout (react-native-razorpay README)
 -keepattributes *Annotation*
 -dontwarn com.razorpay.**
@@ -21,6 +22,8 @@ const PROGUARD_RULES = `
 -keepclasseswithmembers class * {
   public void onPayment*(...);
 }
+`;
+const PROGUARD_RULES = `${direct ? RAZORPAY_RULES : ''}
 # Credential Manager finds its Play Services provider by class name (Android docs)
 -if class androidx.credentials.CredentialManager
 -keep class androidx.credentials.playservices.** {
@@ -34,7 +37,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   slug: 'rsd-education',
   owner: 'swamyrayudu',
   // Native changes require a version bump and a replacement APK.
-  runtimeVersion: { policy: 'appVersion' },
+  // The Play build gets its own runtime ("1.1.0-play"), so an over-the-air update
+  // published with the other distribution's settings can never reach it: a
+  // direct-APK update (Razorpay on, study files shown) is refused by Play
+  // installs, and a Play update is refused by website APKs. The direct APK keeps
+  // the plain app version so installs already out there keep getting updates.
+  runtimeVersion: direct ? { policy: 'appVersion' } : `${config.version}-play`,
   updates: {
     ...config.updates,
     url: 'https://u.expo.dev/e277917c-28a9-463f-91ec-2f6cace259ae',

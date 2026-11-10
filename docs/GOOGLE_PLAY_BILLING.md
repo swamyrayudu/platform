@@ -116,6 +116,27 @@ Base plan ids must match `lib/payments/google-play/catalog.ts`. A base plan that
 - Check: purchase → `PLAY_PURCHASE_VERIFIED` in `security_events`; RTDN → rows in `play_rtdn_events` with `status = processed`.
 - Refund a test order in Play Console (Order management → Refund, with "Remove entitlement") → access disappears.
 
+### Before going live: test on a real phone (license tester, internal testing build)
+
+Automated tests cover the logic (`mobile/tests/play-billing*.test.ts`); these prove the real Google
+Play, Pub/Sub and server setup. Do every row, and check the result on the phone and on the website.
+
+| # | Do this | Expect |
+|---|---|---|
+| 1 | Play Console → Monetization setup → Real-time notifications → **Send test notification** | A `test` row in `play_rtdn_events` with `status = processed`. If not, RTDN is not set up: fix that first, it is the safety net for everything below. |
+| 2 | Buy the 1-month pass (test card "always approves") | "Payment confirmed"; Profile shows Pro and the expiry; the website shows Pro for the same account. |
+| 3 | Buy, and turn on **airplane mode** the moment the Google sheet says it is paid | "Google Play has taken your payment… Do not pay again." Turn the connection back on and stay on Plans: Pro turns on within about 20 seconds. |
+| 4 | Buy with airplane mode on as in 3, then **close the app** (swipe it away) and wait 2 minutes with the connection back on | Pro is active on the website without opening the app (Google's notification did it). Open the app: Pro shows. |
+| 5 | Buy with the test card **"slow card, approves after a few minutes"** | "Payment is pending…", no Pro. A few minutes later, Pro turns on by itself (app open or closed). |
+| 6 | Buy with **"slow card, declines after a few minutes"** | Pending, then nothing: no Pro and no charge. |
+| 7 | Cancel on the Google sheet (back button) | No message about payment, nothing charged, can buy again. |
+| 8 | With Pro active, buy another pass | Expiry moves later by the new pass; one Pro, not two. |
+| 9 | Refund the order in Play Console with "Remove entitlement" | Pro disappears from app and website within a minute or two. |
+| 10 | Sign in on the same phone with a **different RSD account**, tap Restore purchases | "belongs to a different RSD Education account"; the second account does not get Pro. |
+| 11 | Uninstall, reinstall, sign in with the buying account | Pro is back without buying again (Restore runs on start). |
+| 12 | Wait for a test pass to expire (minutes) | Pro ends; Practice locks again in the app. |
+| 13 | Order management in Play Console | Every test order shows **Acknowledged** (none left to auto-refund after 3 days). |
+
 ## Policy notes (India)
 - The Play build sells digital subscriptions **only** through Google Play Billing and never shows Razorpay,
   web prices or "buy on our website" links. The direct APK (website download) keeps Razorpay.

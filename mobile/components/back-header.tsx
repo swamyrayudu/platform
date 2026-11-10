@@ -8,7 +8,7 @@ import { colors } from '@/utils/theme';
 
 /**
  * Page heading with a back button. Inside the tab bar (pages opened from More)
- * it goes to its parent page, since tab history can lead back to Home instead;
+ * it goes to its parent page, since tab history can lead back to another tab instead;
  * on full-screen pages it goes back.
  */
 export function BackHeader({title, subtitle, fallback, action, onBack}: {title: string; subtitle?: string; fallback: Href; action?: ReactNode; onBack?: () => void}) {

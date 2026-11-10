@@ -34,7 +34,16 @@
       "expo-web-browser",
       "expo-sqlite",
       "expo-status-bar",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/brand-mark.png",
+          "imageWidth": 120,
+          "resizeMode": "contain",
+          "backgroundColor": "#FFFEFB"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

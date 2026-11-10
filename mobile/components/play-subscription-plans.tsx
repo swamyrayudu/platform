@@ -1,5 +1,5 @@
 import { Heading } from '@/components/heading';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { usePreventRemove } from 'expo-router/react-navigation';
@@ -54,6 +54,26 @@ export function PlaySubscriptionPlans() {
     onSettled:()=>{busy.current=false;},
   });
   const working=buy.isPending||restore.isPending;
+  // Paid but not confirmed yet (no connection): keep checking quietly while this
+  // screen is open, and switch Pro on as soon as the server confirms it.
+  const unconfirmed=buy.error instanceof PlayFlowError&&buy.error.code==='NOT_VERIFIED';
+  const {reset:resetBuy}=buy;
+  useEffect(()=>{
+    if(!unconfirmed)return;
+    let tries=0;
+    const timer=setInterval(()=>{
+      if(++tries>15){clearInterval(timer);return;}
+      void playBilling.restore(true).then(outcome=>{
+        if(outcome.kind==='none')return;
+        clearInterval(timer);
+        resetBuy();
+        void settle(outcome,'Payment confirmed. RSD Pro is active on this account, in the app and on the website.');
+      }).catch(()=>{});
+    },20_000);
+    return ()=>clearInterval(timer);
+  // settle only reads stable setters; re-running on its identity would restart the checks.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[unconfirmed,resetBuy]);
   usePreventRemove(working,()=>Alert.alert('Confirming purchase','Please wait until Google Play has confirmed your purchase.'));
 
   const start=(action:()=>void)=>{if(working||busy.current)return;busy.current=true;action();};

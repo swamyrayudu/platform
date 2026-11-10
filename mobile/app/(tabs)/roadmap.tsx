@@ -14,7 +14,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Screen, Card, Body, Button, Loading, ErrorState, Stats, Heading } from '@/components/ui';
-import { BackHeader } from '@/components/back-header';
+import { ResumeMockBanner } from '@/components/resume-mock-banner';
 import { useAuth } from '@/store/auth';
 import { loadRoadmap } from '@/services/roadmap-offline';
 import { pdfDownloads } from '@/services/pdf-downloads';
@@ -42,8 +42,10 @@ export default function RoadmapScreen() {
   const [tab, setTab] = useState<Tab>('plan');
   const [medium, setMedium] = useState<PlanMedium>(user?.educationMedium === 'telugu' ? 'telugu' : 'english');
   const roadmap = useQuery({queryKey: ['roadmap', medium], queryFn: () => loadRoadmap(medium), staleTime: 60 * 60 * 1000});
+  // The first tab and where the app opens, so it has no back button.
   return <Screen title="Exam roadmap" refreshing={roadmap.isRefetching} onRefresh={() => void roadmap.refetch()}
-    pageHeader={<BackHeader title="Exam roadmap" subtitle="AP DSC 2026 · SGT" fallback="/more"/>}>
+    pageHeader={<View style={styles.pageHeader}><Heading>Exam roadmap</Heading><Text style={styles.pageSubtitle}>AP DSC 2026 · SGT</Text></View>}>
+    <ResumeMockBanner/>
     <Segmented value={tab} onChange={setTab} items={[{value: 'plan', label: 'Study plan'}, {value: 'exam', label: 'Exam pattern'}]}/>
     {/* The medium sets the plan's topics, its notes and the syllabus language. */}
     <View style={styles.mediumRow}>
@@ -93,6 +95,7 @@ function StudyPlan({roadmap, medium}: {roadmap: Roadmap; medium: PlanMedium}) {
       : err instanceof Error ? err.message : 'Could not download these notes.'),
   });
   const notesFor = (d: RoadmapDay): NotesState | null => {
+    // Study notes are our own PDFs, so every build (Google Play too) shows them.
     const note = d.notes;
     // null: the server has no notes for this day yet (older servers send nothing).
     if (note === null && d.subject !== 'mock' && d.subject !== 'rest') return {state: 'soon', onPress: () => {}};
@@ -353,6 +356,7 @@ function ExamPattern({roadmap, medium}: {roadmap: Roadmap; medium: PlanMedium}) 
 }
 
 const styles = StyleSheet.create({
+  pageHeader: {gap: 5}, pageSubtitle: {fontSize: 12, lineHeight: 19, color: colors.muted},
   muted: {fontSize: 12, lineHeight: 18, color: colors.muted},
   strong: {fontWeight: '700', color: colors.ink},
   inline: {flexDirection: 'row', alignItems: 'center', gap: 8},

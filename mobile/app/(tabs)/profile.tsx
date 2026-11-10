@@ -97,7 +97,7 @@ export default function Profile() {
   const avatar=user?.avatarUrl;
   const savedGoals=goalItems.filter(goal=>user?.learningGoals.includes(goal.value)).map(goal=>goal.label).join(' · ');
   const activeDevices=devices.data?.devices.filter(device=>device.currentSessionStatus==='ACTIVE').length;
-  const back=()=>{if(router.canGoBack())router.back();else router.replace('/');};
+  const back=()=>{if(router.canGoBack())router.back();else router.replace('/roadmap');};
   const toggleEdit=()=>{
     if(save.isPending)return;
     setName(user?.name||'');
@@ -139,7 +139,7 @@ export default function Profile() {
         <Ionicons name={expires?'calendar-outline':'sparkles-outline'} size={16} color={colors.gold}/>
         <Text style={styles.detailText}>{expires?(subscribed?'Valid until ':'Expiry date: ')+expires:subscribed?'Your Pro access is active.':showsPlans?'Unlock more practice and mock tests.':'You are on the free plan.'}</Text>
       </View>
-      {planSource==='razorpay'&&subscribed?<Text style={styles.caption}>Renewal adds days to your remaining access.</Text>:null}
+      {planSource==='web'&&subscribed?<Text style={styles.caption}>Renewal adds days to your remaining access.</Text>:null}
       {planSource==='google_play'&&user?.subscriptionSource==='google_play'?<Text style={styles.caption}>Bought on Google Play. One-time payment, no auto-renewal.</Text>:null}
       {showsPlans?<Button icon="card-outline" label={planSource==='google_play'?(subscribed?'Add more time':'View plans'):subscribed?'View plans & renew':'View plans & pay'} onPress={()=>router.push('/subscription')}/>:null}
     </ProfileSection>

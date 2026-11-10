@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from '@/store/auth';
 import { Loading, Screen, ErrorState } from '@/components/ui';
 import { ApiError } from '@/services/api-client';
 import { AppOpening } from '@/components/app-opening';
+import { PlayAppUpdate } from '@/components/play-app-update';
 import { AppUpdate } from '@/components/app-update';
 import { PlayPurchaseSync } from '@/components/play-purchase-sync';
 const cache = new QueryClient({defaultOptions:{queries:{staleTime:30000, retry:(count,err)=>count<1 && !(err instanceof ApiError && [401,403,404,429].includes(err.status))},mutations:{retry:false}}});
@@ -33,4 +34,4 @@ function Navigation() {
     <Stack.Screen name="auth/callback"/>
   </Stack>;
 }
-export default function Root() { return <SafeAreaProvider><HeadingFontProvider><QueryClientProvider client={cache}><AuthProvider><StatusBar style="dark"/><View style={{flex:1}}><Navigation/><AppOpening/><AppUpdate/><PlayPurchaseSync/></View></AuthProvider></QueryClientProvider></HeadingFontProvider></SafeAreaProvider>; }
+export default function Root() { return <SafeAreaProvider><HeadingFontProvider><QueryClientProvider client={cache}><AuthProvider><StatusBar style="dark"/><View style={{flex:1}}><Navigation/><AppOpening/><AppUpdate/><PlayAppUpdate/><PlayPurchaseSync/></View></AuthProvider></QueryClientProvider></HeadingFontProvider></SafeAreaProvider>; }

@@ -9,7 +9,7 @@ import { canUserCreatePracticeSession } from '@/lib/practice/db'
 export async function GET(request: Request) {
   try {
     const auth = await getOptionalAuth(request)
-    const quota = await canUserCreatePracticeSession(auth?.user || null)
+    const quota = await canUserCreatePracticeSession(auth?.user || null, { app: !!auth && auth.session.platform !== 'WEB' })
 
     return NextResponse.json({
       success: true,

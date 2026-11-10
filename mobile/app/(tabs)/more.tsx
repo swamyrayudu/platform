@@ -2,16 +2,17 @@ import { router } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 import { Screen, ChoiceRow, Heading } from '@/components/ui';
 import { colors } from '@/utils/theme';
+import { showsStudyFiles } from '@/services/content-policy';
 
 // The pages that do not fit on the bottom bar, as on the website's More menu.
 const PAGES = [
-  {href: '/roadmap', title: 'Exam roadmap', detail: '90-day plan, exam pattern and syllabus', icon: 'map-outline', color: '#6F66BA'},
   {href: '/my-tests', title: 'My Tests', detail: 'Make a test with AI and take it', icon: 'create-outline', color: '#4F8B81'},
-  {href: '/resources', title: 'Resources', detail: 'Books, study material and bit banks', icon: 'library-outline', color: '#B3835A'},
+  // Not in the Play build (services/content-policy.ts).
+  ...(showsStudyFiles ? [{href: '/resources', title: 'Resources', detail: 'Books, study material and bit banks', icon: 'library-outline', color: '#B3835A'}] as const : []),
 ] as const;
 
 export default function More() {
-  return <Screen title="More" pageHeader={<View style={styles.intro}><Heading>More</Heading><Text style={styles.subtitle}>Plan your preparation and study material.</Text></View>}>
+  return <Screen title="More" pageHeader={<View style={styles.intro}><Heading>More</Heading><Text style={styles.subtitle}>{showsStudyFiles ? 'Your own tests and study material.' : 'Make your own tests and take them.'}</Text></View>}>
     <View style={styles.list}>
       {/* These are tabs, which keep their last view; `opened` asks the page to start on its main view. */}
       {PAGES.map(page => <ChoiceRow key={page.href} title={page.title} detail={page.detail} icon={page.icon} color={page.color}

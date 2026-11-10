@@ -91,6 +91,19 @@ function serverCode(error:unknown) {
 interface PlayPorts {
   native:PlayNative|null;
   request:<T>(path:string,method?:string,body?:unknown)=>Promise<T>;
+  /** Pause between confirmation retries (tests pass an instant one). */
+  wait?:(ms:number)=>Promise<void>;
+}
+
+/** Google charged, but our server could not confirm it yet. The one thing to say: do not pay again. */
+export const PAID_NOT_CONFIRMED='Google Play has taken your payment, but we could not confirm it yet. Do not pay again. RSD Pro turns on by itself within a few minutes, or tap Restore purchases. If it is not active within an hour, email rsdeducationplatform@gmail.com.';
+/** Waits before each retry of the confirmation after Google charged. */
+export const CONFIRM_RETRY_DELAYS=[2000,5000,10000];
+
+/** No connection, server busy or down: worth retrying. A clear refusal (4xx) is not. */
+export function isTransient(error:unknown) {
+  const status=typeof error==='object'&&error!==null&&'status' in error?Number((error as {status:unknown}).status):NaN;
+  return !Number.isFinite(status)||status===0||status===429||status>=500;
 }
 
 export type PurchaseOutcome =
@@ -103,7 +116,7 @@ export type PurchaseOutcome =
  * every purchase token goes to /api/payments/google-play/verify, which reads
  * it from Google, stores it and acknowledges it.
  */
-export function createPlayBillingFlow({native,request}:PlayPorts) {
+export function createPlayBillingFlow({native,request,wait=ms=>new Promise(resolve=>setTimeout(resolve,ms))}:PlayPorts) {
   let working=false;
   async function exclusively<T>(action:()=>Promise<T>) {
     if(working)throw new PlayFlowError('BUSY','A Google Play purchase is already being checked. Please wait.');
@@ -142,6 +155,27 @@ export function createPlayBillingFlow({native,request}:PlayPorts) {
     return outcome;
   }
 
+  /**
+   * Google has already charged: confirm with the server, retrying through a
+   * dropped connection or a busy server. If it still cannot be confirmed, say
+   * so plainly so nobody pays twice. The money is safe either way: Google's
+   * notification to the server, the next app start and Restore purchases all
+   * confirm it again, and the server saves access before acknowledging.
+   */
+  async function confirmPaid(purchases:PlayPurchase[],productId:string):Promise<PurchaseOutcome> {
+    for(let attempt=0;;attempt++) {
+      try {
+        const outcome=await verifyAll(purchases,productId,true);
+        if(outcome.kind==='none'&&purchases.length>0)throw new PlayFlowError('NOT_VERIFIED',PAID_NOT_CONFIRMED);
+        return outcome;
+      } catch(error) {
+        if(error instanceof PlayFlowError)throw error;
+        if(!isTransient(error)||attempt>=CONFIRM_RETRY_DELAYS.length)throw new PlayFlowError('NOT_VERIFIED',PAID_NOT_CONFIRMED);
+        await wait(CONFIRM_RETRY_DELAYS[attempt]);
+      }
+    }
+  }
+
   return {
     config,
     /** Plans with Google's prices for this user. Empty when Play has none active. */
@@ -161,16 +195,13 @@ export function createPlayBillingFlow({native,request}:PlayPorts) {
         if(code==='E_PLAY_CANCELLED')throw new PlayFlowError('CANCELLED','Purchase was cancelled.');
         if(code==='E_PLAY_ALREADY_OWNED') {
           // The Play account already pays for this: link it instead of failing.
+          // Nothing was charged now, so no "do not pay again" message here.
           const restored=await verifyAll(await native!.queryActivePurchases(),value.productId,true);
           if(restored.kind!=='none')return restored;
         }
         throw error;
       }
-      const outcome=await verifyAll(purchases,value.productId,true);
-      if(outcome.kind==='none'&&purchases.length>0) {
-        throw new PlayFlowError('NOT_VERIFIED','Google Play took the payment but it could not be confirmed yet. Use Restore purchases in a minute.');
-      }
-      return outcome;
+      return confirmPaid(purchases,value.productId);
     }),
     /**
      * Re-send this Play account's subscriptions to the server.

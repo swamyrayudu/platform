@@ -7,7 +7,8 @@ import ts from 'typescript';
 // Check the compiled JSX, because even a single inline JSX space is a text
 // child at runtime. React Native View/Card cannot render that child.
 for (const [name, path] of [
-  ['Home', '../app/(tabs)/index.tsx'],
+  ['Roadmap', '../app/(tabs)/roadmap.tsx'],
+  ['Resume banner', '../components/resume-mock-banner.tsx'],
   ['Sign in', '../app/login.tsx'],
   ['Profile', '../app/(tabs)/profile.tsx'],
   ['Plans', '../app/subscription.tsx'],

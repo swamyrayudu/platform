@@ -74,8 +74,9 @@ with a new password (this also resets its Pro days), then update App access.
 
 ### Data safety
 
-Data **collected**. Nothing is **shared**: Supabase, Vercel and Upstash process data
-on your behalf, which Google does not count as sharing.
+Data **collected**. Nothing is **shared**: Supabase, Vercel, Upstash and Expo (app updates)
+process data on your behalf, which Google does not count as sharing. Keep this form and
+`/privacy` saying the same thing: Google compares them.
 
 Passwords exist only for the reviewer account you create, stored as a hash; students
 never enter one, so there is no extra data type to declare for them.
@@ -87,8 +88,9 @@ never enter one, so there is no extra data type to declare for them.
 | User IDs | Yes (Google account ID) | Account management | Required |
 | Other personal info: profile photo URL from Google | Yes | App functionality | Required |
 | Purchase history | Yes (Google Play subscriptions and Pro bought on the website) | App functionality | Optional |
-| App interactions / other actions (answers, scores, progress) | Yes | App functionality, analytics of your own progress | Required |
-| Device or other IDs | Yes (device identifier for sign-in sessions) | Security, account management | Required |
+| App interactions / other actions (answers, scores, progress, study files opened) | Yes | App functionality, analytics | Required |
+| Other user-generated content (question reports and their optional note; questions uploaded in My Tests) | Yes | App functionality | Optional |
+| Device or other IDs | Yes (random device code for sign-in sessions; random installation code sent to Expo for updates) | Security, account management, app functionality | Required |
 | Location, contacts, photos, files, messages, audio | No | — | — |
 | Crash logs / diagnostics | No (no analytics or crash SDK) | — | — |
 
@@ -126,13 +128,95 @@ real-time developer notifications.
 The direct APK (`RSD_DISTRIBUTION=direct`) still sells through Razorpay, unchanged. Pro bought either
 way works on the website and in both apps (`planSource` in `services/payment-service.ts`).
 
+Razorpay can never appear in the Play app, by three separate guards:
+
+- **No Razorpay code in the Play build.** `react-native.config.js` leaves the Razorpay native SDK out
+  unless `RSD_DISTRIBUTION=direct`.
+- **Checkout needs that code.** `services/payment-service.ts` offers Razorpay only when its native module
+  is present, so even a JavaScript update with the wrong settings cannot open it in the Play app.
+- **Separate update channels by runtime.** The Play build's runtime version is `<version>-play`
+  (`app.config.ts`); the website APK's is the plain version. An `eas update` made with
+  `RSD_DISTRIBUTION=direct` is only delivered to website APKs, and one made without it only to Play
+  installs. Publish Play updates with `RSD_DISTRIBUTION` unset (or `store`), and website-APK updates
+  with `RSD_DISTRIBUTION=direct`, each from its own channel.
+
 Setup (Play Console products, service account, Pub/Sub, env vars, migration, testing):
 see `../docs/GOOGLE_PLAY_BILLING.md` in the website root.
 
 App content: declare **Purchase history** as collected (Google Play subscriptions and website purchases).
 Card / UPI details are handled by Google Play and never reach RSD Education.
 
-## 7. App size
+### Over-the-air updates to the Play app
+
+Google Play allows JavaScript updates outside the store for bug fixes. Payment changes, changes to
+what content is shown, and new features must go out as a new build that Google reviews. Publish Play
+updates only with:
+
+```bash
+npm run update:play -- --message "Fix result screen"
+```
+
+`scripts/play-update.ts` compares the app (including uncommitted files) with the commit of the latest
+finished EAS production build, which is what Play installs run, and refuses to publish if anything in
+`utils/play-update-rules.ts` changed:
+
+| Changed | Why it is refused |
+|---|---|
+| `modules/`, `app.config.ts`, `app.json`, `eas.json`, `react-native.config.js`, `package.json`, app icon | Native or build change: only a new build can carry it |
+| Payment and subscription screens and services | Play payments policy: reviewed build only |
+| `services/content-policy.ts`, `utils/legal.ts` | Hidden content and the government disclaimer |
+| A new file under `app/` | A new screen is a new feature |
+
+Otherwise it runs `eas update` on the production channel with `RSD_DISTRIBUTION=store`. Use
+`--dry-run` to check without publishing. Never run `eas update --channel production` by hand.
+
+### App updates: small and required (Google Play in-app updates)
+
+The Play app uses Google Play's own in-app updates (`modules/rsd-app-update`,
+`components/play-app-update.tsx`, rules in `utils/play-update-policy.ts`). It checks when the app
+opens and when it comes back to the front (at most every 30 minutes, every time while an update is
+required). Nothing interrupts an exam: prompts wait until the student leaves the exam screen.
+
+| Kind | When | What the student sees |
+|---|---|---|
+| **Small update** (Play "flexible") | A newer version is live on Google Play and "Small updates" is on | "Update available" → Update / Later. It downloads in the background; then "Update ready" → Restart. "Later" asks again after 3 days, or at once for a newer version. A downloaded update also installs by itself when the app goes to the background. |
+| **Required update** (Play "immediate") | The installed version code is below the minimum at `/admin/app-updates`, or the release has Play update priority 4–5 | Play's full-screen update opens by itself. If they back out, the app stays locked on "Please update RSD Education" with an Update now button. If Play cannot update it (for example the app was not installed from Play), the button opens the Play Store page. |
+
+Releasing:
+
+1. Build and upload as usual; wait until the release is live on the production track.
+2. Nothing else for a normal release: students get the small-update prompt.
+3. For a release everyone must have (a serious bug, a payment change, a server change old versions
+   cannot handle): open `/admin/app-updates` and set **Minimum version code** to the new version
+   code (Play Console → Test and release → App bundle explorer). Set it only after the version is
+   live, or students are asked for a version they cannot get yet. Phones pick it up within a minute.
+4. Update priority (0–5) can only be set through the Google Play Developer API, not in Play Console;
+   the minimum version code is the normal way.
+
+The website APK has no Play updates (it is not installed from Play); it keeps the over-the-air
+updates above.
+
+Testing: in-app updates only work for an app installed from Google Play. Install an older version
+from an internal testing track (or internal app sharing), publish a higher version code to the same
+track, then open the app (Play may take a little while to see the new version; clearing the Play
+Store app's cache helps).
+
+## 7. Content hidden in the Play build
+
+Until we hold the rights to publish them on Google Play, the store build hides study files
+and previous papers (`services/content-policy.ts`):
+
+- **Resources** (books, study material, bit banks, previous papers) is removed from More;
+  an old link to it opens More instead.
+- The exam roadmap still shows its study-note PDFs in every build: they are our own work.
+  Reviewers see exactly what students see; never hide content only from the review account.
+- Mock tests: no "Previous papers" filter, and the server leaves `previous_paper` mocks out
+  of the list (`exclude_category`).
+
+The website APK and the website still show all of it. To show it in the Play app again, change
+`showsStudyFiles` in `services/content-policy.ts`, and add it back to the store listing.
+
+## 8. App size
 
 Set in `app.config.ts` and `package.json`, measured on a local release build:
 
@@ -148,7 +232,7 @@ Set in `app.config.ts` and `package.json`, measured on a local release build:
 - After any native change, test the release build on a phone before publishing:
   Google sign-in, Razorpay checkout (direct APK), practice, mock tests and updates.
 
-## 8. Requirements already met
+## 9. Requirements already met
 
 - Target SDK 36 (Android 16), required for new apps since 31 August 2026.
 - "Draw over other apps" and the storage permissions are removed. The rest are normal

@@ -1,9 +1,10 @@
 import { api, query } from './api-client';
+import { hiddenMockCategory } from './content-policy';
 import type { MockTest, MockTestListResponse, StartAttemptResponse, ClientSafeMockQuestion, MockTestResultSummary, MockTestLeaderboardEntry, SelectedOption } from '@/types/mock-tests';
 const base = '/api/dsc-sgt/mock-tests';
 export interface Attempt { id: string; mock_test_id: string; status: string; duration_seconds: number; time_spent_seconds: number; existing_answers: Record<string, {selected_option: SelectedOption; marked_for_review: boolean}> }
 export const examService = {
-  list: (params: {medium: string; search?: string; category?: string; page: number; pageSize: number}) => api.request<MockTestListResponse>(`${base}?${query(params)}`),
+  list: (params: {medium: string; search?: string; category?: string; page: number; pageSize: number}) => api.request<MockTestListResponse>(`${base}?${query({...params, exclude_category: hiddenMockCategory})}`),
   metadata: (id: string) => api.request<{test: MockTest}>(`${base}/${encodeURIComponent(id)}`),
   start: (id: string) => api.request<StartAttemptResponse>(`${base}/${encodeURIComponent(id)}/start`, 'POST'),
   get: (id: string) => api.request<{attempt: Attempt}>(`${base}/attempts/${encodeURIComponent(id)}`),

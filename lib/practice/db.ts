@@ -916,9 +916,13 @@ export interface PracticeQuotaResult {
  * Pro tier accounts:
  *   - Unlimited practice sessions
  *   - Unlimited questions
+ * In the mobile apps (options.app: an ANDROID/IOS session) subject practice is
+ * Pro only: free accounts get no practice session there at all. The website
+ * keeps the one free session.
  */
 export async function canUserCreatePracticeSession(
-  user: DbUser | null | undefined
+  user: DbUser | null | undefined,
+  options: { app?: boolean } = {}
 ): Promise<PracticeQuotaResult> {
   if (!user) {
     return {
@@ -937,6 +941,17 @@ export async function canUserCreatePracticeSession(
       isPremium: true,
       completedSessions: 0,
       maxQuestions: 150,
+    }
+  }
+
+  // Free account in the app: no subject practice.
+  if (options.app) {
+    return {
+      allowed: false,
+      reason: 'Subject-wise practice is for RSD Pro members.',
+      isPremium: false,
+      completedSessions: 0,
+      maxQuestions: 25,
     }
   }
 

@@ -13,6 +13,7 @@ import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import { useQueryClient } from '@tanstack/react-query';
 import { AlertDialog } from '@/components/alert-dialog';
 import { downloadedFile, pdfDownloads } from '@/services/pdf-downloads';
+import { showsStudyFiles } from '@/services/content-policy';
 import { base64Chunks, pdfViewerHtml } from '@/utils/pdf-viewer-html';
 
 type Params = {id: string; title?: string};
@@ -63,7 +64,8 @@ export default function PdfScreen() {
     } catch { /* not ours */ }
   };
 
-  const close = () => (router.canGoBack() ? router.back() : router.replace('/resources'));
+  // The Play build has no Resources page; roadmap notes open from the Roadmap.
+  const close = () => (router.canGoBack() ? router.back() : router.replace(showsStudyFiles ? '/resources' : '/roadmap'));
   const remove = async () => {
     await pdfDownloads.remove(id);
     setConfirmRemove(false);

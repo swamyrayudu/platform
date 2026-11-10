@@ -11,22 +11,24 @@ import type { Metadata } from 'next'
 import LegalPage, { type LegalDocument } from '@/app/components/legal/LegalPage'
 
 export const metadata: Metadata = {
-  title: 'Terms of Service — rsdeducation',
+  title: 'Terms of Service — RSD Education',
   description:
-    'The terms you agree to when using rsdeducation, including what the platform does and does not promise.',
+    'The terms you agree to when using RSD Education, including what the platform does and does not promise.',
 }
 
 const english: LegalDocument = {
   title: 'Terms of Service',
   updated: 'Last updated 10 November 2026',
   intro: [
-    'rsdeducation is a practice platform for the AP DSC SGT examination. By creating an account or using the platform you agree to these terms. Please read the section on what we do not promise — it is the most important part of this document.',
+    'RSD Education is a practice platform for the AP DSC SGT examination, run by the RSD Education developer: the "RSD Education" Android app on Google Play, the app downloaded from our website, and the website rsdeducation.vercel.app. By creating an account or using the platform you agree to these terms. Please read the section on what we do not promise — it is the most important part of this document.',
   ],
   sections: [
     {
       heading: 'What this platform is',
       body: [
-        'rsdeducation gives you practice questions, full-length mock papers and a record of how you performed on them, in Telugu and English medium. It is a study aid. It is not a coaching institute, not a recruitment service, and not connected to any government body.',
+        'RSD Education gives you practice questions, full-length mock papers, an exam roadmap with study notes, and a record of how you performed, in Telugu and English medium. It is a study aid. It is not a coaching institute, not a recruitment service, and not connected to any government body.',
+        'Some features need Pro. In the Android app, subject-wise and topic-wise practice is available only with Pro. What each plan includes is shown before you pay.',
+        'Some study notes, questions and explanations are prepared with the help of AI tools and then checked by us. The section below on mistakes applies to them as it does to everything else.',
       ],
     },
     {
@@ -51,7 +53,7 @@ const english: LegalDocument = {
     {
       heading: 'Your account',
       body: [
-        'You sign in with Google. One account is meant for one person. Sharing your account, or signing in from many devices to give other people access, may result in the account being suspended without a refund.',
+        'Students sign in with Google; accounts we create ourselves may sign in with an email and password. One account is meant for one person, and a student account is signed in on one device at a time: signing in on a new device signs out the previous one. Sharing your account, or signing in from many devices to give other people access, may result in the account being suspended without a refund.',
         'You are responsible for what happens under your account. Signing out of all devices is available in your profile menu if you think someone else has access.',
       ],
     },
@@ -97,9 +99,15 @@ const english: LegalDocument = {
       ],
     },
     {
+      heading: 'Governing law',
+      body: [
+        'These terms are governed by the laws of India. If you have a complaint, please write to us first and we will try to resolve it. If it cannot be resolved, it will be settled by the competent courts in India.',
+      ],
+    },
+    {
       heading: 'Contact',
       body: [
-        'For anything about your account, a payment, or a mistake in a question, contact rsdeducationplatform@gmail.com.',
+        'For anything about your account, a payment, a complaint, or a mistake in a question, contact rsdeducationplatform@gmail.com.',
       ],
     },
   ],
@@ -109,13 +117,15 @@ const telugu: LegalDocument = {
   title: 'నిబంధనలు మరియు షరతులు',
   updated: 'చివరిగా నవీకరించబడింది: 10 నవంబర్ 2026',
   intro: [
-    'rsdeducation అనేది ఏపీ డీఎస్సీ ఎస్‌జీటీ పరీక్ష కోసం ఒక ప్రాక్టీస్ వేదిక. ఖాతా తెరిచినప్పుడు లేదా ఈ వేదికను ఉపయోగించినప్పుడు మీరు ఈ నిబంధనలకు అంగీకరిస్తున్నారు. "మేము ఏమి హామీ ఇవ్వము" అనే భాగాన్ని తప్పకుండా చదవండి — ఈ పత్రంలో అదే అత్యంత ముఖ్యమైనది.',
+    'RSD Education అనేది ఏపీ డీఎస్సీ ఎస్‌జీటీ పరీక్ష కోసం ఒక ప్రాక్టీస్ వేదిక — RSD Education డెవలపర్ నడుపుతారు: గూగుల్ ప్లేలోని "RSD Education" ఆండ్రాయిడ్ యాప్, మా వెబ్‌సైట్ నుండి డౌన్‌లోడ్ చేసే యాప్, మరియు rsdeducation.vercel.app వెబ్‌సైట్. ఖాతా తెరిచినప్పుడు లేదా ఈ వేదికను ఉపయోగించినప్పుడు మీరు ఈ నిబంధనలకు అంగీకరిస్తున్నారు. "మేము ఏమి హామీ ఇవ్వము" అనే భాగాన్ని తప్పకుండా చదవండి — ఈ పత్రంలో అదే అత్యంత ముఖ్యమైనది.',
   ],
   sections: [
     {
       heading: 'ఈ వేదిక ఏమిటి',
       body: [
-        'rsdeducation మీకు ప్రాక్టీస్ ప్రశ్నలు, పూర్తి నిడివి మాక్ పేపర్లు, మరియు మీ ప్రదర్శన రికార్డును తెలుగు మరియు ఇంగ్లీష్ మాధ్యమాల్లో అందిస్తుంది. ఇది ఒక చదువు సహాయకం మాత్రమే. ఇది కోచింగ్ సెంటర్ కాదు, నియామక సంస్థ కాదు, ఏ ప్రభుత్వ విభాగంతోనూ సంబంధం లేదు.',
+        'RSD Education మీకు ప్రాక్టీస్ ప్రశ్నలు, పూర్తి నిడివి మాక్ పేపర్లు, స్టడీ నోట్స్‌తో కూడిన పరీక్ష రోడ్‌మ్యాప్, మరియు మీ ప్రదర్శన రికార్డును తెలుగు మరియు ఇంగ్లీష్ మాధ్యమాల్లో అందిస్తుంది. ఇది ఒక చదువు సహాయకం మాత్రమే. ఇది కోచింగ్ సెంటర్ కాదు, నియామక సంస్థ కాదు, ఏ ప్రభుత్వ విభాగంతోనూ సంబంధం లేదు.',
+        'కొన్ని సౌకర్యాలకు Pro అవసరం. ఆండ్రాయిడ్ యాప్‌లో సబ్జెక్ట్ వారీ మరియు అంశాల వారీ ప్రాక్టీస్ Pro తో మాత్రమే లభిస్తుంది. ప్రతి ప్లాన్‌లో ఏమి ఉందో చెల్లించే ముందే చూపబడుతుంది.',
+        'కొన్ని స్టడీ నోట్స్, ప్రశ్నలు మరియు వివరణలు AI సాధనాల సహాయంతో తయారు చేసి, తర్వాత మేము పరిశీలిస్తాము. తప్పుల గురించి కింద ఉన్న భాగం వాటికి కూడా వర్తిస్తుంది.',
       ],
     },
     {
@@ -138,7 +148,7 @@ const telugu: LegalDocument = {
     {
       heading: 'మీ ఖాతా',
       body: [
-        'మీరు గూగుల్‌తో సైన్ ఇన్ చేస్తారు. ఒక ఖాతా ఒక వ్యక్తికి మాత్రమే. ఖాతాను పంచుకోవడం, లేదా ఇతరులకు ప్రవేశం ఇవ్వడానికి అనేక పరికరాల నుండి సైన్ ఇన్ చేయడం వలన ఖాతా రద్దు కావచ్చు — డబ్బు తిరిగి ఇవ్వబడదు.',
+        'విద్యార్థులు గూగుల్‌తో సైన్ ఇన్ చేస్తారు; మేమే తయారుచేసే ఖాతాలు ఈమెయిల్ మరియు పాస్‌వర్డ్‌తో సైన్ ఇన్ చేయవచ్చు. ఒక ఖాతా ఒక వ్యక్తికి మాత్రమే, మరియు విద్యార్థి ఖాతా ఒకేసారి ఒక పరికరంలో మాత్రమే సైన్ ఇన్ అయి ఉంటుంది: కొత్త పరికరంలో సైన్ ఇన్ చేస్తే పాత పరికరం నుండి సైన్ అవుట్ అవుతుంది. ఖాతాను పంచుకోవడం, లేదా ఇతరులకు ప్రవేశం ఇవ్వడానికి అనేక పరికరాల నుండి సైన్ ఇన్ చేయడం వలన ఖాతా రద్దు కావచ్చు — డబ్బు తిరిగి ఇవ్వబడదు.',
         'మీ ఖాతా కింద జరిగే దానికి మీరే బాధ్యులు. ఎవరైనా మీ ఖాతాను వాడుతున్నారని అనిపిస్తే, ప్రొఫైల్ మెనూలో "అన్ని పరికరాల నుండి సైన్ అవుట్" ఎంపిక ఉంది.',
       ],
     },
@@ -184,9 +194,15 @@ const telugu: LegalDocument = {
       ],
     },
     {
+      heading: 'వర్తించే చట్టం',
+      body: [
+        'ఈ నిబంధనలకు భారతదేశ చట్టాలు వర్తిస్తాయి. ఏదైనా ఫిర్యాదు ఉంటే ముందుగా మాకు రాయండి — పరిష్కరించడానికి ప్రయత్నిస్తాము. పరిష్కారం కాకపోతే, భారతదేశంలోని సంబంధిత న్యాయస్థానాలు నిర్ణయిస్తాయి.',
+      ],
+    },
+    {
       heading: 'సంప్రదింపు',
       body: [
-        'ఖాతా, చెల్లింపు, లేదా ప్రశ్నలో తప్పు గురించి ఏదైనా ఉంటే rsdeducationplatform@gmail.com కు సంప్రదించండి.',
+        'ఖాతా, చెల్లింపు, ఫిర్యాదు, లేదా ప్రశ్నలో తప్పు గురించి ఏదైనా ఉంటే rsdeducationplatform@gmail.com కు సంప్రదించండి.',
       ],
     },
   ],

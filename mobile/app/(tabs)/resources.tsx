@@ -9,7 +9,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, BackHandler, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
+import { showsStudyFiles } from '@/services/content-policy';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ListScreen, ErrorState, EmptyState } from '@/components/ui';
 import { BackHeader } from '@/components/back-header';
@@ -45,7 +46,12 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 const read = (r: {id: string; title: string; access: 'free' | 'pro'; size_bytes: number}) =>
   router.push({pathname: '/pdf/[id]', params: {id: r.id, title: r.title, access: r.access, size: String(r.size_bytes)}});
 
-export default function Resources() {
+// The Play build has no Resources (services/content-policy.ts): a stale link lands on More.
+export default function ResourcesRoute() {
+  return showsStudyFiles ? <Resources/> : <Redirect href="/more"/>;
+}
+
+function Resources() {
   const {user} = useAuth();
   const pro = hasActiveSubscription(user);
   const cache = useQueryClient();

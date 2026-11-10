@@ -6,6 +6,8 @@
 //   medium   english | telugu          (required in practice; defaults to english)
 //   series   e.g. grand_mock_v1        (optional)
 //   category grand_mock | subject_mock | previous_paper (optional)
+//   exclude_category  one category to leave out (optional; the Google Play
+//                     app sends previous_paper)
 //   search   title substring           (optional)
 //   page     1-based MODULE page       (default 1)
 //   pageSize modules per page          (default 20, max 100)
@@ -33,6 +35,7 @@ export async function GET(request: Request) {
 
     const series = url.searchParams.get('series') || undefined
     const category = url.searchParams.get('category') || undefined
+    const excludeCategory = url.searchParams.get('exclude_category') || undefined
     const search = url.searchParams.get('search') || undefined
     const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10) || 1)
     const pageSize =
@@ -43,6 +46,7 @@ export async function GET(request: Request) {
       medium,
       series,
       category,
+      excludeCategory,
       search,
       page,
       pageSize,

@@ -17,7 +17,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const quota = await canUserCreatePracticeSession(auth.user)
+    const quota = await canUserCreatePracticeSession(auth.user, { app: auth.session.platform !== 'WEB' })
     if (!quota.allowed) {
       return NextResponse.json(
         {

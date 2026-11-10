@@ -12,12 +12,18 @@ import type { EducationMedium } from '@/types/auth';
 import type { MockTestListItem } from '@/types/mock-tests';
 import { colors } from '@/utils/theme';
 import { practiceService } from '@/services/question-service';
+import { showsStudyFiles } from '@/services/content-policy';
 
 const paperKey=(test:MockTestListItem)=>test.id;
 const mediums=[
   {value:'telugu',label:'తెలుగు',icon:'language-outline'},
   {value:'english',label:'English',icon:'globe-outline'},
 ] as const;
+// The Play build has no previous papers (services/content-policy.ts).
+const categories=[
+  {value:'',label:'All papers'},{value:'grand_mock',label:'Grand mocks'},{value:'subject_mock',label:'Subject mocks'},
+  ...(showsStudyFiles?[{value:'previous_paper',label:'Previous papers'}]:[]),
+];
 
 export default function Mocks() {
   const {user}=useAuth();
@@ -72,7 +78,7 @@ export default function Mocks() {
           <Ionicons name="options-outline" size={20} color={category?colors.primary:colors.muted}/>
         </Pressable>
       </View>
-      {filtersOpen ? <Chips items={[{value:'',label:'All papers'},{value:'grand_mock',label:'Grand mocks'},{value:'subject_mock',label:'Subject mocks'},{value:'previous_paper',label:'Previous papers'}]} selected={category} onSelect={setCategory}/> : null}
+      {filtersOpen ? <Chips items={categories} selected={category} onSelect={setCategory}/> : null}
       {first&&sequenceLocked ? <View style={styles.notice}>
         <Ionicons name="list-outline" size={18} color={colors.primary}/>
         <Text style={styles.noticeText}>Complete Module {String(first.highest_completed_module+1).padStart(2,'0')} to unlock the next.</Text>
