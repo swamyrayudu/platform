@@ -1,19 +1,20 @@
 import { Heading } from '@/components/heading';
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { usePreventRemove } from 'expo-router/react-navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen, Body, Button, ErrorState, Badge } from '@/components/ui';
-import { playBilling, manageSubscriptionUrl } from '@/services/play-billing-service';
+import { playBilling } from '@/services/play-billing-service';
 import { describePeriod, PlayFlowError, type PlayPlanOffer, type PurchaseOutcome } from '@/services/play-billing-flow';
 import { useAuth } from '@/store/auth';
 import { colors } from '@/utils/theme';
 import { hasActiveSubscription, subscriptionDate } from '@/utils/subscription';
 
 /**
- * Google Play build: RSD Pro as auto-renewing Google Play subscriptions.
+ * Google Play build: RSD Pro as one-time prepaid passes (1 / 3 / 12 months).
+ * No auto-renewal and no auto-pay; buying again adds more time.
  * Prices, currency and taxes come from Google; nothing here is hard-coded.
  * Access changes only after the server confirms the purchase with Google.
  */
@@ -36,13 +37,13 @@ export function PlaySubscriptionPlans() {
   const settle=async(outcome:PurchaseOutcome,success:string)=>{
     if(outcome.kind==='active'){update(outcome.user);setMessage(success);}
     else if(outcome.kind==='pending'){update(outcome.user);setMessage('Your payment is pending with Google Play. Pro starts automatically once Google confirms it — you do not need to pay again.');}
-    else setMessage('No active Google Play subscription was found for this account.');
+    else setMessage('No Google Play purchase was found for this account.');
     await cache.invalidateQueries();
   };
   const buy=useMutation({
-    mutationFn:(offer:PlayPlanOffer)=>playBilling.buy(offer,currentPlanKey),
+    mutationFn:(offer:PlayPlanOffer)=>playBilling.buy(offer),
     onMutate:()=>setMessage(''),
-    onSuccess:outcome=>settle(outcome,'Subscription confirmed. RSD Pro is active on this account, in the app and on the website.'),
+    onSuccess:outcome=>settle(outcome,'Payment confirmed. RSD Pro is active on this account, in the app and on the website.'),
     onError:error=>{if(error instanceof PlayFlowError&&error.code==='CANCELLED')buy.reset();},
     onSettled:()=>{busy.current=false;},
   });
@@ -58,7 +59,6 @@ export function PlaySubscriptionPlans() {
   const start=(action:()=>void)=>{if(working||busy.current)return;busy.current=true;action();};
   const back=()=>{if(router.canGoBack())router.back();else router.replace('/profile');};
   const config=offers.data?.config;
-  const manage=()=>{if(config?.configured)void Linking.openURL(manageSubscriptionUrl(config.productId,config.packageName));};
   const features=config?.configured?config.features:[];
 
   return <Screen title="Plans" pageHeader={
@@ -70,24 +70,19 @@ export function PlaySubscriptionPlans() {
     </View>
   }>
     <View style={styles.intro}>
-      <Heading>{viaPlay?'Your subscription':'Choose your plan'}</Heading>
-      <Text style={styles.caption}>Auto-renewing subscription billed by Google Play. Cancel anytime in Google Play.</Text>
+      <Heading>{viaPlay?'Add more time':'Choose your plan'}</Heading>
+      <Text style={styles.caption}>One-time payment through Google Play. No auto-renewal and no auto-pay — buy again any time to add more time.</Text>
     </View>
 
     {message?<View accessibilityLiveRegion="polite" style={[styles.panel,styles.message]}><Body color={colors.primary}>{message}</Body></View>:null}
     {buy.error&&!(buy.error instanceof PlayFlowError&&buy.error.code==='CANCELLED')?<ErrorState error={buy.error}/>:null}
     {restore.error?<ErrorState error={restore.error}/>:null}
 
-    {currentPlanKey&&!viaPlay?<View style={styles.panel}>
-      <Body>Your Google Play subscription is active alongside your website access.</Body>
-      <Button secondary icon="open-outline" label="Manage in Google Play" onPress={manage}/>
-    </View>:null}
     {viaPlay?<View style={styles.panel}>
-      <View style={styles.row}><Ionicons name="checkmark-circle" size={20} color={colors.green}/><Body>RSD Pro is active{expires?` — renews or ends on ${expires}`:''}.</Body></View>
-      <Button secondary icon="open-outline" label="Manage in Google Play" onPress={manage}/>
+      <View style={styles.row}><Ionicons name="checkmark-circle" size={20} color={colors.green}/><Body>RSD Pro is active{expires?` until ${expires}`:''}. It does not renew by itself.</Body></View>
     </View>:null}
-    {viaWeb&&!currentPlanKey?<View style={[styles.panel,styles.notice]}>
-      <Body>You already have RSD Pro{expires?` until ${expires}`:''} from a website purchase. A Google Play subscription is separate and billed in addition.</Body>
+    {viaWeb?<View style={[styles.panel,styles.notice]}>
+      <Body>You already have RSD Pro{expires?` until ${expires}`:''} from a website purchase. A Google Play pass is a separate purchase: you would have Pro until the later of the two dates.</Body>
     </View>:null}
 
     {offers.isLoading?<View style={[styles.panel,styles.row]}><ActivityIndicator color={colors.primary}/><Text style={styles.caption}>Loading prices from Google Play…</Text></View>:null}
@@ -100,13 +95,10 @@ export function PlaySubscriptionPlans() {
       return <View key={offer.plan.key} style={[styles.card,offer.plan.popular&&styles.recommended]}>
         <View style={styles.cardHeader}>
           <View style={styles.copy}><Heading>{offer.plan.name}</Heading><Text style={styles.caption}>{offer.plan.period}</Text></View>
-          {current?<Badge label="Current plan" color={colors.green}/>:offer.plan.badge?<Badge label={offer.plan.badge}/>:null}
+          {current?<Badge label="Your last pass" color={colors.green}/>:offer.plan.badge?<Badge label={offer.plan.badge}/>:null}
         </View>
-        <Text style={styles.price}>{offer.price}<Text style={styles.per}>{' / '+describePeriod(offer.billingPeriod)}</Text></Text>
-        {offer.intro.map((phase,index)=><Text key={index} style={styles.intro2}>
-          {phase.priceAmountMicros===0?`Free for ${describePeriod(phase.billingPeriod)}`:`${phase.formattedPrice} / ${describePeriod(phase.billingPeriod)} for ${phase.billingCycleCount} ${phase.billingCycleCount===1?'period':'periods'}`}, then {offer.price} / {describePeriod(offer.billingPeriod)}
-        </Text>)}
-        <Button label={current?'Current plan':currentPlanKey?'Switch to this plan':'Subscribe'} disabled={current||working||!config?.configured} busy={paying}
+        <Text style={styles.price}>{offer.price}<Text style={styles.per}>{' for '+describePeriod(offer.billingPeriod).replace(/^(month|year|week|day)$/,'1 $1')}</Text></Text>
+        <Button label={currentPlanKey?'Add this time':'Buy'} disabled={working||!config?.configured} busy={paying}
           onPress={()=>start(()=>{restore.reset();buy.mutate(offer);})}/>
       </View>;
     })}
@@ -123,7 +115,7 @@ export function PlaySubscriptionPlans() {
     <View style={styles.note}>
       <Ionicons name="lock-closed-outline" size={15} color={colors.muted}/>
       <Text style={styles.noteText}>
-        Payment is charged to your Google Play account at confirmation. The subscription renews automatically at the price shown until you cancel. Cancel anytime in Google Play → Payments & subscriptions → Subscriptions; Pro stays active until the end of the period you paid for. Pro works in this app and on the RSD Education website with the same account.
+        Payment is charged once to your Google Play account when you confirm. There is no auto-renewal and no auto-pay: Pro ends on the date shown unless you buy more time. Pro works in this app and on the RSD Education website with the same account.
       </Text>
     </View>
   </Screen>;
@@ -140,7 +132,6 @@ const styles=StyleSheet.create({
   recommended:{borderColor:colors.primary,borderWidth:1.5},
   cardHeader:{flexDirection:'row',flexWrap:'wrap',alignItems:'flex-start',gap:8},
   price:{fontSize:24,lineHeight:32,fontWeight:'700',color:colors.primary},per:{fontSize:14,fontWeight:'500',color:colors.muted},
-  intro2:{fontSize:12,lineHeight:19,color:colors.green,fontWeight:'600'},
   feature:{flex:1,minWidth:0,fontSize:13,lineHeight:20,color:colors.ink},
   note:{flexDirection:'row',alignItems:'flex-start',gap:8,paddingHorizontal:4},noteText:{flex:1,minWidth:0,fontSize:11,lineHeight:18,color:colors.muted},
   pressed:{opacity:0.7},disabled:{opacity:0.5},

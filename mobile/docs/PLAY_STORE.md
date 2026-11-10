@@ -112,10 +112,11 @@ never enter one, so there is no extra data type to declare for them.
 
 ## 6. Payments in the store build
 
-The store build (`RSD_DISTRIBUTION=store`) sells RSD Pro as **Google Play subscriptions** (monthly,
-quarterly, yearly) through `modules/rsd-play-billing` and `components/play-subscription-plans.tsx`.
-Prices come from Google; the server verifies every purchase with the Google Play Developer API and
-tracks renewals, cancellations and refunds through real-time developer notifications.
+The store build (`RSD_DISTRIBUTION=store`) sells RSD Pro as **Google Play prepaid passes** (1, 3 or 12
+months; one-time payment, no auto-renewal, no auto-pay) through `modules/rsd-play-billing` and
+`components/play-subscription-plans.tsx`. Buying again adds time. Prices come from Google; the server
+verifies every purchase with the Google Play Developer API and tracks expiry and refunds through
+real-time developer notifications.
 The direct APK (`RSD_DISTRIBUTION=direct`) still sells through Razorpay, unchanged. Pro bought either
 way works on the website and in both apps (`planSource` in `services/payment-service.ts`).
 

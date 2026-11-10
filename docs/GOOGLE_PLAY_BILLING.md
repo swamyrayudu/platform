@@ -5,7 +5,7 @@ RSD Pro is sold in two places, and both unlock the same account-wide access:
 | Where | Seller | What is sold | Code |
 |---|---|---|---|
 | Website + direct APK | Razorpay | One-time passes: 30 / 180 / 365 days | `lib/payments/*`, `app/api/payments/*` (unchanged) |
-| Google Play app | Google Play Billing | Auto-renewing subscriptions: monthly / quarterly / yearly | `lib/payments/google-play/*`, `app/api/payments/google-play/*`, `mobile/modules/rsd-play-billing` |
+| Google Play app | Google Play Billing | Prepaid passes (one-time payment, no auto-renewal): 1 / 3 / 12 months | `lib/payments/google-play/*`, `app/api/payments/google-play/*`, `mobile/modules/rsd-play-billing` |
 
 ## How access is shared
 
@@ -71,9 +71,13 @@ Developer API answers "No application was found for the given package name".
 ### 1. Play Console — products
 Monetize with Play → Products → **Subscriptions** → Create subscription:
 - Product id: `rsd_pro` (or set `GOOGLE_PLAY_SUBSCRIPTION_ID`)
-- Base plans (auto-renewing): `monthly` (1 month), `quarterly` (3 months), `yearly` (1 year). Activate each.
-- Set INR prices per base plan. Optional: a free-trial / intro offer — the app shows it automatically to eligible users.
-- Recommended: enable grace period and account hold (Monetization setup → Subscriptions).
+- Base plans — choose type **Prepaid** (NOT auto-renewing): `monthly` (1 month), `quarterly` (3 months),
+  `yearly` (1 year). Set INR prices and **Activate** each.
+- A base plan's type can't be changed and a deleted id can't be reused. If `monthly` / `quarterly` /
+  `yearly` already exist as auto-renewing, **deactivate** them and create prepaid ones named
+  `monthly-prepaid`, `quarterly-prepaid`, `yearly-prepaid` — the app accepts both.
+- The app shows **only prepaid** base plans, so it never sells auto-pay even if an auto-renewing plan is left active.
+- Buying again while a pass is active is a Google "top-up": it adds the time. No grace period / account hold applies.
 
 Base plan ids must match `lib/payments/google-play/catalog.ts`. A base plan that is not active simply does not show in the app.
 
@@ -106,7 +110,7 @@ Base plan ids must match `lib/payments/google-play/catalog.ts`. A base plan that
 
 ## Testing
 - Play Console → Settings → **License testing**: add tester Gmail accounts. Their purchases are free test
-  purchases with accelerated renewals (monthly renews every ~5 minutes) — good for exercising RTDN.
+  purchases, and test passes expire quickly (minutes, not months) — good for checking expiry and top-ups.
 - Install the app **from the internal testing track** (Play Billing does not work in Expo Go or the direct APK).
 - Test rows have `play_subscriptions.is_test = true`.
 - Check: purchase → `PLAY_PURCHASE_VERIFIED` in `security_events`; RTDN → rows in `play_rtdn_events` with `status = processed`.
@@ -116,11 +120,11 @@ Base plan ids must match `lib/payments/google-play/catalog.ts`. A base plan that
 - The Play build sells digital subscriptions **only** through Google Play Billing and never shows Razorpay,
   web prices or "buy on our website" links. The direct APK (website download) keeps Razorpay.
 - Prices, currency and taxes shown are Google's strings (`formattedPrice`); nothing is hard-coded.
-- The plans screen states the price, billing period, auto-renewal, that it is charged to the Google Play
-  account, and how to cancel; "Manage in Google Play" opens Play's subscription page.
-- Google's service fee for subscriptions is 15%.
+- The plans screen states the price, the length of Pro, that it is a one-time charge to the Google Play
+  account, and that there is no auto-renewal or auto-pay.
+- Google's service fee for subscription products (prepaid plans included) is 15%.
 - India also has **user choice billing** (offer another payment option next to Google Play Billing in the app).
   It needs enrollment and extra integration and is **not** implemented here — check current eligibility in
   Play Console before considering it.
-- Deleting an RSD account does not cancel a Google Play subscription. Tell users to cancel in Google Play first
-  (consider adding this line to the delete-account screens).
+- Passes don't renew, so deleting an RSD account never leaves a running charge; remaining time is simply lost
+  (stated on the deletion pages and in the Terms).

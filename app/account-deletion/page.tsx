@@ -46,9 +46,9 @@ const english: LegalDocument = {
       ],
     },
     {
-      heading: 'If you have a Google Play subscription — cancel it first',
+      heading: 'If you bought Pro on Google Play',
       body: [
-        'Deleting your account does not cancel a subscription you bought through Google Play, and Google would keep charging you. Before deleting, open the Google Play Store app → Payments & subscriptions → Subscriptions → RSD Education → Cancel subscription. Website plans bought with Razorpay are one-time payments and need no cancellation.',
+        'Pro bought on Google Play is a one-time pass and does not renew, so there is nothing to cancel and you will not be charged again. Any remaining Pro time ends when you delete your account and is not refunded.',
       ],
     },
     {
@@ -59,14 +59,14 @@ const english: LegalDocument = {
         'Your mock test attempts, results and leaderboard entries.',
         'Tests you created in My Tests, including uploaded questions and results.',
         'Your question reports, resource history, sign-in sessions, devices and account security log.',
-        'Your Google Play subscription records held by us, and any remaining Pro access.',
+        'Your Google Play purchase records held by us, and any remaining Pro access.',
       ],
     },
     {
       heading: 'What we keep, and for how long',
       items: [
         'Website purchases: the Razorpay payment reference, order reference, plan length and date of each purchase, no longer linked to your name or email. Kept as long as Indian accounting and tax law requires us to keep payment records.',
-        'Google Play notices: order references and dates that Google sent us about subscriptions, not linked to your name or email, may remain in our logs.',
+        'Google Play notices: order references and dates that Google sent us about purchases, not linked to your name or email, may remain in our logs.',
         'Backups: deleted data may remain in our database provider\'s routine backups for up to 30 days, until those backups are overwritten. Backups are not used to restore individual accounts.',
         'Google and Razorpay keep their own records of payments made through them, under their own policies. For your Google account data, see Google\'s own settings.',
       ],
@@ -104,9 +104,9 @@ const telugu: LegalDocument = {
       ],
     },
     {
-      heading: 'గూగుల్ ప్లే సబ్‌స్క్రిప్షన్ ఉంటే — ముందుగా రద్దు చేయండి',
+      heading: 'గూగుల్ ప్లేలో Pro కొన్నట్లయితే',
       body: [
-        'ఖాతాను తొలగిస్తే గూగుల్ ప్లే ద్వారా కొన్న సబ్‌స్క్రిప్షన్ రద్దు కాదు; గూగుల్ డబ్బు కట్ చేస్తూనే ఉంటుంది. తొలగించే ముందు గూగుల్ ప్లే స్టోర్ యాప్ → Payments & subscriptions → Subscriptions → RSD Education → Cancel subscription తెరవండి. Razorpay ద్వారా కొన్న వెబ్‌సైట్ ప్లాన్లు ఒక్కసారి చెల్లింపులు — వాటిని రద్దు చేయనవసరం లేదు.',
+        'గూగుల్ ప్లేలో కొన్న Pro ఒక్కసారి చెల్లించే పాస్ — ఇది రెన్యూ కాదు, కాబట్టి రద్దు చేయాల్సింది ఏమీ లేదు, మళ్లీ డబ్బు కట్ కాదు. ఖాతాను తొలగిస్తే మిగిలిన Pro సమయం ముగుస్తుంది; దానికి రీఫండ్ ఉండదు.',
       ],
     },
     {
@@ -117,14 +117,14 @@ const telugu: LegalDocument = {
         'మీ మాక్ టెస్ట్ ప్రయత్నాలు, ఫలితాలు మరియు లీడర్‌బోర్డ్ ఎంట్రీలు.',
         'My Tests లో మీరు తయారుచేసిన టెస్టులు — అప్‌లోడ్ చేసిన ప్రశ్నలు మరియు ఫలితాలతో సహా.',
         'మీ ప్రశ్న నివేదికలు, రిసోర్స్ చరిత్ర, సైన్ ఇన్ సెషన్లు, పరికరాలు మరియు ఖాతా భద్రతా లాగ్.',
-        'మా వద్ద ఉన్న మీ గూగుల్ ప్లే సబ్‌స్క్రిప్షన్ రికార్డులు, మరియు మిగిలిన Pro ప్రవేశం.',
+        'మా వద్ద ఉన్న మీ గూగుల్ ప్లే కొనుగోలు రికార్డులు, మరియు మిగిలిన Pro ప్రవేశం.',
       ],
     },
     {
       heading: 'ఏమి ఉంచుతాము, ఎంతకాలం',
       items: [
         'వెబ్‌సైట్ కొనుగోళ్లు: ప్రతి కొనుగోలుకు సంబంధించిన Razorpay చెల్లింపు గుర్తింపు, ఆర్డర్ గుర్తింపు, ప్లాన్ కాలవ్యవధి మరియు తేదీ — మీ పేరు లేదా ఈమెయిల్‌తో సంబంధం లేకుండా. భారత లెక్కలు మరియు పన్ను చట్టాలు చెల్లింపు రికార్డులను ఎంతకాలం ఉంచమంటాయో అంతకాలం ఉంచుతాము.',
-        'గూగుల్ ప్లే నోటీసులు: సబ్‌స్క్రిప్షన్ల గురించి గూగుల్ పంపిన ఆర్డర్ గుర్తింపులు మరియు తేదీలు — మీ పేరు లేదా ఈమెయిల్‌తో సంబంధం లేకుండా — మా లాగ్‌లలో ఉండవచ్చు.',
+        'గూగుల్ ప్లే నోటీసులు: కొనుగోళ్ల గురించి గూగుల్ పంపిన ఆర్డర్ గుర్తింపులు మరియు తేదీలు — మీ పేరు లేదా ఈమెయిల్‌తో సంబంధం లేకుండా — మా లాగ్‌లలో ఉండవచ్చు.',
         'బ్యాకప్‌లు: తొలగించిన డేటా మా డేటాబేస్ ప్రదాత యొక్క సాధారణ బ్యాకప్‌లలో 30 రోజుల వరకు ఉండవచ్చు, ఆ బ్యాకప్‌లు తిరిగి రాయబడే వరకు. వ్యక్తిగత ఖాతాలను తిరిగి తెచ్చేందుకు బ్యాకప్‌లను వాడము.',
         'గూగుల్ మరియు Razorpay తమ ద్వారా జరిగిన చెల్లింపుల రికార్డులను తమ సొంత విధానాల ప్రకారం ఉంచుకుంటాయి. మీ గూగుల్ ఖాతా డేటా కోసం గూగుల్ సెట్టింగ్‌లను చూడండి.',
       ],

@@ -129,7 +129,7 @@ function PlanSkeleton() {
 // ---- Main Modal --------------------------------------------------
 
 const PLAY_PLAN_NAMES: Record<string, string> = {
-  play_monthly: 'Pro Monthly (Google Play)', play_quarterly: 'Pro Quarterly (Google Play)', play_yearly: 'Pro Yearly (Google Play)',
+  play_monthly: 'Pro · 1 Month (Google Play)', play_quarterly: 'Pro · 3 Months (Google Play)', play_yearly: 'Pro · 1 Year (Google Play)',
 }
 
 export default function PremiumModal() {
@@ -335,7 +335,7 @@ export default function PremiumModal() {
                     )}
                     <span className="block text-muted-foreground/70 mt-0.5">
                       {viaPlay
-                        ? 'Billed by Google Play and renews automatically — change or cancel it in the Google Play app. A plan bought here is a separate one-time pass, so you do not need one.'
+                        ? 'Bought on Google Play as a one-time pass — it does not renew. A plan bought here is a separate purchase: you would have Pro until the later of the two dates.'
                         : 'Your remaining days are never lost — a new plan is added on top of them.'}
                     </span>
                   </div>

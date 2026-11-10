@@ -1,20 +1,23 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createPlayBillingFlow, describePeriod, matchOffers, PlayFlowError, type PlayConfig, type PlayNative, type PlayProduct, type PlayPurchase, type VerifyResponse } from '../services/play-billing-flow';
+import { createPlayBillingFlow, describePeriod, isPrepaidOffer, matchOffers, PlayFlowError, type PlayConfig, type PlayNative, type PlayProduct, type PlayPurchase, type VerifyResponse } from '../services/play-billing-flow';
 import type { PublicUser } from '../types/auth';
 
 const user:PublicUser={id:'student',email:'student@example.test',name:'Student',avatarUrl:null,accountType:'PREMIUM',subscriptionStatus:'ACTIVE',subscriptionExpiresAt:'2027-01-07T00:00:00Z',subscriptionPlan:'play_monthly',subscriptionSource:'google_play',role:'user',onboardingCompleted:true,learningGoals:[]};
 const config:PlayConfig={configured:true,packageName:'com.rsdeducation.student',productId:'rsd_pro',obfuscatedAccountId:'acct-me',features:['All mocks'],plans:[
-  {key:'play_monthly',basePlanId:'monthly',name:'Pro Monthly',period:'Billed every month',badge:null,popular:false},
-  {key:'play_quarterly',basePlanId:'quarterly',name:'Pro Quarterly',period:'Billed every 3 months',badge:'Most popular',popular:true},
-  {key:'play_yearly',basePlanId:'yearly',name:'Pro Yearly',period:'Billed every year',badge:'Best value',popular:false},
+  {key:'play_monthly',basePlanIds:['monthly','monthly-prepaid'],name:'Pro 1 Month',period:'1 month',badge:null,popular:false},
+  {key:'play_quarterly',basePlanIds:['quarterly','quarterly-prepaid'],name:'Pro 3 Months',period:'3 months',badge:'Most popular',popular:true},
+  {key:'play_yearly',basePlanIds:['yearly','yearly-prepaid'],name:'Pro 1 Year',period:'12 months',badge:'Best value',popular:false},
 ]};
 const phase=(price:string,period:string,mode=1,micros=1)=>({formattedPrice:price,priceAmountMicros:micros,priceCurrencyCode:'INR',billingPeriod:period,billingCycleCount:mode===1?0:1,recurrenceMode:mode});
 const product:PlayProduct={productId:'rsd_pro',title:'RSD Pro',name:'RSD Pro',offers:[
-  {basePlanId:'monthly',offerId:null,offerToken:'tok-monthly',offerTags:[],pricingPhases:[phase('₹199.00','P1M')]},
-  {basePlanId:'quarterly',offerId:null,offerToken:'tok-quarterly-base',offerTags:[],pricingPhases:[phase('₹499.00','P3M')]},
-  {basePlanId:'quarterly',offerId:'trial7',offerToken:'tok-quarterly-trial',offerTags:[],pricingPhases:[phase('Free','P7D',3,0),phase('₹499.00','P3M')]},
-  // yearly not activated in Play Console → not returned → not shown
+  // monthly: an old auto-renewing base plan AND a prepaid one under the alias id: prepaid wins
+  {basePlanId:'monthly',offerId:null,offerToken:'tok-monthly-autorenew',offerTags:[],pricingPhases:[phase('₹199.00','P1M',1)]},
+  {basePlanId:'monthly-prepaid',offerId:null,offerToken:'tok-monthly-prepaid',offerTags:[],pricingPhases:[phase('₹199.00','P1M',3)]},
+  // quarterly: prepaid under the main id
+  {basePlanId:'quarterly',offerId:null,offerToken:'tok-quarterly-prepaid',offerTags:[],pricingPhases:[phase('₹499.00','P3M',3)]},
+  // yearly: only auto-renewing exists, so it is never shown (no auto-pay is ever sold)
+  {basePlanId:'yearly',offerId:null,offerToken:'tok-yearly-autorenew',offerTags:[],pricingPhases:[phase('₹999.00','P1Y',1)]},
 ]};
 const purchase=(token:string,extra:Partial<PlayPurchase>={}):PlayPurchase=>({purchaseToken:token,products:['rsd_pro'],orderId:'GPA.1',purchaseState:1,purchaseTime:1,isAcknowledged:false,isAutoRenewing:true,obfuscatedAccountId:'acct-me',...extra});
 
@@ -43,22 +46,21 @@ test('billing periods read naturally',()=>{
   assert.equal(describePeriod('P1Y'),'year');assert.equal(describePeriod('P7D'),'7 days');
 });
 
-test('offers use Google prices, prefer an eligible intro offer, and hide plans Play did not return',()=>{
+test('only prepaid (no auto-pay) offers are sold, with Google prices; auto-renewing ones are never shown',()=>{
   const offers=matchOffers(config.configured?config.plans:[],product);
   assert.deepEqual(offers.map(o=>o.plan.key),['play_monthly','play_quarterly']);
-  assert.equal(offers[0].price,'₹199.00');
-  assert.equal(offers[1].offerToken,'tok-quarterly-trial');
-  assert.equal(offers[1].price,'₹499.00');assert.equal(offers[1].billingPeriod,'P3M');
-  assert.equal(offers[1].intro[0].priceAmountMicros,0);
+  assert.equal(offers[0].offerToken,'tok-monthly-prepaid');assert.equal(offers[0].price,'₹199.00');
+  assert.equal(offers[1].offerToken,'tok-quarterly-prepaid');assert.equal(offers[1].billingPeriod,'P3M');
+  assert.ok(isPrepaidOffer(product.offers[1]));assert.ok(!isPrepaidOffer(product.offers[0]));
   assert.deepEqual(matchOffers(config.configured?config.plans:[],null),[]);
 });
 
 test('a purchase is granted only from the server verify answer, with the account id passed to Google',async()=>{
   const f=fixture();
   const {offers}=await f.flow.offers();
-  const outcome=await f.flow.buy(offers[1],null);
+  const outcome=await f.flow.buy(offers[1]);
   assert.equal(outcome.kind,'active');
-  assert.deepEqual(f.launches[0],['rsd_pro','tok-quarterly-trial','acct-me',null,null]);
+  assert.deepEqual(f.launches[0],['rsd_pro','tok-quarterly-prepaid','acct-me',null,null]);
   assert.deepEqual(f.calls.at(-1),{path:'/api/payments/google-play/verify',body:{purchaseToken:'token-new'}});
 });
 
@@ -67,25 +69,25 @@ test('a pending (UPI / cash) purchase is reported as pending, not active',async(
   f.setSheet(async()=>[purchase('token-pending',{purchaseState:2})]);
   f.setVerify(async()=>({user:{...user,accountType:'FREE',subscriptionStatus:'NONE'},subscription:{planKey:'play_monthly',state:'SUBSCRIPTION_STATE_PENDING',entitled:false,pending:true,autoRenewing:true,expiresAt:null}}));
   const {offers}=await f.flow.offers();
-  assert.equal((await f.flow.buy(offers[0],null)).kind,'pending');
+  assert.equal((await f.flow.buy(offers[0])).kind,'pending');
 });
 
-test('changing plan hands Google the current token for replacement',async()=>{
+test('buying again while Pro is active is a plain top-up: no replacement token, nothing auto-renews',async()=>{
   const f=fixture();
-  f.setOwned([purchase('token-old'),purchase('token-foreign',{obfuscatedAccountId:'acct-other'})]);
+  f.setOwned([purchase('token-old')]);
   const {offers}=await f.flow.offers();
-  await f.flow.buy(offers[1],'play_monthly');
-  assert.deepEqual(f.launches[0].slice(3),['token-old',1]);
+  await f.flow.buy(offers[1]);
+  assert.deepEqual(f.launches[0].slice(3),[null,null]);
 });
 
 test('cancel maps to CANCELLED; already-owned links the existing subscription instead of failing',async()=>{
   const f=fixture();
   const {offers}=await f.flow.offers();
   f.setSheet(async()=>{throw Object.assign(new Error('x'),{code:'E_PLAY_CANCELLED'});});
-  await assert.rejects(f.flow.buy(offers[0],null),(e:unknown)=>e instanceof PlayFlowError&&e.code==='CANCELLED');
+  await assert.rejects(f.flow.buy(offers[0]),(e:unknown)=>e instanceof PlayFlowError&&e.code==='CANCELLED');
   f.setSheet(async()=>{throw Object.assign(new Error('x'),{code:'E_PLAY_ALREADY_OWNED'});});
   f.setOwned([purchase('token-owned')]);
-  assert.equal((await f.flow.buy(offers[0],null)).kind,'active');
+  assert.equal((await f.flow.buy(offers[0])).kind,'active');
   assert.deepEqual(f.calls.at(-1)?.body,{purchaseToken:'token-owned'});
 });
 
@@ -111,7 +113,7 @@ test('only one Play operation runs at a time',async()=>{
   let release!:()=>void;
   f.setSheet(()=>new Promise(resolve=>{release=()=>resolve([purchase('token-new')]);}));
   const {offers}=await f.flow.offers();
-  const first=f.flow.buy(offers[0],null);
+  const first=f.flow.buy(offers[0]);
   await new Promise(r=>setTimeout(r,0));
   await assert.rejects(f.flow.restore(false),(e:unknown)=>e instanceof PlayFlowError&&e.code==='BUSY');
   release();await first;

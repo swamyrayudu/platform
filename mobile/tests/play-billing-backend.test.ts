@@ -49,6 +49,13 @@ test('base plans map to plan keys, test purchases are flagged',()=>{
   assert.ok(q.ok);assert.equal(q.value.planKey,'play_quarterly');assert.equal(q.value.isTest,true);
   const y=evaluateSubscription(v2({},{offerDetails:{basePlanId:'yearly'},expiryTime:days(365)}),'rsd_pro',NOW);
   assert.ok(y.ok);assert.equal(y.value.planKey,'play_yearly');
+  // Prepaid alias ids map to the same plans; a prepaid pass never auto-renews.
+  const p=evaluateSubscription(v2({},{offerDetails:{basePlanId:'monthly-prepaid'},autoRenewingPlan:undefined,prepaidPlan:{},expiryTime:days(30)}),'rsd_pro',NOW);
+  assert.ok(p.ok);assert.equal(p.value.planKey,'play_monthly');assert.equal(p.value.basePlanId,'monthly-prepaid');
+  assert.equal(p.value.autoRenewing,false);assert.equal(p.value.entitled,true);
+  // Several top-ups (e.g. 3 yearly passes) are accepted; absurd expiries still are not.
+  const topped=evaluateSubscription(v2({},{offerDetails:{basePlanId:'yearly'},expiryTime:days(3*365)}),'rsd_pro',NOW);
+  assert.ok(topped.ok);
 });
 
 // ---- shared premium rule ------------------------------------------------------

@@ -25,25 +25,25 @@ export interface PlayNative {
 
 // ---- Shapes from the backend (/api/payments/google-play/*) ----
 
-export interface PlayCatalogPlan {key:string;basePlanId:string;name:string;period:string;badge:string|null;popular:boolean}
+export interface PlayCatalogPlan {key:string;basePlanIds:string[];name:string;period:string;badge:string|null;popular:boolean}
 export type PlayConfig =
   | {configured:false}
   | {configured:true;packageName:string;productId:string;obfuscatedAccountId:string;plans:PlayCatalogPlan[];features:string[]};
 export interface VerifiedSubscription {planKey:string;state:string;entitled:boolean;pending:boolean;autoRenewing:boolean;expiresAt:string|null}
 export interface VerifyResponse {subscription:VerifiedSubscription;user:PublicUser}
 
-/** A catalog plan joined with the offer Google says this user can buy, priced by Google. */
+/** A catalog plan joined with the prepaid offer Google says this user can buy, priced by Google. */
 export interface PlayPlanOffer {
   plan:PlayCatalogPlan; offerToken:string;
-  /** Google's localized recurring price, e.g. "₹299.00" */
-  price:string; billingPeriod:string;
-  /** Intro phases Google says this user is eligible for (free trial / intro price), in order */
-  intro:PlayPricingPhase[];
+  /** Google's localized one-time price, e.g. "₹299.00" */
+  price:string;
+  /** ISO 8601 length of Pro the pass gives, e.g. P1M */
+  billingPeriod:string;
 }
 
 export const PURCHASE_STATE_PENDING=2;
-/** BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.WITH_TIME_PRORATION */
-export const REPLACEMENT_WITH_TIME_PRORATION=1;
+/** PricingPhase.recurrenceMode NON_RECURRING: a prepaid (one-time, no auto-pay) base plan */
+export const NON_RECURRING=3;
 
 /** "P1M" → "month", "P3M" → "3 months", "P1Y" → "year", "P7D" → "7 days". */
 export function describePeriod(iso:string) {
@@ -54,22 +54,25 @@ export function describePeriod(iso:string) {
   return Number(count)===1?unit:`${count} ${unit}s`;
 }
 
+/** A prepaid offer: exactly one non-recurring phase (pay once, no auto-renewal, no auto-pay). */
+export function isPrepaidOffer(offer:PlayOffer) {
+  return offer.pricingPhases.length===1&&offer.pricingPhases[0].recurrenceMode===NON_RECURRING;
+}
+
 /**
- * Pick the offer to sell for each catalog plan. Google only returns offers the
- * user is eligible for, so a developer offer (trial / intro price) wins over the
- * plain base plan. Plans Google does not return (not active in Play Console)
- * are left out instead of being shown without a price.
+ * Pick the prepaid offer to sell for each catalog plan. Auto-renewing offers are
+ * never shown, so the app cannot sell auto-pay even if one is left active in Play
+ * Console. Plans Google does not return (not active) are left out instead of
+ * being shown without a price.
  */
 export function matchOffers(plans:PlayCatalogPlan[],product:PlayProduct|null):PlayPlanOffer[] {
   if(!product)return [];
   const result:PlayPlanOffer[]=[];
   for(const plan of plans) {
-    const offers=product.offers.filter(offer=>offer.basePlanId===plan.basePlanId);
-    const offer=offers.find(o=>o.offerId)??offers.find(o=>!o.offerId);
-    if(!offer||offer.pricingPhases.length===0)continue;
-    const recurring=offer.pricingPhases.find(phase=>phase.recurrenceMode===1)??offer.pricingPhases[offer.pricingPhases.length-1];
-    result.push({plan,offerToken:offer.offerToken,price:recurring.formattedPrice,billingPeriod:recurring.billingPeriod,
-      intro:offer.pricingPhases.filter(phase=>phase!==recurring)});
+    const offer=plan.basePlanIds.map(id=>product.offers.find(o=>o.basePlanId===id&&isPrepaidOffer(o))).find(Boolean);
+    if(!offer)continue;
+    const phase=offer.pricingPhases[0];
+    result.push({plan,offerToken:offer.offerToken,price:phase.formattedPrice,billingPeriod:phase.billingPeriod});
   }
   return result;
 }
@@ -147,17 +150,12 @@ export function createPlayBillingFlow({native,request}:PlayPorts) {
       const product=await native!.getSubscription(value.productId);
       return {config:value,offers:matchOffers(value.plans,product)};
     },
-    buy:(offer:PlayPlanOffer,currentPlanKey:string|null)=>exclusively(async():Promise<PurchaseOutcome>=>{
+    /** Buy a pass. Buying again while Pro is active is a Google "top-up" that adds the time. */
+    buy:(offer:PlayPlanOffer)=>exclusively(async():Promise<PurchaseOutcome>=>{
       const value=await readyConfig();
-      // Changing plan: hand Google the current token so it replaces (not adds) the subscription.
-      let oldToken:string|null=null;
-      if(currentPlanKey&&currentPlanKey!==offer.plan.key) {
-        const owned=await native!.queryActivePurchases();
-        oldToken=owned.find(p=>p.products.includes(value.productId)&&p.obfuscatedAccountId===value.obfuscatedAccountId)?.purchaseToken??null;
-      }
       let purchases:PlayPurchase[];
       try {
-        purchases=await native!.purchase(value.productId,offer.offerToken,value.obfuscatedAccountId,oldToken,oldToken?REPLACEMENT_WITH_TIME_PRORATION:null);
+        purchases=await native!.purchase(value.productId,offer.offerToken,value.obfuscatedAccountId,null,null);
       } catch(error) {
         const code=nativeCode(error);
         if(code==='E_PLAY_CANCELLED')throw new PlayFlowError('CANCELLED','Purchase was cancelled.');

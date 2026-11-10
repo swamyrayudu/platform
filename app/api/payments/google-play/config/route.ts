@@ -33,7 +33,7 @@ export const GET = requireAuth(async (_request, _ctx, { user }) => {
     packageName: getPlayPackageName(),
     productId: getPlaySubscriptionId(),
     obfuscatedAccountId,
-    plans: PLAY_PLANS.map(({ key, basePlanId, name, period, badge, popular }) => ({ key, basePlanId, name, period, badge, popular })),
+    plans: PLAY_PLANS.map(({ key, basePlanIds, name, period, badge, popular }) => ({ key, basePlanIds, name, period, badge, popular })),
     // Same Pro feature list the website shows: every plan unlocks the same thing.
     features: PLANS.pro_full.features,
   })

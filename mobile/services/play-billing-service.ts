@@ -25,10 +25,5 @@ export const playBilling={
   },
 };
 
-/** Google Play's own "Manage subscriptions" page for this app (cancel, change payment method). */
-export function manageSubscriptionUrl(productId:string,packageName:string) {
-  return `https://play.google.com/store/account/subscriptions?sku=${encodeURIComponent(productId)}&package=${encodeURIComponent(packageName)}`;
-}
-
-const PLAY_PLAN_NAMES:Record<string,string>={play_monthly:'Pro Monthly',play_quarterly:'Pro Quarterly',play_yearly:'Pro Yearly'};
+const PLAY_PLAN_NAMES:Record<string,string>={play_monthly:'Pro · 1 Month',play_quarterly:'Pro · 3 Months',play_yearly:'Pro · 1 Year'};
 export function playPlanName(planKey:string|null|undefined) { return planKey?PLAY_PLAN_NAMES[planKey]??null:null; }

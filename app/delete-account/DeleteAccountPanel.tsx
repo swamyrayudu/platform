@@ -73,22 +73,21 @@ export default function DeleteAccountPanel() {
             <li>Your question reports, sign-in sessions and devices.</li>
             <li>Any remaining Pro access on the account.</li>
           </ul>
-          <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm leading-relaxed">
-            <p className="font-semibold text-foreground">Subscribed through Google Play? Cancel it first.</p>
+          <div className="rounded-2xl border border-border bg-card p-4 text-sm leading-relaxed">
+            <p className="font-semibold text-foreground">Bought Pro on Google Play?</p>
             <p className="mt-1 text-muted-foreground">
-              Deleting your account does not cancel a Google Play subscription, and Google would keep
-              charging you. Open the Google Play Store app → Payments &amp; subscriptions →
-              Subscriptions → RSD Education → Cancel subscription, then delete your account.
+              It is a one-time pass and does not renew, so there is nothing to cancel and you will not
+              be charged again. Any remaining Pro time ends with your account and is not refunded.
             </p>
             <p className="mt-2 text-[13px] text-muted-foreground">
-              గూగుల్ ప్లే ద్వారా సబ్‌స్క్రైబ్ చేశారా? ఖాతా తొలగిస్తే సబ్‌స్క్రిప్షన్ రద్దు కాదు — ముందుగా గూగుల్ ప్లేలో రద్దు చేయండి.
+              గూగుల్ ప్లేలో కొన్న Pro రెన్యూ కాదు — రద్దు చేయాల్సింది ఏమీ లేదు. ఖాతా తొలగిస్తే మిగిలిన సమయం ముగుస్తుంది.
             </p>
           </div>
           <h2 className="pt-3 text-base font-bold sm:text-lg">What is kept</h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
             For accounting, we keep the Razorpay payment reference and date of any website purchase,
             no longer linked to you. Razorpay keeps its own record of the payment under its policy.
-            Google Play subscription records are deleted with your account; Google keeps its own
+            Google Play purchase records are deleted with your account; Google keeps its own
             record of the purchase.
           </p>
           <p className="text-sm leading-relaxed text-muted-foreground">

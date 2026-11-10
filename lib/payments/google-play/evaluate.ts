@@ -23,8 +23,12 @@ const ENTITLING_STATES: ReadonlySet<SubscriptionState> = new Set([
   'SUBSCRIPTION_STATE_CANCELED',
 ])
 
-/** Longest single paid period we sell + slack for proration on plan changes. */
-const MAX_FUTURE_DAYS = Math.max(...PLAY_PLANS.map((p) => p.maxPeriodDays)) * 2
+/**
+ * Sanity cap on how far ahead Google's expiry may be. Prepaid passes can be
+ * topped up (bought again) and each top-up extends the time, so allow several
+ * years of accumulated passes — but never an absurd value.
+ */
+const MAX_FUTURE_DAYS = Math.max(...PLAY_PLANS.map((p) => p.maxPeriodDays)) * 5
 
 export interface EvaluatedSubscription {
   productId: string
@@ -76,7 +80,7 @@ export function evaluateSubscription(
     ok: true,
     value: {
       productId: item.productId,
-      basePlanId: plan.basePlanId,
+      basePlanId: item.offerDetails?.basePlanId ?? plan.basePlanIds[0],
       planKey: plan.key,
       state,
       entitled,

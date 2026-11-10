@@ -81,8 +81,8 @@ export default function Profile() {
   const logout=useMutation({mutationFn:(all:boolean)=>auth.logout(all)});
   const remove=useMutation({mutationFn:()=>auth.deleteAccount()});
   // Two confirmations: deletion is immediate and cannot be undone.
-  // A Play subscription is billed by Google and survives account deletion: say so before deleting.
-  const playNote=user?.playPlan?'\n\nYour Google Play subscription is NOT cancelled by this. Cancel it first in Google Play → Payments & subscriptions → Subscriptions, or Google will keep charging you.':'';
+  // Play passes do not renew, so nothing keeps charging; remaining time is lost with the account.
+  const playNote=user?.playPlan?'\n\nRemaining Pro time bought on Google Play is lost and is not refunded.':'';
   const confirmDelete=()=>Alert.alert('Delete account?','This permanently deletes your profile, practice history, mock test results and progress. Any remaining Pro access ends. This cannot be undone.'+playNote,[
     {text:'Cancel',style:'cancel'},
     {text:'Continue',style:'destructive',onPress:()=>Alert.alert('Delete permanently?','Your account will be deleted now.',[
@@ -140,8 +140,8 @@ export default function Profile() {
         <Text style={styles.detailText}>{expires?(subscribed?'Valid until ':'Expiry date: ')+expires:subscribed?'Your Pro access is active.':showsPlans?'Unlock more practice and mock tests.':'You are on the free plan.'}</Text>
       </View>
       {planSource==='razorpay'&&subscribed?<Text style={styles.caption}>Renewal adds days to your remaining access.</Text>:null}
-      {planSource==='google_play'&&user?.subscriptionSource==='google_play'?<Text style={styles.caption}>Billed by Google Play. Change or cancel it in Google Play.</Text>:null}
-      {showsPlans?<Button icon="card-outline" label={planSource==='google_play'?(subscribed?'Manage subscription':'View plans'):subscribed?'View plans & renew':'View plans & pay'} onPress={()=>router.push('/subscription')}/>:null}
+      {planSource==='google_play'&&user?.subscriptionSource==='google_play'?<Text style={styles.caption}>Bought on Google Play. One-time payment, no auto-renewal.</Text>:null}
+      {showsPlans?<Button icon="card-outline" label={planSource==='google_play'?(subscribed?'Add more time':'View plans'):subscribed?'View plans & renew':'View plans & pay'} onPress={()=>router.push('/subscription')}/>:null}
     </ProfileSection>
 
     <ProfileSection title="Study preferences" icon="options-outline" action={
