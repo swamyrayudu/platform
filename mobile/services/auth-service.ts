@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { isRunningInExpoGo } from 'expo';
+import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
 import * as Crypto from 'expo-crypto';
 import { API_BASE_URL, validateApiUrl } from '@/utils/config';
@@ -22,7 +23,7 @@ export const authService = {
       // Android: in-app Google account sheet; the browser is the backup (and iOS's only way).
       const native=nativeGoogleSignIn();
       const tokens=await withBrowserBackup(native&&(()=>native(onProgress)),
-        async()=>browserGoogleLogin(API_BASE_URL,Platform.OS==='ios'?'IOS':'ANDROID',await getDeviceId(),Crypto.getRandomBytes,WebBrowser.openAuthSessionAsync,fetch,onProgress));
+        async()=>browserGoogleLogin(API_BASE_URL,Platform.OS==='ios'?'IOS':'ANDROID',await getDeviceId(),Crypto.getRandomBytes,WebBrowser.openAuthSessionAsync,fetch,onProgress,Constants.expoConfig?.android?.package));
       if(!tokens)return null;
       await tokenStore.write(tokens);
       onProgress?.('profile');

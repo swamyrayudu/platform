@@ -63,3 +63,11 @@ test('an incompatible backend or non-HTTPS address stops before opening a browse
   await assert.rejects(browserGoogleLogin('http://rsd.example','ANDROID',device,randomBytes,open,ready),/HTTPS/);
   assert.equal(opened,false);
 });
+
+test('Android browser sign-in tells the website which installed app to return to',async()=>{
+  let started:URL|undefined;
+  await browserGoogleLogin(origin,'ANDROID',device,randomBytes,async url=>{started=new URL(url);return {type:'cancel'};},ready,undefined,'com.karthik.rsdeducation');
+  assert.equal(started?.searchParams.get('androidPackage'),'com.karthik.rsdeducation');
+  await browserGoogleLogin(origin,'IOS',device,randomBytes,async url=>{started=new URL(url);return {type:'cancel'};},ready,undefined,'com.karthik.rsdeducation');
+  assert.equal(started?.searchParams.has('androidPackage'),false);
+});

@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { requireOptionalNativeModule } from 'expo';
+import Constants from 'expo-constants';
 import { GOOGLE_WEB_CLIENT_ID, API_BASE_URL } from '@/utils/config';
 import { getDeviceId } from './vault';
 import { nativeGoogleLogin, NativePickerError, type SignInStage } from './native-google-flow';
@@ -15,7 +16,7 @@ function reportSetup() {
   try {
     const info=nativeGoogle?.getSetupInfo?.();
     // These are public OAuth registration values, not tokens or provider errors.
-    console.warn('RSD_GOOGLE_AUTH_SETUP',JSON.stringify({packageName:info?.packageName||'com.rsdeducation.student',sha1Fingerprints:info?.sha1Fingerprints||['Rebuild the development APK to read its certificate.'],webClientId:GOOGLE_WEB_CLIENT_ID}));
+    console.warn('RSD_GOOGLE_AUTH_SETUP',JSON.stringify({packageName:info?.packageName||Constants.expoConfig?.android?.package||'unknown',sha1Fingerprints:info?.sha1Fingerprints||['Rebuild the development APK to read its certificate.'],webClientId:GOOGLE_WEB_CLIENT_ID}));
   } catch { /* Diagnostics must never mask the original sign-in failure. */ }
 }
 

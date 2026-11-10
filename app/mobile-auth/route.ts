@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import { GET as issueNonce } from '../api/auth/nonce/route'
-import { MOBILE_GOOGLE_COOKIE, validMobileRequest, sealMobileContext, exchangeMobileCredential, mobileAppReturnUrl, type MobileGoogleContext } from '../../lib/mobile-google-bridge'
+import { MOBILE_GOOGLE_COOKIE, validMobileRequest, sealMobileContext, exchangeMobileCredential, mobileAppReturnUrl, androidPackageOrDefault, type MobileGoogleContext } from '../../lib/mobile-google-bridge'
 
 // Only the mobile browser adapter changes. Every session is still created by
 // the existing Google handler, including its nonce, signature and rate checks.
@@ -38,7 +38,10 @@ export async function GET(request: Request): Promise<Response> {
   if (!validMobileRequest(input)) return page('<p>Start Google sign-in from the RSD Education app.</p>', '', 400)
   if (!ready) return page('<p>Google sign-in is unavailable. Check the existing backend configuration.</p>', '', 503)
   const nonceResponse = await issueNonce(), { nonce } = await nonceResponse.json()
-  const context: MobileGoogleContext = { ...input, nonce, issuedAt: Date.now() }
+  // Which installed app to return to (Play build or website APK). Unknown values fall back to the original package.
+  const requestedPackage = query.get('androidPackage')
+  const context: MobileGoogleContext = { ...input, nonce, issuedAt: Date.now(),
+    ...(input.platform === 'ANDROID' && requestedPackage ? { androidPackage: androidPackageOrDefault(requestedPackage) } : {}) }
   // Keep a fixed Google redirect URI. App state is signed in an HttpOnly cookie.
   const config = JSON.stringify({ clientId, nonce, loginUri: new URL('/mobile-auth', url.origin).toString() }).replace(/</g, '\\u003c')
   const response = page('<p>Continue with Google to return to your study app.</p><div id="google"></div><p id="message" role="status">Preparing secure sign-in…</p>', [
@@ -64,7 +67,7 @@ export async function POST(request: Request): Promise<Response> {
     })
     // Chrome needs a fresh gesture to reliably launch an external app. Keep
     // this page visible and target RSD's package instead of navigating blindly.
-    const appUrl = mobileAppReturnUrl(result.callback, result.context.platform)
+    const appUrl = mobileAppReturnUrl(result.callback, result.context.platform, result.context.androidPackage)
     return clearContext(page('<p role="status">Google sign-in completed. Tap below to open your study app.</p><a href="' + escapeHtml(appUrl) + '">Open RSD Education</a><p>If the app does not open, make sure RSD Education is installed and this sign-in was started from the app.</p>'))
   } catch {
     // Never render or log a submitted credential or provider exception.

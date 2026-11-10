@@ -1,7 +1,15 @@
 import { createHmac, timingSafeEqual, createECDH, createHash, createCipheriv, randomBytes } from 'node:crypto'
 
 export const MOBILE_GOOGLE_COOKIE = 'rsd_mobile_google_context'
-export interface MobileGoogleContext { state: string; publicKey: string; deviceId: string; platform: 'ANDROID' | 'IOS'; nonce: string; issuedAt: number }
+export interface MobileGoogleContext { state: string; publicKey: string; deviceId: string; platform: 'ANDROID' | 'IOS'; nonce: string; issuedAt: number; androidPackage?: string }
+// Android apps the browser sign-in may hand the (encrypted) session back to.
+// Google Play build first; the website-download APK keeps the original package.
+// Apps that send no package (older versions) get the original one.
+export const ANDROID_PACKAGES = ['com.karthik.rsdeducation', 'com.rsdeducation.student'] as const
+export const DEFAULT_ANDROID_PACKAGE = 'com.rsdeducation.student'
+export function androidPackageOrDefault(value: string | null | undefined): string {
+  return value && (ANDROID_PACKAGES as readonly string[]).includes(value) ? value : DEFAULT_ANDROID_PACKAGE
+}
 function signingKey(secret: string) {
   if (secret.length < 32) throw new Error('Mobile sign-in requires the existing JWT_SECRET configuration.')
   return createHmac('sha256', secret).update('rsd-mobile-google-redirect:v1').digest()
@@ -21,6 +29,7 @@ export function readMobileContext(value: string, secret: string, now = Date.now(
   const expected = createHmac('sha256', signingKey(secret)).update(payload).digest(), actual = Buffer.from(signature, 'base64url')
   if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) throw new Error('Invalid mobile sign-in request.')
   const context = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as MobileGoogleContext
+  if (context.androidPackage !== undefined && !(ANDROID_PACKAGES as readonly string[]).includes(context.androidPackage)) throw new Error('Invalid mobile sign-in request.')
   if (!validMobileRequest(context) || typeof context.nonce !== 'string' || !/^[\w-]{43}$/.test(context.nonce) ||
       !Number.isFinite(context.issuedAt) || now - context.issuedAt > 300000 || context.issuedAt > now + 10000) throw new Error('Mobile sign-in request expired.')
   return context
@@ -64,6 +73,8 @@ export async function exchangeMobileCredential(request: Request, secret: string,
   key.fill(0)
   return { context, callback: callback.toString() }
 }
-export function mobileAppReturnUrl(callback: string, platform: 'ANDROID' | 'IOS') {
-  return platform === 'ANDROID' ? callback.replace('rsdeducation:', 'intent:') + '#Intent;scheme=rsdeducation;package=com.rsdeducation.student;end' : callback
+export function mobileAppReturnUrl(callback: string, platform: 'ANDROID' | 'IOS', androidPackage?: string) {
+  return platform === 'ANDROID'
+    ? callback.replace('rsdeducation:', 'intent:') + `#Intent;scheme=rsdeducation;package=${androidPackageOrDefault(androidPackage)};end`
+    : callback
 }

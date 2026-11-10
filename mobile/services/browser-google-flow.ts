@@ -7,7 +7,7 @@ type BrowserOpener = (url:string,callback:string)=>Promise<{type:string;url?:str
 
 // The browser calls the existing auth API. Only its encrypted, state-bound
 // session handoff returns to this initiating app; no Google client secret exists here.
-export async function browserGoogleLogin(origin:string,platform:'ANDROID'|'IOS',deviceId:string,randomBytes:(length:number)=>Uint8Array,open:BrowserOpener,transport:typeof fetch=fetch,onProgress?:(stage:SignInStage)=>void) {
+export async function browserGoogleLogin(origin:string,platform:'ANDROID'|'IOS',deviceId:string,randomBytes:(length:number)=>Uint8Array,open:BrowserOpener,transport:typeof fetch=fetch,onProgress?:(stage:SignInStage)=>void,androidPackage?:string) {
   if(new URL(origin).protocol!=='https:')throw new Error('Google sign-in requires an HTTPS backend.');
   let privateKey:Uint8Array|undefined;
   try {
@@ -20,6 +20,8 @@ export async function browserGoogleLogin(origin:string,platform:'ANDROID'|'IOS',
     url.searchParams.set('publicKey',bytesToHex(p256.getPublicKey(privateKey,false)));
     url.searchParams.set('deviceId',deviceId);
     url.searchParams.set('platform',platform);
+    // Lets the website return to this exact app (Play build and website APK have different packages).
+    if(platform==='ANDROID'&&androidPackage)url.searchParams.set('androidPackage',androidPackage);
     onProgress?.('browser');
     const result=await open(url.toString(),AUTH_CALLBACK);
     if(result.type==='cancel'||result.type==='dismiss')return null;

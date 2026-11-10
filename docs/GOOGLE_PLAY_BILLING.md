@@ -62,6 +62,12 @@ an account claims the token.
 
 ## One-time setup
 
+### 0. Package name
+The Google Play build is `com.karthik.rsdeducation` (`mobile/app.config.ts`); the website APK stays
+`com.rsdeducation.student`. Play Billing only works for the Play package, and the server defaults
+`GOOGLE_PLAY_PACKAGE_NAME` to it. Upload a bundle to a testing track first: until one exists, the
+Developer API answers "No application was found for the given package name".
+
 ### 1. Play Console — products
 Monetize with Play → Products → **Subscriptions** → Create subscription:
 - Product id: `rsd_pro` (or set `GOOGLE_PLAY_SUBSCRIPTION_ID`)

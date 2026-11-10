@@ -120,3 +120,17 @@ test('rejected backend login or missing app session cannot produce an app return
   const {signed}=await start();
   for(const response of [Response.json({message:'bad token'},{status:401}),Response.json({user:{id:'student'}})])await assert.rejects(exchangeMobileCredential(googlePost(signed),fixtureSecret,async()=>response));
 });
+
+test('browser sign-in returns to the Android package that started it; unknown packages fall back, tampered ones are refused',()=>{
+  const callback='rsdeducation://auth/callback?state=x';
+  assert.ok(mobileAppReturnUrl(callback,'ANDROID','com.karthik.rsdeducation').endsWith('#Intent;scheme=rsdeducation;package=com.karthik.rsdeducation;end'));
+  assert.ok(mobileAppReturnUrl(callback,'ANDROID','com.rsdeducation.student').endsWith('package=com.rsdeducation.student;end'));
+  // Older apps send nothing; anything not allow-listed never becomes an intent target.
+  assert.ok(mobileAppReturnUrl(callback,'ANDROID').endsWith('package=com.rsdeducation.student;end'));
+  assert.ok(mobileAppReturnUrl(callback,'ANDROID','com.evil.app;S.x=1').endsWith('package=com.rsdeducation.student;end'));
+  assert.equal(mobileAppReturnUrl(callback,'IOS','com.karthik.rsdeducation'),callback);
+  const curve=p256.getPublicKey(p256.utils.randomSecretKey(),false);
+  const base={state:'a'.repeat(64),publicKey:bytesToHex(curve),deviceId:'12345678-1234-1234-1234-123456789012',platform:'ANDROID' as const,nonce:'n'.repeat(43),issuedAt:Date.now()};
+  assert.equal(readMobileContext(sealMobileContext({...base,androidPackage:'com.karthik.rsdeducation'},'s'.repeat(40)),'s'.repeat(40)).androidPackage,'com.karthik.rsdeducation');
+  assert.throws(()=>readMobileContext(sealMobileContext({...base,androidPackage:'com.evil.app'},'s'.repeat(40)),'s'.repeat(40)));
+});

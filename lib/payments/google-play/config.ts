@@ -2,7 +2,7 @@
 // lib/payments/google-play/config.ts — Play Billing env (SERVER ONLY)
 // ============================================================
 // Env vars (see .env.example, section 7):
-//   GOOGLE_PLAY_PACKAGE_NAME              com.rsdeducation.student
+//   GOOGLE_PLAY_PACKAGE_NAME              com.karthik.rsdeducation
 //   GOOGLE_PLAY_SUBSCRIPTION_ID           rsd_pro
 //   GOOGLE_PLAY_SERVICE_ACCOUNT_JSON      service-account key JSON (raw or base64)
 //   GOOGLE_PLAY_RTDN_AUDIENCE             audience set on the Pub/Sub push subscription
@@ -11,7 +11,8 @@
 
 import { DEFAULT_PLAY_SUBSCRIPTION_ID } from './catalog'
 
-export const DEFAULT_PLAY_PACKAGE_NAME = 'com.rsdeducation.student'
+// The Google Play build's applicationId (mobile/app.config.ts PLAY_ANDROID_PACKAGE).
+export const DEFAULT_PLAY_PACKAGE_NAME = 'com.karthik.rsdeducation'
 
 export function getPlayPackageName(): string {
   return process.env.GOOGLE_PLAY_PACKAGE_NAME?.trim() || DEFAULT_PLAY_PACKAGE_NAME

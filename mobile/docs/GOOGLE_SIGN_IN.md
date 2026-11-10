@@ -131,6 +131,23 @@ supports the required nonce/button APIs and compiled successfully with SDK 57.
 **An older installed APK cannot gain this module through a JavaScript reload.**
 Install a new development build. Expo Go does not contain this local module.
 
+## Two Android packages (November 2026)
+
+`app.config.ts` builds two different Android apps:
+
+| Build | `RSD_DISTRIBUTION` | Package |
+| --- | --- | --- |
+| Google Play (`eas build --profile production`) | `store` | `com.karthik.rsdeducation` |
+| Website APK, development builds | `direct` | `com.rsdeducation.student` |
+
+Each package needs its **own Android OAuth client** in the same Google Cloud project as the
+Web client below. For the Play build create one with package `com.karthik.rsdeducation` and the
+**Play App Signing** SHA-1 (Play Console → Test and release → App integrity → App signing key
+certificate). Add another with the **upload key** SHA-1 if testers install builds signed with it.
+Without these, the in-app Google account picker fails on the Play build and users fall back to
+the browser sign-in, which returns to the right app because the app sends its package and the
+server allow-lists both (`ANDROID_PACKAGES` in `lib/mobile-google-bridge.ts`).
+
 ## Required Google Cloud settings
 
 Use the same Google Cloud project as the existing website's Web OAuth client.
@@ -138,7 +155,7 @@ Use the same Google Cloud project as the existing website's Web OAuth client.
 | Setting | Value |
 | --- | --- |
 | Android OAuth application type | Android |
-| Android package | `com.rsdeducation.student` |
+| Android package | `com.karthik.rsdeducation` (Google Play build) and `com.rsdeducation.student` (website APK, dev builds) |
 | Android SHA-1 | Signing certificate of the APK actually installed on the phone |
 | Web OAuth client ID | `37964450681-qjr64dq42neav1q5jbpbeo0pcgtgpfi0.apps.googleusercontent.com` |
 | Mobile public override | `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (Web ID above, never the Android client ID) |

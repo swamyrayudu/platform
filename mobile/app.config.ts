@@ -2,6 +2,15 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
 
 const direct = process.env.RSD_DISTRIBUTION === 'direct';
 
+// Android package (applicationId) per distribution:
+//   Google Play build  → com.karthik.rsdeducation  (the Play Console app; Play Billing is tied to it)
+//   direct APK (website download, dev builds) → com.rsdeducation.student, unchanged so people who
+//   installed the website APK keep receiving updates over it.
+// Each package needs its own Android OAuth client (package + signing SHA-1) for Google Sign-In;
+// see docs/GOOGLE_SIGN_IN.md. The server allow-lists both in lib/mobile-google-bridge.ts.
+export const PLAY_ANDROID_PACKAGE = 'com.karthik.rsdeducation';
+export const DIRECT_ANDROID_PACKAGE = 'com.rsdeducation.student';
+
 // R8 keep rules for code that is only reached by name at runtime.
 const PROGUARD_RULES = `
 # Razorpay checkout (react-native-razorpay README)
@@ -32,6 +41,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     enabled: true,
     checkAutomatically: 'NEVER',
     fallbackToCacheTimeout: 0,
+  },
+  android: {
+    ...config.android,
+    package: direct ? DIRECT_ANDROID_PACKAGE : PLAY_ANDROID_PACKAGE,
   },
   plugins: [
     ...(config.plugins ?? []),

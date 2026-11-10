@@ -5,6 +5,11 @@ increase on every production build. What is left happens in Google's consoles.
 
 ## 1. Before the first upload
 
+The Play build's package is **`com.karthik.rsdeducation`** (set in `app.config.ts` when
+`RSD_DISTRIBUTION=store`). The website APK keeps `com.rsdeducation.student`. Register a Google
+Sign-In Android OAuth client for the Play package (see `GOOGLE_SIGN_IN.md`).
+
+
 1. **Deploy the website.** The app's delete button calls `DELETE /api/auth/account`,
    and Play checks `https://rsdeducation.vercel.app/account-deletion` (deletion policy),
    `https://rsdeducation.vercel.app/delete-account` (where deletion is done) and
