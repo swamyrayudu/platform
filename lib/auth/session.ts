@@ -11,7 +11,7 @@ import { getUserById, findSessionById, updateSessionActivity, logSecurityEvent }
 import { getAccessTokenFromCookies } from './cookies'
 import { getHashedIp } from './ip'
 import { AuthError, handleAuthError } from './errors'
-import type { AuthContext, DbUser, DbSession } from './types'
+import { effectiveSubscription, type AuthContext, type DbUser, type DbSession } from './types'
 
 // ---- Token extraction -------------------------------------------
 
@@ -151,16 +151,13 @@ export function requireAuth<TParams = Record<string, string>>(
 }
 
 /**
- * Check if a user has active PRO / Premium status.
+ * Check if a user has active PRO / Premium status — from a website (Razorpay)
+ * purchase, an admin grant, OR a Google Play subscription. See
+ * effectiveSubscription() in ./types for the single shared rule.
  */
 export function isUserPremium(user: DbUser | null | undefined): boolean {
   if (!user) return false
-  return (
-    user.account_type === 'PREMIUM' &&
-    user.subscription_status === 'ACTIVE' &&
-    user.subscription_expires_at !== null &&
-    new Date(user.subscription_expires_at) > new Date()
-  )
+  return effectiveSubscription(user).active
 }
 
 // ---- requirePremium ---------------------------------------------
@@ -168,10 +165,8 @@ export function isUserPremium(user: DbUser | null | undefined): boolean {
 /**
  * Middleware that validates session AND checks PREMIUM subscription.
  *
- * Checks:
- * - account_type === 'PREMIUM'
- * - subscription_status === 'ACTIVE'
- * - subscription_expires_at is in the future
+ * Checks isUserPremium(): active web access (account_type PREMIUM, status
+ * ACTIVE, subscription_expires_at in the future) OR play_expires_at in the future.
  *
  * Returns 403 PREMIUM_REQUIRED if any check fails.
  *

@@ -33,6 +33,10 @@ export type SecurityEventType =
   | 'PAYMENT_WEBHOOK_INVALID'
   | 'SUBSCRIPTION_ACTIVATED'
   | 'PAYMENT_RECONCILE_RUN'
+  | 'PLAY_PURCHASE_VERIFIED'
+  | 'PLAY_PURCHASE_REJECTED'
+  | 'PLAY_SUBSCRIPTION_UPDATED'
+  | 'PLAY_RTDN_INVALID'
 
 // ---- Database row shapes ----------------------------------------
 
@@ -48,6 +52,10 @@ export interface DbUser {
   subscription_started_at: string | null
   subscription_expires_at: string | null
   subscription_plan: string | null
+  /** Google Play entitlement (migration 20261107120000). Absent before it is applied. */
+  play_account_id?: string | null
+  play_expires_at?: string | null
+  play_plan?: string | null
   role: UserRole
   learning_goals: LearningGoal[]
   education_medium: EducationMedium | null
@@ -144,6 +152,10 @@ export interface PublicUser {
   subscriptionStatus: SubscriptionStatus
   subscriptionExpiresAt: string | null
   subscriptionPlan: string | null
+  /** Which system grants the access above: 'web' (Razorpay/admin) or 'google_play'. null when free. */
+  subscriptionSource: SubscriptionSource | null
+  /** Active Google Play plan key (play_monthly | play_quarterly | play_yearly), even when web access ends later. */
+  playPlan: string | null
   role: UserRole
   onboardingCompleted: boolean
   educationMedium?: EducationMedium | null
@@ -178,18 +190,67 @@ export interface AuthContext {
   session: DbSession
 }
 
+// ---- Shared premium rule (web + Google Play) ---------------------
+
+export type SubscriptionSource = 'web' | 'google_play'
+
+/** Columns the premium rule reads. Partial rows from admin queries satisfy it too. */
+export type SubscriptionColumns = Pick<DbUser, 'account_type' | 'subscription_status' | 'subscription_expires_at'> &
+  Partial<Pick<DbUser, 'subscription_plan' | 'play_expires_at' | 'play_plan'>>
+
+export interface EffectiveSubscription {
+  active: boolean
+  source: SubscriptionSource | null
+  expiresAt: string | null
+  plan: string | null
+}
+
+function isFuture(value: string | null | undefined, now: number): value is string {
+  return !!value && Date.parse(value) > now
+}
+
+/**
+ * The ONE premium rule. A user is premium when EITHER
+ *   - web access (Razorpay purchase or admin grant, users.subscription_*), OR
+ *   - Google Play access (users.play_expires_at, kept by upsert_play_subscription)
+ * is active. The later of the two decides the reported expiry and plan.
+ *
+ * Razorpay keeps writing only users.subscription_*; Play writes only play_*.
+ * Neither system can shorten or extend the other's time.
+ */
+export function effectiveSubscription(user: SubscriptionColumns, now = Date.now()): EffectiveSubscription {
+  const webActive =
+    user.account_type === 'PREMIUM' &&
+    user.subscription_status === 'ACTIVE' &&
+    isFuture(user.subscription_expires_at, now)
+  const playActive = isFuture(user.play_expires_at, now)
+
+  if (playActive && (!webActive || Date.parse(user.play_expires_at!) > Date.parse(user.subscription_expires_at!))) {
+    return { active: true, source: 'google_play', expiresAt: user.play_expires_at!, plan: user.play_plan ?? null }
+  }
+  if (webActive) {
+    return { active: true, source: 'web', expiresAt: user.subscription_expires_at, plan: user.subscription_plan ?? null }
+  }
+  return { active: false, source: null, expiresAt: user.subscription_expires_at, plan: user.subscription_plan ?? null }
+}
+
 // ---- Utility: convert DbUser → PublicUser -----------------------
 
 export function toPublicUser(user: DbUser): PublicUser {
+  const sub = effectiveSubscription(user)
   return {
     id: user.id,
     email: user.email,
     name: user.name,
     avatarUrl: user.avatar_url,
-    accountType: user.account_type,
-    subscriptionStatus: user.subscription_status,
-    subscriptionExpiresAt: user.subscription_expires_at,
-    subscriptionPlan: user.subscription_plan ?? null,
+    // Effective values, so every existing client check (web PremiumContext,
+    // mobile hasActiveSubscription) honours Play access with no change.
+    accountType: sub.active ? 'PREMIUM' : user.account_type,
+    subscriptionStatus: sub.active ? 'ACTIVE' : user.subscription_status,
+    subscriptionExpiresAt: sub.expiresAt,
+    subscriptionPlan: sub.plan,
+    subscriptionSource: sub.source,
+    playPlan: user.play_expires_at && Date.parse(user.play_expires_at) > Date.now() ? user.play_plan ?? null : null,
     role: user.role,
     onboardingCompleted: user.onboarding_completed,
     educationMedium: user.education_medium ?? null,

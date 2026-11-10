@@ -13,7 +13,8 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import { AuthError } from './errors'
 import { hashPassword } from './password'
 import { revokeActiveSession } from './db'
-import type { DbUser } from './types'
+import { withPlayColumns } from '@/lib/payments/google-play/schema'
+import { effectiveSubscription, type DbUser, type SubscriptionColumns } from './types'
 
 export const normalizeEmail = (email: string) => email.trim().toLowerCase()
 export const isEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 254
@@ -43,18 +44,17 @@ export interface LoginAccount {
 
 /** Every account that can sign in with a password, newest first. */
 export async function listLoginAccounts(): Promise<LoginAccount[]> {
-  const { data, error } = await supabaseAdmin.from('user_passwords')
-    .select('user_id, updated_at, users(id, email, name, account_type, subscription_status, subscription_expires_at, created_at)')
-    .order('updated_at', { ascending: false })
+  const { data, error } = await withPlayColumns((withPlay) => supabaseAdmin.from('user_passwords')
+    .select(`user_id, updated_at, users(id, email, name, account_type, subscription_status, subscription_expires_at, ${withPlay ? 'play_expires_at, ' : ''}created_at)`)
+    .order('updated_at', { ascending: false }))
   if (error) throw error
-  type Row = { user_id: string; updated_at: string; users: { id: string; email: string; name: string | null; account_type: string; subscription_status: string; subscription_expires_at: string | null; created_at: string } | null }
+  type Row = { user_id: string; updated_at: string; users: { id: string; email: string; name: string | null; account_type: string; subscription_status: string; subscription_expires_at: string | null; play_expires_at?: string | null; created_at: string } | null }
   return ((data ?? []) as unknown as Row[]).filter((r) => r.users).map((r) => ({
     id: r.users!.id,
     email: r.users!.email,
     name: r.users!.name,
-    pro: r.users!.account_type === 'PREMIUM' && r.users!.subscription_status === 'ACTIVE'
-      && !!r.users!.subscription_expires_at && new Date(r.users!.subscription_expires_at) > new Date(),
-    proUntil: r.users!.subscription_expires_at,
+    pro: effectiveSubscription(r.users as SubscriptionColumns).active,
+    proUntil: effectiveSubscription(r.users as SubscriptionColumns).expiresAt,
     passwordSetAt: r.updated_at,
     createdAt: r.users!.created_at,
   }))

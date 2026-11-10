@@ -30,6 +30,8 @@ export interface LegalDocument {
   title: string
   updated: string
   intro: string[]
+  /** Optional primary button under the intro (e.g. the deletion page's "Delete my account"). */
+  action?: { href: string; label: string }
   sections: LegalSection[]
 }
 
@@ -94,6 +96,15 @@ export default function LegalPage({ english, telugu }: LegalPageProps) {
           ))}
         </div>
 
+        {doc.action && (
+          <Link
+            href={doc.action.href}
+            className="mt-6 inline-flex min-h-11 items-center rounded-xl bg-primary px-5 text-[14px] font-semibold text-primary-foreground transition hover:opacity-90"
+          >
+            {doc.action.label}
+          </Link>
+        )}
+
         <div className="mt-10 space-y-9">
           {doc.sections.map((section) => (
             <section key={section.heading}>
@@ -135,6 +146,9 @@ export default function LegalPage({ english, telugu }: LegalPageProps) {
           </Link>
           <Link href="/terms" className="text-muted-foreground transition hover:text-foreground">
             Terms of Service
+          </Link>
+          <Link href="/account-deletion" className="text-muted-foreground transition hover:text-foreground">
+            Account deletion
           </Link>
         </div>
       </div>

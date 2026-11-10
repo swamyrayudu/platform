@@ -13,11 +13,12 @@ import { requireAuth, isUserPremium } from '@/lib/auth/session'
 import { createAccessUrl } from '@/lib/resources/store'
 import { resourcesError } from '@/lib/resources/respond'
 
-export const POST = requireAuth<{ id: string }>(async (request, { params }, { user }) => {
+export const POST = requireAuth<{ id: string }>(async (request, { params }, { user, session }) => {
   try {
     const { id } = await params
     if (!/^[0-9a-f-]{36}$/i.test(id)) return NextResponse.json({ success: false, error: 'Resource not found.' }, { status: 404 })
-    const result = await createAccessUrl(id, isUserPremium(user))
+    // The viewer is logged per user for the admin user page (resource_views).
+    const result = await createAccessUrl(id, isUserPremium(user), { userId: user.id, platform: session.platform })
     if ('error' in result) {
       return result.error === 'PRO_REQUIRED'
         ? NextResponse.json({ success: false, code: 'PRO_REQUIRED', error: 'This resource is for Pro members.' }, { status: 403 })

@@ -35,6 +35,11 @@ export interface AdminUserSummary {
     devices: number
     activeSessions: number
     activityEvents: number
+    /** null when the resource_views migration is not applied yet */
+    resourcesOpened: number | null
+    resourceOpens: number | null
+    resourcesBlocked: number | null
+    lastResourceOpenedAt: string | null
   }
   payments: {
     orders: number
@@ -45,7 +50,7 @@ export interface AdminUserSummary {
   }
 }
 
-export const USER_HISTORY_SECTIONS = ['activity', 'practice', 'questions', 'mocks', 'payments', 'devices'] as const
+export const USER_HISTORY_SECTIONS = ['activity', 'practice', 'questions', 'mocks', 'resources', 'payments', 'devices'] as const
 export type UserHistorySection = typeof USER_HISTORY_SECTIONS[number]
 
 export interface UserActivity {
@@ -77,11 +82,17 @@ export interface UserDevice {
   id: string; platform: string; user_agent: string | null
   first_login_at: string; last_login_at: string; login_count: number
 }
+export interface UserResourceView {
+  id: string; open_count: number; blocked_count: number
+  first_opened_at: string | null; last_opened_at: string | null; last_seen_at: string; last_platform: string | null
+  resources: { title: string; category: string; subject: string; medium: string; access: string; file_name: string } | null
+}
 export interface HistoryRows {
   activity: UserActivity
   practice: UserPractice
   questions: UserQuestionAttempt
   mocks: UserMockAttempt
+  resources: UserResourceView
   payments: UserPayment
   devices: UserDevice
 }

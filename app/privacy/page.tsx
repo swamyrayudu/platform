@@ -2,7 +2,8 @@
 // app/privacy/page.tsx — Privacy Policy
 // ============================================================
 // Written from the schema rather than from a template: the tables behind this
-// are users, devices, sessions, security_events and payment_orders, and the
+// are users, devices, sessions, security_events, payment_orders and
+// play_subscriptions (Google Play), and the
 // policy says what is actually in them. Two facts are worth stating plainly
 // because they are unusually good and most policies bury them — IP addresses
 // are stored hashed, never raw, and no card detail ever reaches this server.
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
 
 const english: LegalDocument = {
   title: 'Privacy Policy',
-  updated: 'Last updated 14 October 2026',
+  updated: 'Last updated 10 November 2026',
   intro: [
     'This explains what rsdeducation collects about you, why, and what you can do about it. It describes what the application actually stores, not what a policy template would say.',
   ],
@@ -33,13 +34,14 @@ const english: LegalDocument = {
         'Tests you create: the questions you upload in My Tests for your own practice. They are stored privately in your account, never shown to anyone else, and deleted with your account.',
         'Device and session information: a device identifier, your browser or app user agent, and the platform you signed in from. This is what lets you sign out of other devices.',
         'A hashed form of your IP address. We store a one-way hash, not the address itself — it is used for rate limiting and to spot suspicious sign-ins, and it cannot be turned back into your IP.',
-        'Payment records: the plan, amount, coupon used, and the order and payment identifiers returned by Razorpay. These are records of a completed purchase, not a stored payment method — there is no card on file, no UPI mandate and no standing instruction, so nothing can be charged again without you going through checkout yourself.',
+        'Website payment records: the plan, amount, coupon used, and the order and payment identifiers returned by Razorpay. These are records of a completed one-time purchase, not a stored payment method — there is no card on file, no UPI mandate and no standing instruction with us.',
+        'Google Play subscription records, if you subscribe in the Android app: the plan, its status (for example active, cancelled, in grace period, on hold, expired or refunded), its renewal or expiry date, and the purchase token and order identifier Google gives us, which we use to confirm the purchase with Google. To link a purchase to your account we give Google a random account code — never your name or email.',
       ],
     },
     {
       heading: 'What we never collect',
       items: [
-        'Your card number, CVV, UPI PIN or bank credentials. Payments happen inside Razorpay; those details never reach our servers, and nothing is saved for a future charge.',
+        'Your card number, CVV, UPI PIN or bank credentials. Payments happen inside Google Play or Razorpay and those details never reach our servers. For a Google Play subscription, Google keeps your payment method for renewals under its own policy; we never receive it.',
         'Your Google password.',
         'Your precise location, contacts, photos or files.',
       ],
@@ -49,7 +51,7 @@ const english: LegalDocument = {
       items: [
         'To sign you in and keep you signed in across your devices.',
         'To show your practice history, scores and weak topics, and to decide which module unlocks next.',
-        'To give you access to the plan you paid for, and to support you if a payment goes wrong.',
+        'To give you access to the plan you paid for, to keep a Google Play subscription\'s access in step with its renewals, cancellations and refunds, and to support you if a payment goes wrong.',
         'To keep accounts secure — detecting unusual sign-ins, limiting repeated attempts, and letting you end sessions on devices you no longer use.',
       ],
     },
@@ -59,7 +61,7 @@ const english: LegalDocument = {
         'We do not sell your data and we do not share it for advertising. It reaches these service providers only because the platform runs on them:',
       ],
       items: [
-        'Google — sign-in only.',
+        'Google — sign-in, and Google Play billing for subscriptions bought in the Android app. Google Play tells us the status of your subscription and handles your payment details under its own policy.',
         'Supabase — the database where your account and study records are stored.',
         'Razorpay — payment processing. They handle your payment details under their own policy.',
         'Vercel — hosting and delivery of the application.',
@@ -71,7 +73,7 @@ const english: LegalDocument = {
     {
       heading: 'How long we keep it',
       body: [
-        'Your account and study history stay while your account exists, because that record is the point of the product — it is how your progress survives changing phones. Payment records are kept as long as required for accounting. If you delete your account, we keep only the Razorpay payment reference and date of each purchase, no longer linked to you; Razorpay keeps its own record of the payment. Sign-in sessions expire on their own, and security event logs are kept for a limited period.',
+        'Your account and study history stay while your account exists, because that record is the point of the product — it is how your progress survives changing phones. Payment records are kept as long as required for accounting. If you delete your account, we keep only the Razorpay payment reference and date of each website purchase, no longer linked to you; Razorpay keeps its own record of the payment. Your Google Play subscription records are deleted with your account; Google keeps its own record of the purchase, and notices Google sent us (order identifiers and dates, not linked to your name or email) may remain in our logs. Deleting your account does not cancel a Google Play subscription — cancel it in Google Play. Sign-in sessions expire on their own, and security event logs are kept for a limited period.',
       ],
     },
     {
@@ -112,7 +114,7 @@ const english: LegalDocument = {
 
 const telugu: LegalDocument = {
   title: 'గోప్యతా విధానం',
-  updated: 'చివరిగా నవీకరించబడింది: 14 అక్టోబర్ 2026',
+  updated: 'చివరిగా నవీకరించబడింది: 10 నవంబర్ 2026',
   intro: [
     'rsdeducation మీ గురించి ఏమి సేకరిస్తుంది, ఎందుకు సేకరిస్తుంది, మరియు మీరు ఏమి చేయగలరు అనేది ఇక్కడ వివరించబడింది. ఇది ఒక నమూనా పత్రం కాదు — అప్లికేషన్ నిజంగా ఏమి నిల్వ చేస్తుందో అదే ఇక్కడ ఉంది.',
   ],
@@ -126,13 +128,14 @@ const telugu: LegalDocument = {
         'మీరు తయారుచేసే టెస్టులు: My Tests లో మీ సొంత ప్రాక్టీస్ కోసం మీరు అప్‌లోడ్ చేసే ప్రశ్నలు. ఇవి మీ ఖాతాలో గోప్యంగా నిల్వ ఉంటాయి, ఇతరులకు కనిపించవు, మీ ఖాతాతో పాటు తొలగించబడతాయి.',
         'పరికరం మరియు సెషన్ సమాచారం: పరికర గుర్తింపు, బ్రౌజర్ వివరాలు, మరియు మీరు సైన్ ఇన్ చేసిన ప్లాట్‌ఫామ్. ఇతర పరికరాల నుండి సైన్ అవుట్ చేయగలగడానికి ఇది అవసరం.',
         'మీ ఐపీ చిరునామా యొక్క హాష్ రూపం. మేము చిరునామాను కాక, ఒక వన్-వే హాష్‌ను మాత్రమే నిల్వ చేస్తాము — ఇది రేట్ లిమిటింగ్ మరియు అనుమానాస్పద సైన్ ఇన్‌లను గుర్తించడానికి వాడతాము; దాన్ని తిరిగి మీ ఐపీగా మార్చలేము.',
-        'చెల్లింపు రికార్డులు: ప్లాన్, మొత్తం, వాడిన కూపన్, మరియు Razorpay ఇచ్చిన ఆర్డర్ మరియు చెల్లింపు గుర్తింపులు. ఇవి పూర్తయిన కొనుగోలు రికార్డులు మాత్రమే — కార్డు సేవ్ చేయబడదు, యూపీఐ మాండేట్ ఉండదు, స్టాండింగ్ ఇన్‌స్ట్రక్షన్ ఉండదు. మీరే స్వయంగా చెక్అవుట్ చేయకపోతే మళ్లీ డబ్బు కట్ కాదు.',
+        'వెబ్‌సైట్ చెల్లింపు రికార్డులు: ప్లాన్, మొత్తం, వాడిన కూపన్, మరియు Razorpay ఇచ్చిన ఆర్డర్ మరియు చెల్లింపు గుర్తింపులు. ఇవి పూర్తయిన ఒక్కసారి కొనుగోలు రికార్డులు మాత్రమే — మా వద్ద కార్డు సేవ్ చేయబడదు, యూపీఐ మాండేట్ ఉండదు, స్టాండింగ్ ఇన్‌స్ట్రక్షన్ ఉండదు.',
+        'గూగుల్ ప్లే సబ్‌స్క్రిప్షన్ రికార్డులు (ఆండ్రాయిడ్ యాప్‌లో సబ్‌స్క్రైబ్ చేస్తే): ప్లాన్, దాని స్థితి (ఉదా: యాక్టివ్, రద్దు, గ్రేస్ పీరియడ్, నిలిపివేత, గడువు ముగిసింది లేదా రీఫండ్), రెన్యువల్ లేదా గడువు తేదీ, మరియు గూగుల్ ఇచ్చే పర్చేస్ టోకెన్ మరియు ఆర్డర్ గుర్తింపు — కొనుగోలును గూగుల్‌తో నిర్ధారించడానికి వీటిని వాడతాము. కొనుగోలును మీ ఖాతాతో జత చేయడానికి గూగుల్‌కు ఒక యాదృచ్ఛిక ఖాతా కోడ్ మాత్రమే ఇస్తాము — మీ పేరు లేదా ఈమెయిల్ ఎప్పుడూ ఇవ్వము.',
       ],
     },
     {
       heading: 'మేము ఎప్పుడూ సేకరించనివి',
       items: [
-        'మీ కార్డు నంబరు, సీవీవీ, యూపీఐ పిన్ లేదా బ్యాంకు వివరాలు. చెల్లింపులు Razorpay లోపల జరుగుతాయి; ఆ వివరాలు మా సర్వర్లకు ఎప్పుడూ చేరవు, భవిష్యత్ చెల్లింపు కోసం ఏదీ సేవ్ చేయబడదు.',
+        'మీ కార్డు నంబరు, సీవీవీ, యూపీఐ పిన్ లేదా బ్యాంకు వివరాలు. చెల్లింపులు గూగుల్ ప్లే లేదా Razorpay లోపల జరుగుతాయి; ఆ వివరాలు మా సర్వర్లకు ఎప్పుడూ చేరవు. గూగుల్ ప్లే సబ్‌స్క్రిప్షన్ రెన్యువల్స్ కోసం మీ చెల్లింపు విధానాన్ని గూగుల్ తన సొంత విధానం ప్రకారం ఉంచుకుంటుంది; అది మాకు ఎప్పుడూ అందదు.',
         'మీ గూగుల్ పాస్‌వర్డ్.',
         'మీ ఖచ్చితమైన లొకేషన్, కాంటాక్టులు, ఫోటోలు లేదా ఫైళ్లు.',
       ],
@@ -142,7 +145,7 @@ const telugu: LegalDocument = {
       items: [
         'మిమ్మల్ని సైన్ ఇన్ చేయడానికి, మీ పరికరాల్లో సైన్ ఇన్ కొనసాగించడానికి.',
         'మీ ప్రాక్టీస్ చరిత్ర, స్కోర్లు, బలహీన అంశాలు చూపడానికి మరియు తర్వాతి మాడ్యూల్ ఎప్పుడు తెరవాలో నిర్ణయించడానికి.',
-        'మీరు చెల్లించిన ప్లాన్‌కు ప్రవేశం ఇవ్వడానికి, చెల్లింపులో సమస్య వస్తే సహాయం చేయడానికి.',
+        'మీరు చెల్లించిన ప్లాన్‌కు ప్రవేశం ఇవ్వడానికి, గూగుల్ ప్లే సబ్‌స్క్రిప్షన్ రెన్యువల్, రద్దు మరియు రీఫండ్‌లకు అనుగుణంగా ప్రవేశాన్ని సరిచేయడానికి, చెల్లింపులో సమస్య వస్తే సహాయం చేయడానికి.',
         'ఖాతాల భద్రత కోసం — అసాధారణ సైన్ ఇన్‌లను గుర్తించడం, పదేపదే ప్రయత్నాలను నియంత్రించడం, వాడని పరికరాల సెషన్లను ముగించడం.',
       ],
     },
@@ -152,7 +155,7 @@ const telugu: LegalDocument = {
         'మేము మీ డేటాను అమ్మము, ప్రకటనల కోసం పంచము. వేదిక వీటిపై నడుస్తున్నందున మాత్రమే ఈ సేవా ప్రదాతలకు చేరుతుంది:',
       ],
       items: [
-        'గూగుల్ — సైన్ ఇన్ కోసం మాత్రమే.',
+        'గూగుల్ — సైన్ ఇన్ కోసం, మరియు ఆండ్రాయిడ్ యాప్‌లో కొన్న సబ్‌స్క్రిప్షన్ల కోసం గూగుల్ ప్లే బిల్లింగ్. గూగుల్ ప్లే మీ సబ్‌స్క్రిప్షన్ స్థితిని మాకు తెలియజేస్తుంది; మీ చెల్లింపు వివరాలను తన సొంత విధానం ప్రకారం నిర్వహిస్తుంది.',
         'Supabase — మీ ఖాతా మరియు చదువు రికార్డులు నిల్వ ఉండే డేటాబేస్.',
         'Razorpay — చెల్లింపుల ప్రాసెసింగ్. మీ చెల్లింపు వివరాలను వారి సొంత విధానం ప్రకారం నిర్వహిస్తారు.',
         'Vercel — అప్లికేషన్ హోస్టింగ్.',
@@ -164,7 +167,7 @@ const telugu: LegalDocument = {
     {
       heading: 'ఎంతకాలం ఉంచుతాము',
       body: [
-        'మీ ఖాతా ఉన్నంత వరకు మీ ఖాతా మరియు చదువు చరిత్ర ఉంటాయి — ఫోన్ మారినా మీ పురోగతి నిలిచి ఉండటమే ఈ ఉత్పత్తి ఉద్దేశం. చెల్లింపు రికార్డులు లెక్కల అవసరం మేరకు ఉంచుతాము. మీరు ఖాతా తొలగిస్తే, ప్రతి కొనుగోలుకు సంబంధించిన Razorpay చెల్లింపు గుర్తింపు మరియు తేదీ మాత్రమే మీతో సంబంధం లేకుండా ఉంచుతాము; Razorpay తన సొంత చెల్లింపు రికార్డును ఉంచుకుంటుంది. సైన్ ఇన్ సెషన్లు వాటంతట అవే గడువు ముగుస్తాయి; భద్రతా లాగ్‌లు పరిమిత కాలం ఉంచుతాము.',
+        'మీ ఖాతా ఉన్నంత వరకు మీ ఖాతా మరియు చదువు చరిత్ర ఉంటాయి — ఫోన్ మారినా మీ పురోగతి నిలిచి ఉండటమే ఈ ఉత్పత్తి ఉద్దేశం. చెల్లింపు రికార్డులు లెక్కల అవసరం మేరకు ఉంచుతాము. మీరు ఖాతా తొలగిస్తే, ప్రతి వెబ్‌సైట్ కొనుగోలుకు సంబంధించిన Razorpay చెల్లింపు గుర్తింపు మరియు తేదీ మాత్రమే మీతో సంబంధం లేకుండా ఉంచుతాము; Razorpay తన సొంత చెల్లింపు రికార్డును ఉంచుకుంటుంది. మీ గూగుల్ ప్లే సబ్‌స్క్రిప్షన్ రికార్డులు మీ ఖాతాతో పాటు తొలగించబడతాయి; గూగుల్ తన సొంత కొనుగోలు రికార్డును ఉంచుకుంటుంది, గూగుల్ పంపిన నోటీసులు (మీ పేరు లేదా ఈమెయిల్‌తో సంబంధం లేని ఆర్డర్ గుర్తింపులు మరియు తేదీలు) మా లాగ్‌లలో ఉండవచ్చు. ఖాతా తొలగిస్తే గూగుల్ ప్లే సబ్‌స్క్రిప్షన్ రద్దు కాదు — దాన్ని గూగుల్ ప్లేలో రద్దు చేయండి. సైన్ ఇన్ సెషన్లు వాటంతట అవే గడువు ముగుస్తాయి; భద్రతా లాగ్‌లు పరిమిత కాలం ఉంచుతాము.',
       ],
     },
     {

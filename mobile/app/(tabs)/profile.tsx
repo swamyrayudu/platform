@@ -11,7 +11,8 @@ import { PracticeChoices } from '@/components/practice-choices';
 import { PracticeMediumTabs } from '@/components/practice-selectors';
 import { useAuth } from '@/store/auth';
 import { authService } from '@/services/auth-service';
-import { paymentService, showsPlans } from '@/services/payment-service';
+import { paymentService, planSource, showsPlans } from '@/services/payment-service';
+import { playPlanName } from '@/services/play-billing-service';
 import { api } from '@/services/api-client';
 import { API_BASE_URL } from '@/utils/config';
 import { GOVERNMENT_DISCLAIMER } from '@/utils/legal';
@@ -80,7 +81,9 @@ export default function Profile() {
   const logout=useMutation({mutationFn:(all:boolean)=>auth.logout(all)});
   const remove=useMutation({mutationFn:()=>auth.deleteAccount()});
   // Two confirmations: deletion is immediate and cannot be undone.
-  const confirmDelete=()=>Alert.alert('Delete account?','This permanently deletes your profile, practice history, mock test results and progress. Any remaining Pro access ends. This cannot be undone.',[
+  // A Play subscription is billed by Google and survives account deletion: say so before deleting.
+  const playNote=user?.playPlan?'\n\nYour Google Play subscription is NOT cancelled by this. Cancel it first in Google Play → Payments & subscriptions → Subscriptions, or Google will keep charging you.':'';
+  const confirmDelete=()=>Alert.alert('Delete account?','This permanently deletes your profile, practice history, mock test results and progress. Any remaining Pro access ends. This cannot be undone.'+playNote,[
     {text:'Cancel',style:'cancel'},
     {text:'Continue',style:'destructive',onPress:()=>Alert.alert('Delete permanently?','Your account will be deleted now.',[
       {text:'Cancel',style:'cancel'},
@@ -131,13 +134,14 @@ export default function Profile() {
     </View>
 
     <ProfileSection title="Your subscription" icon="ribbon-outline" action={<Badge label={status} color={subscribed?colors.green:colors.muted}/>}>
-      <Heading style={styles.planName}>{currentPlan?.name??(user?.subscriptionPlan?'RSD Pro plan':showsPlans?'Start with RSD Pro':'Free plan')}</Heading>
+      <Heading style={styles.planName}>{currentPlan?.name??playPlanName(user?.subscriptionPlan)??(user?.subscriptionPlan?'RSD Pro plan':showsPlans?'Start with RSD Pro':'Free plan')}</Heading>
       <View style={styles.subscriptionDetail}>
         <Ionicons name={expires?'calendar-outline':'sparkles-outline'} size={16} color={colors.gold}/>
         <Text style={styles.detailText}>{expires?(subscribed?'Valid until ':'Expiry date: ')+expires:subscribed?'Your Pro access is active.':showsPlans?'Unlock more practice and mock tests.':'You are on the free plan.'}</Text>
       </View>
-      {showsPlans&&subscribed?<Text style={styles.caption}>Renewal adds days to your remaining access.</Text>:null}
-      {showsPlans?<Button icon="card-outline" label={subscribed?'View plans & renew':'View plans & pay'} onPress={()=>router.push('/subscription')}/>:null}
+      {planSource==='razorpay'&&subscribed?<Text style={styles.caption}>Renewal adds days to your remaining access.</Text>:null}
+      {planSource==='google_play'&&user?.subscriptionSource==='google_play'?<Text style={styles.caption}>Billed by Google Play. Change or cancel it in Google Play.</Text>:null}
+      {showsPlans?<Button icon="card-outline" label={planSource==='google_play'?(subscribed?'Manage subscription':'View plans'):subscribed?'View plans & renew':'View plans & pay'} onPress={()=>router.push('/subscription')}/>:null}
     </ProfileSection>
 
     <ProfileSection title="Study preferences" icon="options-outline" action={
@@ -201,7 +205,8 @@ export default function Profile() {
     <ProfileSection title="Legal" icon="document-text-outline">
       <View>
         <ProfileAction label="Terms of service" icon="reader-outline" link onPress={()=>void WebBrowser.openBrowserAsync(API_BASE_URL+'/terms')}/>
-        <ProfileAction label="Privacy policy" icon="lock-closed-outline" link last onPress={()=>void WebBrowser.openBrowserAsync(API_BASE_URL+'/privacy')}/>
+        <ProfileAction label="Privacy policy" icon="lock-closed-outline" link onPress={()=>void WebBrowser.openBrowserAsync(API_BASE_URL+'/privacy')}/>
+        <ProfileAction label="Account deletion policy" icon="trash-bin-outline" link last onPress={()=>void WebBrowser.openBrowserAsync(API_BASE_URL+'/account-deletion')}/>
       </View>
       <Text style={styles.caption}>{GOVERNMENT_DISCLAIMER}</Text>
     </ProfileSection>

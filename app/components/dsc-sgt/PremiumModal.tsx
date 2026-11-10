@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { usePremium } from './PremiumContext'
+import { useAuth } from '@/app/contexts/AuthContext'
 import {
   PLAN_LIST,
   formatPaise,
@@ -127,6 +128,10 @@ function PlanSkeleton() {
 
 // ---- Main Modal --------------------------------------------------
 
+const PLAY_PLAN_NAMES: Record<string, string> = {
+  play_monthly: 'Pro Monthly (Google Play)', play_quarterly: 'Pro Quarterly (Google Play)', play_yearly: 'Pro Yearly (Google Play)',
+}
+
 export default function PremiumModal() {
   const {
     isModalOpen,
@@ -137,6 +142,11 @@ export default function PremiumModal() {
     startCheckout,
     isCheckingOut,
   } = usePremium()
+  const { user } = useAuth()
+  // Pro that currently comes from a Google Play subscription (bought in the
+  // Android app). Website plans stack on website time only, so the
+  // "added on top of your days" date below would be wrong for these users.
+  const viaPlay = isPremium && user?.subscriptionSource === 'google_play'
 
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('pro_full')
   // Candidates sign in with Google, so we never learn a phone number — and
@@ -242,7 +252,7 @@ export default function PremiumModal() {
     await startCheckout(selectedPlan, coupon?.code, contactValid ? digits : undefined)
   }
 
-  const activePlanName = isPlanId(currentPlan) ? getPlan(currentPlan).name : 'Pro'
+  const activePlanName = viaPlay ? (PLAY_PLAN_NAMES[user?.playPlan ?? ''] ?? 'Google Play subscription') : isPlanId(currentPlan) ? getPlan(currentPlan).name : 'Pro'
   const selectedPlanData = displayPlans.find(p => p.id === selectedPlan)
   const payAmount = formatPaise(priceFor(selectedPlan))
 
@@ -255,7 +265,7 @@ export default function PremiumModal() {
   // (A lapsed subscription restarts from today, but that person is not Pro and
   // never sees this line.) No clock read, so nothing shifts between renders.
   const extendedUntil =
-    selectedPlanData && expiresAt
+    selectedPlanData && expiresAt && !viaPlay
       ? new Date(
           new Date(expiresAt).getTime() + selectedPlanData.durationDays * 86_400_000
         ).toISOString()
@@ -324,7 +334,9 @@ export default function PremiumModal() {
                       <span className="text-muted-foreground"> · valid until <strong className="text-foreground">{formatDate(expiresAt)}</strong></span>
                     )}
                     <span className="block text-muted-foreground/70 mt-0.5">
-                      Your remaining days are never lost — a new plan is added on top of them.
+                      {viaPlay
+                        ? 'Billed by Google Play and renews automatically — change or cancel it in the Google Play app. A plan bought here is a separate one-time pass, so you do not need one.'
+                        : 'Your remaining days are never lost — a new plan is added on top of them.'}
                     </span>
                   </div>
                 </div>

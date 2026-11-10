@@ -1,0 +1,21 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.rsdplaybilling'
+version = '1.0.0'
+
+android {
+  namespace 'expo.modules.rsdplaybilling'
+  defaultConfig {
+    versionCode 1
+    versionName '1.0.0'
+  }
+}
+
+dependencies {
+  // Google Play Billing Library. The Java artifact (not billing-ktx) avoids
+  // Kotlin-metadata coupling with the Kotlin version SDK 57's template uses.
+  implementation 'com.android.billingclient:billing:8.3.0'
+}

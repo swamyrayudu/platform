@@ -1,14 +1,14 @@
 # Publishing RSD Education on Google Play
 
-The code side is done: in-app and web account deletion, a store build without
-plans or prices, unneeded Android permissions removed, and version codes that
+The code side is done: in-app and web account deletion, Google Play Billing in the store build, unneeded Android permissions removed, and version codes that
 increase on every production build. What is left happens in Google's consoles.
 
 ## 1. Before the first upload
 
 1. **Deploy the website.** The app's delete button calls `DELETE /api/auth/account`,
-   and Play checks `https://rsdeducation.vercel.app/delete-account` and
-   `https://rsdeducation.vercel.app/privacy`. Both must be live.
+   and Play checks `https://rsdeducation.vercel.app/account-deletion` (deletion policy),
+   `https://rsdeducation.vercel.app/delete-account` (where deletion is done) and
+   `https://rsdeducation.vercel.app/privacy`. All must be live.
 2. **Build the Play bundle** (an `.aab`, signed by EAS):
    ```bash
    eas build --platform android --profile production
@@ -75,7 +75,7 @@ never enter one, so there is no extra data type to declare for them.
 | Email address | Yes | Account management | Required |
 | User IDs | Yes (Google account ID) | Account management | Required |
 | Other personal info: profile photo URL from Google | Yes | App functionality | Required |
-| Purchase history | Yes (Pro bought on the website) | App functionality | Optional |
+| Purchase history | Yes (Google Play subscriptions and Pro bought on the website) | App functionality | Optional |
 | App interactions / other actions (answers, scores, progress) | Yes | App functionality, analytics of your own progress | Required |
 | Device or other IDs | Yes (device identifier for sign-in sessions) | Security, account management | Required |
 | Location, contacts, photos, files, messages, audio | No | — | — |
@@ -83,7 +83,11 @@ never enter one, so there is no extra data type to declare for them.
 
 - Data encrypted in transit: **Yes** (HTTPS only).
 - Users can request deletion: **Yes**. Delete account URL:
-  `https://rsdeducation.vercel.app/delete-account`
+  `https://rsdeducation.vercel.app/account-deletion` (public policy page: steps in the app,
+  on the website and by email; what is deleted and kept). It links to `/delete-account`,
+  where a signed-in user deletes the account without installing the app.
+- Users can request that some data be deleted without deleting the account: **Yes** (by email,
+  described on the same page).
 - Deletion is in the app too: Profile → Account → Delete account.
 
 ## 4. Store listing
@@ -103,12 +107,18 @@ never enter one, so there is no extra data type to declare for them.
 
 ## 6. Payments in the store build
 
-Google Play requires its own billing for digital subscriptions. The store build
-(`RSD_DISTRIBUTION=store`) therefore shows **no plans, prices or "upgrade" buttons**
-(`showsPlans` in `services/payment-service.ts`). People who bought Pro on the website
-sign in and get Pro. The direct APK (`RSD_DISTRIBUTION=direct`) still sells through
-Razorpay. Selling inside the Play app later means adding Google Play Billing, or
-enrolling in Google's alternative billing programme for India.
+The store build (`RSD_DISTRIBUTION=store`) sells RSD Pro as **Google Play subscriptions** (monthly,
+quarterly, yearly) through `modules/rsd-play-billing` and `components/play-subscription-plans.tsx`.
+Prices come from Google; the server verifies every purchase with the Google Play Developer API and
+tracks renewals, cancellations and refunds through real-time developer notifications.
+The direct APK (`RSD_DISTRIBUTION=direct`) still sells through Razorpay, unchanged. Pro bought either
+way works on the website and in both apps (`planSource` in `services/payment-service.ts`).
+
+Setup (Play Console products, service account, Pub/Sub, env vars, migration, testing):
+see `../docs/GOOGLE_PLAY_BILLING.md` in the website root.
+
+App content: declare **Purchase history** as collected (Google Play subscriptions and website purchases).
+Card / UPI details are handled by Google Play and never reach RSD Education.
 
 ## 7. App size
 

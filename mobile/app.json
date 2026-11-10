@@ -3,7 +3,7 @@
     "name": "RSD Education",
     "slug": "rsd-education",
     "scheme": "rsdeducation",
-    "version": "1.0.3",
+    "version": "1.1.0",
     "icon": "./assets/icon.png",
     "platforms": ["android", "ios"],
     "orientation": "portrait",

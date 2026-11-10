@@ -7,17 +7,19 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen, Body, Button, ErrorState, Badge } from '@/components/ui';
 import { SubscriptionPlanCard } from '@/components/subscription-plan-card';
-import { paymentService, canCheckout, showsPlans, type Plan } from '@/services/payment-service';
+import { paymentService, canCheckout, planSource, type Plan } from '@/services/payment-service';
+import { PlaySubscriptionPlans } from '@/components/play-subscription-plans';
 import { useAuth } from '@/store/auth';
 import { colors } from '@/utils/theme';
 import { formatPrice, hasActiveSubscription, subscriptionDate } from '@/utils/subscription';
 import type { PublicUser } from '@/types/auth';
 
 export default function Subscription() {
-  return showsPlans?<SubscriptionPlans/>:<AccessStatus/>;
+  // Direct APK: Razorpay (unchanged). Google Play build: Play Billing. Otherwise: status only.
+  return planSource==='razorpay'?<SubscriptionPlans/>:planSource==='google_play'?<PlaySubscriptionPlans/>:<AccessStatus/>;
 }
 
-/** Store builds: no plans or prices (see showsPlans), only the user's current access. */
+/** Store builds without Play Billing: no plans or prices (see planSource), only the user's current access. */
 function AccessStatus() {
   const {user}=useAuth();
   const subscribed=hasActiveSubscription(user);

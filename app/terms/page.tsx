@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 
 const english: LegalDocument = {
   title: 'Terms of Service',
-  updated: 'Last updated 15 September 2026',
+  updated: 'Last updated 10 November 2026',
   intro: [
     'rsdeducation is a practice platform for the AP DSC SGT examination. By creating an account or using the platform you agree to these terms. Please read the section on what we do not promise — it is the most important part of this document.',
   ],
@@ -56,18 +56,21 @@ const english: LegalDocument = {
       ],
     },
     {
-      heading: 'Payments, plans, cancellation and refunds',
+      heading: 'Payments, plans, renewal, cancellation and refunds',
       body: [
-        'Plans are a one-time payment for a fixed period. There is no subscription, no auto-renewal and no standing instruction on your card or UPI — nothing is ever charged again unless you deliberately buy another plan.',
+        'Pro can be bought in two ways. Both unlock exactly the same features for your account, on the website and in the app. The price, the billing period or duration, and what is included are always shown before you pay.',
       ],
       items: [
-        'The price, the duration and what is included are all shown before you pay.',
-        'Because nothing renews, there is nothing to cancel. Access ends on its expiry date and you return to the free plan — no reminder, no action and no contact with us is needed.',
-        'A plan cannot be cancelled part-way through for a partial refund. Once it is active it runs to its expiry date.',
-        'Because the full question bank is unlocked the moment payment succeeds, we do not offer refunds once a plan is active. If a payment was taken in error, or you were charged twice, contact us and we will put it right.',
-        'Buying another plan while one is still running adds its days to what you already have; it does not replace or shorten it.',
-        'Payments are handled by Razorpay. We never see or store your card, UPI or bank details.',
-        'We may change prices for future purchases. A plan you have already paid for is not affected.',
+        'In the Android app from Google Play: Pro is an auto-renewing subscription — monthly, quarterly or yearly — sold and billed by Google Play. The price, billing period and any free trial or introductory price are shown by Google before you confirm, and the payment is charged to your Google Play account.',
+        'A Google Play subscription renews automatically at the end of each billing period, at the price shown, until you cancel it. You can cancel at any time in the Google Play Store app → Payments & subscriptions → Subscriptions, or from Plans → Manage in Google Play in our app. After you cancel, Pro stays active until the end of the period you have already paid for, and you are not charged again.',
+        'If a Google Play renewal payment fails, Google may retry it for a short grace period during which Pro continues. If it still fails, Pro is paused until the payment is fixed in Google Play.',
+        'Refunds for Google Play purchases follow Google Play\'s refund policies. You can request a refund through Google Play, or contact us. If a payment is refunded or reversed, the Pro access that payment was for ends.',
+        'Deleting your rsdeducation account does not cancel a Google Play subscription. Cancel it in Google Play first, otherwise Google will continue to charge you.',
+        'On the website (and the Android app downloaded directly from our website): Pro is a one-time payment for a fixed period, handled by Razorpay. It does not renew and leaves no standing instruction on your card or UPI, so there is nothing to cancel — access ends on its expiry date and you return to the free plan.',
+        'A one-time plan cannot be cancelled part-way through for a partial refund. Because the full question bank unlocks the moment payment succeeds, we do not refund a one-time plan once it is active. If a payment was taken in error, or you were charged twice, contact us and we will put it right.',
+        'Buying another one-time plan while one is still running adds its days to what you already have. A website plan and a Google Play subscription are separate purchases: if you have both, you have Pro until the later of the two ends, and neither one cancels or shortens the other.',
+        'We never see or store your card, UPI or bank details. Google Play and Razorpay handle them under their own policies.',
+        'We may change prices for future purchases. For a Google Play subscription, Google tells you about a price change in advance and, where its rules require, asks for your agreement before charging the new price. A one-time plan you have already paid for is not affected.',
       ],
     },
     {
@@ -105,7 +108,7 @@ const english: LegalDocument = {
 
 const telugu: LegalDocument = {
   title: 'నిబంధనలు మరియు షరతులు',
-  updated: 'చివరిగా నవీకరించబడింది: 15 సెప్టెంబర్ 2026',
+  updated: 'చివరిగా నవీకరించబడింది: 10 నవంబర్ 2026',
   intro: [
     'rsdeducation అనేది ఏపీ డీఎస్సీ ఎస్‌జీటీ పరీక్ష కోసం ఒక ప్రాక్టీస్ వేదిక. ఖాతా తెరిచినప్పుడు లేదా ఈ వేదికను ఉపయోగించినప్పుడు మీరు ఈ నిబంధనలకు అంగీకరిస్తున్నారు. "మేము ఏమి హామీ ఇవ్వము" అనే భాగాన్ని తప్పకుండా చదవండి — ఈ పత్రంలో అదే అత్యంత ముఖ్యమైనది.',
   ],
@@ -141,18 +144,21 @@ const telugu: LegalDocument = {
       ],
     },
     {
-      heading: 'చెల్లింపులు, ప్లాన్లు, రద్దు మరియు రీఫండ్‌లు',
+      heading: 'చెల్లింపులు, ప్లాన్లు, రెన్యువల్, రద్దు మరియు రీఫండ్‌లు',
       body: [
-        'ప్లాన్లు నిర్ణీత కాలానికి ఒక్కసారి చేసే చెల్లింపు. ఇది సబ్‌స్క్రిప్షన్ కాదు — ఆటో-రెన్యువల్ లేదు, మీ కార్డు లేదా యూపీఐపై ఎలాంటి స్టాండింగ్ ఇన్‌స్ట్రక్షన్ ఉండదు. మీరు స్వయంగా మరో ప్లాన్ కొనకపోతే మళ్లీ ఎప్పుడూ డబ్బు కట్ కాదు.',
+        'Pro ను రెండు విధాలుగా కొనవచ్చు. రెండూ మీ ఖాతాకు — వెబ్‌సైట్‌లో మరియు యాప్‌లో — ఒకే రకమైన ఫీచర్లను తెరుస్తాయి. ధర, బిల్లింగ్ కాలం లేదా కాలవ్యవధి, మరియు ఏమి ఉన్నాయో చెల్లించే ముందే ఎప్పుడూ చూపబడతాయి.',
       ],
       items: [
-        'ధర, కాలవ్యవధి మరియు ఏమి ఉన్నాయో చెల్లించే ముందే చూపబడతాయి.',
-        'ఏదీ రెన్యూ కానందున, రద్దు చేయాల్సిన అవసరమే లేదు. గడువు తేదీన ప్రవేశం ముగుస్తుంది, మీరు ఉచిత ప్లాన్‌కు తిరిగి వస్తారు — రిమైండర్ అవసరం లేదు, మీ వైపు చర్య అవసరం లేదు, మమ్మల్ని సంప్రదించనవసరం లేదు.',
-        'ప్లాన్ మధ్యలో రద్దు చేసి పాక్షిక రీఫండ్ పొందడం సాధ్యం కాదు. ఒకసారి యాక్టివ్ అయిన తర్వాత అది గడువు తేదీ వరకు కొనసాగుతుంది.',
-        'చెల్లింపు విజయవంతమైన క్షణమే పూర్తి ప్రశ్న బ్యాంకు తెరవబడుతుంది కాబట్టి, ప్లాన్ యాక్టివ్ అయిన తర్వాత రీఫండ్ ఇవ్వము. పొరపాటున చెల్లింపు జరిగితే లేదా రెండుసార్లు డబ్బు కట్ అయితే మమ్మల్ని సంప్రదించండి, సరిచేస్తాము.',
-        'ఒక ప్లాన్ నడుస్తుండగా మరో ప్లాన్ కొంటే, దాని రోజులు మీ ప్రస్తుత కాలానికి కలుపబడతాయి — అది మార్చబడదు లేదా తగ్గించబడదు.',
-        'చెల్లింపులను Razorpay నిర్వహిస్తుంది. మీ కార్డు, యూపీఐ లేదా బ్యాంకు వివరాలను మేము చూడము, నిల్వ చేయము.',
-        'భవిష్యత్ కొనుగోళ్లకు ధరలు మారవచ్చు. మీరు ఇప్పటికే చెల్లించిన ప్లాన్‌పై ప్రభావం ఉండదు.',
+        'గూగుల్ ప్లే నుండి తీసుకున్న ఆండ్రాయిడ్ యాప్‌లో: Pro అనేది ఆటోమేటిక్‌గా రెన్యూ అయ్యే సబ్‌స్క్రిప్షన్ — నెలవారీ, మూడు నెలలకు లేదా సంవత్సరానికి — దీన్ని గూగుల్ ప్లే అమ్ముతుంది, బిల్ చేస్తుంది. ధర, బిల్లింగ్ కాలం, మరియు ఏదైనా ఉచిత ట్రయల్ లేదా పరిచయ ధర మీరు నిర్ధారించే ముందే గూగుల్ చూపిస్తుంది; చెల్లింపు మీ గూగుల్ ప్లే ఖాతా నుండి జరుగుతుంది.',
+        'గూగుల్ ప్లే సబ్‌స్క్రిప్షన్ ప్రతి బిల్లింగ్ కాలం చివర చూపిన ధరకే ఆటోమేటిక్‌గా రెన్యూ అవుతుంది — మీరు రద్దు చేసే వరకు. గూగుల్ ప్లే స్టోర్ యాప్ → Payments & subscriptions → Subscriptions లో, లేదా మా యాప్‌లో Plans → Manage in Google Play ద్వారా ఎప్పుడైనా రద్దు చేయవచ్చు. రద్దు చేసిన తర్వాత, మీరు ఇప్పటికే చెల్లించిన కాలం ముగిసే వరకు Pro కొనసాగుతుంది; మళ్లీ డబ్బు కట్ కాదు.',
+        'గూగుల్ ప్లే రెన్యువల్ చెల్లింపు విఫలమైతే, గూగుల్ కొద్ది రోజుల గ్రేస్ పీరియడ్‌లో మళ్లీ ప్రయత్నించవచ్చు — ఆ సమయంలో Pro కొనసాగుతుంది. అప్పటికీ విఫలమైతే, గూగుల్ ప్లేలో చెల్లింపు సరిచేసే వరకు Pro నిలిపివేయబడుతుంది.',
+        'గూగుల్ ప్లే కొనుగోళ్ల రీఫండ్‌లు గూగుల్ ప్లే రీఫండ్ విధానాల ప్రకారం జరుగుతాయి. గూగుల్ ప్లే ద్వారా రీఫండ్ అభ్యర్థించవచ్చు, లేదా మమ్మల్ని సంప్రదించవచ్చు. ఏదైనా చెల్లింపు రీఫండ్ అయినా లేదా వెనక్కి తీసుకోబడినా, ఆ చెల్లింపుకు సంబంధించిన Pro ప్రవేశం ముగుస్తుంది.',
+        'మీ rsdeducation ఖాతాను తొలగిస్తే గూగుల్ ప్లే సబ్‌స్క్రిప్షన్ రద్దు కాదు. ముందుగా గూగుల్ ప్లేలో దాన్ని రద్దు చేయండి; లేకపోతే గూగుల్ మీ నుండి డబ్బు కట్ చేస్తూనే ఉంటుంది.',
+        'వెబ్‌సైట్‌లో (మరియు మా వెబ్‌సైట్ నుండి నేరుగా డౌన్‌లోడ్ చేసిన ఆండ్రాయిడ్ యాప్‌లో): Pro అనేది నిర్ణీత కాలానికి ఒక్కసారి చేసే చెల్లింపు, దీన్ని Razorpay నిర్వహిస్తుంది. ఇది రెన్యూ కాదు, మీ కార్డు లేదా యూపీఐపై ఎలాంటి స్టాండింగ్ ఇన్‌స్ట్రక్షన్ ఉండదు — కాబట్టి రద్దు చేయాల్సింది ఏమీ లేదు. గడువు తేదీన ప్రవేశం ముగుస్తుంది, మీరు ఉచిత ప్లాన్‌కు తిరిగి వస్తారు.',
+        'ఒక్కసారి చెల్లించే ప్లాన్‌ను మధ్యలో రద్దు చేసి పాక్షిక రీఫండ్ పొందడం సాధ్యం కాదు. చెల్లింపు విజయవంతమైన క్షణమే పూర్తి ప్రశ్న బ్యాంకు తెరవబడుతుంది కాబట్టి, అలాంటి ప్లాన్ యాక్టివ్ అయిన తర్వాత రీఫండ్ ఇవ్వము. పొరపాటున చెల్లింపు జరిగితే లేదా రెండుసార్లు డబ్బు కట్ అయితే మమ్మల్ని సంప్రదించండి, సరిచేస్తాము.',
+        'ఒక్కసారి చెల్లించే ప్లాన్ నడుస్తుండగా మరొకటి కొంటే, దాని రోజులు మీ ప్రస్తుత కాలానికి కలుపబడతాయి. వెబ్‌సైట్ ప్లాన్ మరియు గూగుల్ ప్లే సబ్‌స్క్రిప్షన్ వేర్వేరు కొనుగోళ్లు: రెండూ ఉంటే, రెండింటిలో ఏది ఆలస్యంగా ముగుస్తుందో అప్పటి వరకు Pro ఉంటుంది; ఒకటి మరొకదాన్ని రద్దు చేయదు, తగ్గించదు.',
+        'మీ కార్డు, యూపీఐ లేదా బ్యాంకు వివరాలను మేము చూడము, నిల్వ చేయము. వాటిని గూగుల్ ప్లే మరియు Razorpay తమ సొంత విధానాల ప్రకారం నిర్వహిస్తాయి.',
+        'భవిష్యత్ కొనుగోళ్లకు ధరలు మారవచ్చు. గూగుల్ ప్లే సబ్‌స్క్రిప్షన్ ధర మారితే, గూగుల్ ముందుగానే తెలియజేస్తుంది; దాని నిబంధనలు కోరిన చోట కొత్త ధర వసూలు చేసే ముందు మీ అంగీకారం అడుగుతుంది. మీరు ఇప్పటికే చెల్లించిన ఒక్కసారి ప్లాన్‌పై ప్రభావం ఉండదు.',
       ],
     },
     {

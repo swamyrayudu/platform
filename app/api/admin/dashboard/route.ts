@@ -8,8 +8,9 @@
 
 import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth/session'
-import { toPublicUser } from '@/lib/auth/types'
+import { effectiveSubscription, toPublicUser } from '@/lib/auth/types'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { withPlayColumns } from '@/lib/payments/google-play/schema'
 
 interface UserStats {
   total: number
@@ -49,9 +50,10 @@ async function getUserStats(): Promise<UserStats> {
   weekStart.setDate(now.getDate() - 7)
 
   // Total + premium counts
-  const { data: counts, error: countErr } = await supabaseAdmin
+  const { data: counts, error: countErr } = await withPlayColumns((withPlay) => supabaseAdmin
     .from('users')
-    .select('account_type, subscription_status, subscription_expires_at, created_at')
+    .select(`account_type, subscription_status, subscription_expires_at, ${withPlay ? 'play_expires_at, ' : ''}created_at`)
+    .returns<{ account_type: 'FREE' | 'PREMIUM'; subscription_status: 'NONE' | 'ACTIVE' | 'EXPIRED' | 'CANCELLED'; subscription_expires_at: string | null; play_expires_at?: string | null; created_at: string }[]>())
 
   if (countErr || !counts) {
     return { total: 0, premium: 0, free: 0, newToday: 0, newThisWeek: 0 }
@@ -62,11 +64,7 @@ async function getUserStats(): Promise<UserStats> {
   let newThisWeek = 0
 
   for (const u of counts) {
-    const isActivePremium =
-      u.account_type === 'PREMIUM' &&
-      u.subscription_status === 'ACTIVE' &&
-      u.subscription_expires_at &&
-      new Date(u.subscription_expires_at) > now
+    const isActivePremium = effectiveSubscription(u, now.getTime()).active
 
     if (isActivePremium) premium++
 

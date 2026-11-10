@@ -64,6 +64,8 @@ export default function AdminUserPage() {
               ['Practice questions answered', `${data.usage.questionsAnswered}`, `${data.usage.correctAnswers} correct · ${data.usage.questionsAnswered - data.usage.correctAnswers} incorrect`],
               ['Practice accuracy', data.usage.practiceAccuracy === null ? '—' : `${data.usage.practiceAccuracy}%`, 'Across recorded answers'],
               ['Mock attempts', `${data.usage.mockAttempts}`, `${data.usage.mockSubmitted} submitted`],
+              ['Resources opened', data.usage.resourcesOpened === null ? '—' : `${data.usage.resourcesOpened} ${data.usage.resourcesOpened === 1 ? 'file' : 'files'}`,
+                data.usage.resourcesOpened === null ? 'Resource tracking is not set up yet' : `${data.usage.resourceOpens} opens · last ${userDate(data.usage.lastResourceOpenedAt)}${data.usage.resourcesBlocked ? ` · ${data.usage.resourcesBlocked} Pro blocked` : ''}`],
               ['Payments received', data.payments.totals.map((total) => money(total.amount, total.currency)).join(' + ') || '—', `${data.payments.orders} orders · ${data.payments.paid} paid · ${data.payments.failed} failed · ${data.payments.pending} pending`],
               ['Devices & activity', `${data.usage.devices} devices`, `${data.usage.activeSessions} active login sessions · ${data.usage.activityEvents} account events`],
             ].map(([label, value, detail]) => <div key={label} className="rounded-2xl border border-border bg-card p-4"><p className="text-xs font-medium text-muted-foreground">{label}</p><p className="mt-2 text-2xl font-bold">{value}</p><p className="mt-2 text-[11px] text-muted-foreground">{detail}</p></div>)}

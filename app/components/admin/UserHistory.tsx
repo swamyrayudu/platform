@@ -6,9 +6,14 @@ import { PLANS, isPlanId } from '@/lib/payments/plans'
 import type { AdminUserHistoryResponse, UserHistorySection } from '@/types/admin-users'
 import { duration, money, StatusBadge, UserDataTable, UserPagination, userDate } from './UserDataUI'
 
+const RESOURCE_CATEGORY: Record<string, string> = {
+  book: 'Book', study_material: 'Study material', bit_bank: 'Bit bank', previous_paper: 'Previous paper', other: 'Other',
+}
+
 const SECTIONS: { key: UserHistorySection; label: string }[] = [
   { key: 'activity', label: 'Activity' }, { key: 'practice', label: 'Practice sessions' },
   { key: 'questions', label: 'Question attempts' }, { key: 'mocks', label: 'Mock tests' },
+  { key: 'resources', label: 'Resources' },
   { key: 'payments', label: 'Payments' }, { key: 'devices', label: 'Devices' },
 ]
 
@@ -85,6 +90,14 @@ function HistoryRows({ data }: { data: AdminUserHistoryResponse }) {
         row.status === 'submitted' ? `${row.score} / ${row.total_marks} (${Number(row.percentage).toFixed(1)}%)` : '—',
         row.status === 'submitted' ? `${row.correct_count} / ${row.incorrect_count} / ${row.unanswered_count}` : '—',
         row.rank ?? '—', duration(row.time_spent_seconds), <div key="date" className="whitespace-nowrap">{userDate(row.started_at)}<p className="mt-1 text-muted-foreground">Submitted: {userDate(row.submitted_at)}</p></div>,
+      ] }))} />
+    case 'resources': return <UserDataTable headings={['Resource', 'Access', 'Opens', 'Platform', 'First / last opened (IST)']} empty="This user has not opened any resources yet."
+      rows={data.rows.map((row) => ({ id: row.id, cells: [
+        <div key="resource" className="max-w-80"><p className="font-semibold">{row.resources?.title ?? 'Deleted resource'}</p>{row.resources && <p className="mt-1 text-muted-foreground">{RESOURCE_CATEGORY[row.resources.category] ?? row.resources.category} · {row.resources.subject} · {row.resources.medium}</p>}</div>,
+        <StatusBadge key="access" value={row.resources?.access === 'pro' ? 'Pro' : 'Free'} />,
+        <div key="opens" className="whitespace-nowrap"><p className="font-semibold">{row.open_count} {row.open_count === 1 ? 'open' : 'opens'}</p>{row.blocked_count > 0 && <p className="mt-1 text-[11px] text-destructive">{row.blocked_count} blocked (Pro required)</p>}</div>,
+        row.last_platform ?? '—',
+        <div key="date" className="whitespace-nowrap">{userDate(row.first_opened_at)}<p className="mt-1 text-muted-foreground">Last: {userDate(row.last_opened_at)}</p></div>,
       ] }))} />
     case 'payments': return <UserDataTable headings={['Plan', 'Amount / discount', 'Status', 'Created / paid (IST)', 'Payment details']} empty="No payment orders for this user."
       rows={data.rows.map((row) => ({ id: row.id, cells: [isPlanId(row.plan_id) ? PLANS[row.plan_id].name : row.plan_id,

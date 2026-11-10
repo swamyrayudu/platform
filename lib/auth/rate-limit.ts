@@ -15,6 +15,7 @@ type Endpoint =
   | 'payment_verify'
   | 'payment_recover'
   | 'coupon'
+  | 'play_verify'
 
 // ---- Limits per endpoint --------------------------------------
 const LIMITS: Record<Endpoint, { max: number; windowMs: number }> = {
@@ -31,6 +32,9 @@ const LIMITS: Record<Endpoint, { max: number; windowMs: number }> = {
   // real money, so a generous budget costs nothing.
   payment_recover: { max: 60, windowMs: 15 * 60 * 1000 }, // 60 checks / 15 min per user
   coupon:         { max: 30, windowMs: 15 * 60 * 1000 }, // 30 coupon checks / 15 min per user
+  // Google Play verify runs after a purchase AND for each purchase on every
+  // app start / restore, so it needs more room than Razorpay's verify.
+  play_verify:    { max: 60, windowMs: 15 * 60 * 1000 }, // 60 verifies / 15 min per user
 }
 
 // ---- In-memory implementation ---------------------------------

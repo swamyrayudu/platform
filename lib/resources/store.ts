@@ -311,22 +311,42 @@ export async function createPreviewUrl(id: string): Promise<string | null> {
   return signed.signedUrl
 }
 
+/** Who is opening a resource, for the admin user page (resource_views). */
+export interface ResourceViewer { userId: string; platform: string }
+
+/**
+ * Per-user open log (migration 20261107130000). Best effort, like the
+ * download counter: a failed write must never block the reader.
+ */
+async function recordResourceView(viewer: ResourceViewer | undefined, id: string, blocked: boolean): Promise<void> {
+  if (!viewer) return
+  await supabaseAdmin.rpc('record_resource_view', {
+    p_user_id: viewer.userId, p_resource_id: id, p_platform: viewer.platform, p_blocked: blocked,
+  }).then(({ error }) => { if (error) console.error('[Resources] record_resource_view failed:', error.message) }, () => undefined)
+}
+
 /**
  * A one-minute link to a published resource for the in-app viewers, or why
  * there is none. The file is never offered as a browser download.
  */
-export async function createAccessUrl(id: string, isPremium: boolean):
+export async function createAccessUrl(id: string, isPremium: boolean, viewer?: ResourceViewer):
   Promise<{ url: string } | { error: 'NOT_FOUND' | 'PRO_REQUIRED' }> {
   const { data, error } = await supabaseAdmin.from('resources')
     .select('storage_path, access, is_published').eq('id', id).maybeSingle()
   if (error) throw error
   if (!data || !data.is_published) return { error: 'NOT_FOUND' }
-  if (data.access === 'pro' && !isPremium) return { error: 'PRO_REQUIRED' }
+  if (data.access === 'pro' && !isPremium) {
+    await recordResourceView(viewer, id, true)
+    return { error: 'PRO_REQUIRED' }
+  }
 
   const { data: signed, error: signError } = await supabaseAdmin.storage.from(RESOURCES_BUCKET)
     .createSignedUrl(data.storage_path as string, CANDIDATE_LINK_SECONDS)
   if (signError || !signed) throw signError ?? new Error('Could not sign the link')
   // Counting is best effort: a failed count must not block the reader.
-  await supabaseAdmin.rpc('increment_resource_downloads', { p_id: id }).then(() => undefined, () => undefined)
+  await Promise.all([
+    supabaseAdmin.rpc('increment_resource_downloads', { p_id: id }).then(() => undefined, () => undefined),
+    recordResourceView(viewer, id, false),
+  ])
   return { url: signed.signedUrl }
 }
