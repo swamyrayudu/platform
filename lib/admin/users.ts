@@ -49,6 +49,22 @@ function publicProfile(row: ProfileRow): AdminUser {
   }
 }
 
+/** Google Play order ids look like GPA.3312-5418-0912-34567 (top-ups / renewals add ..0, ..1, …). */
+export function isPlayOrderId(term: string): boolean {
+  return /^GPA\.[0-9A-Za-z-]+(\.\.\d+)?$/i.test(term)
+}
+
+async function usersByPlayOrderId(orderId: string): Promise<string[]> {
+  // Match the base order id so any top-up of the same purchase is found too.
+  const base = orderId.toUpperCase().split('..')[0]
+  const { data, error } = await supabaseAdmin.from('play_subscriptions').select('user_id').ilike('latest_order_id', `${base}%`).limit(50)
+  if (error) {
+    if (error.code === 'PGRST205' || error.code === '42P01') return []
+    throw error
+  }
+  return [...new Set((data ?? []).map((row) => row.user_id as string))]
+}
+
 export async function listAdminUsers(params: URLSearchParams): Promise<AdminUsersResponse> {
   const { page, pageSize, from, to } = parsePagination(params)
   const search = (params.get('q') ?? '').trim()
@@ -61,10 +77,17 @@ export async function listAdminUsers(params: URLSearchParams): Promise<AdminUser
     !['all', 'english', 'telugu'].includes(medium) || !['newest', 'oldest', 'name'].includes(sort)) {
     throw new AdminUsersInputError('Invalid user filter.')
   }
+  // A Google Play order id (from the user's receipt) finds the account that owns it.
+  let playUserIds: string[] | null = null
+  if (isPlayOrderId(search)) {
+    playUserIds = await usersByPlayOrderId(search)
+    if (playUserIds.length === 0) return { success: true, users: [], pagination: pagination(page, pageSize, 0) }
+  }
   const now = new Date().toISOString()
   const { data, count, error } = await withPlayColumns((withPlay) => {
     let query = supabaseAdmin.from('users').select(listColumns(withPlay), { count: 'exact' })
-    if (search) query = query.or(userSearchFilter(search))
+    if (playUserIds) query = query.in('id', playUserIds)
+    else if (search) query = query.or(userSearchFilter(search))
     if (role !== 'all') query = query.eq('role', role)
     if (medium !== 'all') query = query.eq('education_medium', medium)
     // Same rule as effectiveSubscription(): web access OR Google Play access.
@@ -137,10 +160,15 @@ async function resourceUsage(id: string): Promise<Pick<AdminUserSummary['usage']
   return { resourcesOpened: opened, resourceOpens: opens, resourcesBlocked: blocked, lastResourceOpenedAt: last }
 }
 
+async function playPurchaseCount(id: string): Promise<number | null> {
+  const { count, error } = await supabaseAdmin.from('play_subscriptions').select('purchase_token', { count: 'exact', head: true }).eq('user_id', id)
+  return error ? null : count ?? 0
+}
+
 export async function getAdminUserSummary(user: AdminUser): Promise<AdminUserSummary> {
   const id = user.id
   // Counts run in the database, independent of the current history page.
-  const [counts, totals, resources] = await Promise.all([
+  const [counts, totals, resources, playPurchases] = await Promise.all([
     Promise.all([
       countRows('practice_sessions', id), countRows('practice_sessions', id).eq('status', 'completed'),
       countRows('question_attempts', id).not('selected_answer', 'is', null),
@@ -149,7 +177,7 @@ export async function getAdminUserSummary(user: AdminUser): Promise<AdminUserSum
       countRows('devices', id), countRows('security_events', id),
       countRows('payment_orders', id), countRows('payment_orders', id).eq('status', 'PAID'),
       countRows('payment_orders', id).eq('status', 'FAILED'), countRows('payment_orders', id).eq('status', 'CREATED'),
-    ]), paidTotals(id), resourceUsage(id),
+    ]), paidTotals(id), resourceUsage(id), playPurchaseCount(id),
   ])
   for (const result of counts) if (result.error) throw result.error
   const [practiceSessions, practiceCompleted, questionsAnswered, correctAnswers, mockAttempts, mockSubmitted,
@@ -163,7 +191,7 @@ export async function getAdminUserSummary(user: AdminUser): Promise<AdminUserSum
   return { success: true, user, usage: { practiceSessions, practiceCompleted, questionsAnswered, correctAnswers,
     practiceAccuracy: questionsAnswered > 0 ? Math.round(correctAnswers / questionsAnswered * 1000) / 10 : null,
     mockAttempts, mockSubmitted, devices, activityEvents, activeSessions: active.count ?? 0, ...resources },
-    payments: { orders, paid, failed, pending, totals } }
+    payments: { orders, paid, failed, pending, totals, playPurchases } }
 }
 
 export const HISTORY_CONFIG = {
@@ -174,15 +202,18 @@ export const HISTORY_CONFIG = {
   mocks: { table: 'mock_test_attempts', order: 'started_at', columns: 'id, status, score, total_marks, percentage, correct_count, incorrect_count, unanswered_count, time_spent_seconds, rank, percentile, started_at, submitted_at, mock_tests(title, module_number)' },
   payments: { table: 'payment_orders', order: 'created_at', columns: 'id, plan_id, amount, currency, status, coupon_code, discount_percent, failure_reason, confirmed_via, razorpay_order_id, razorpay_payment_id, paid_at, created_at' },
   devices: { table: 'devices', order: 'last_login_at', columns: 'id, platform, user_agent, first_login_at, last_login_at, login_count' },
+  // play_subscriptions has no id column: its key is the purchase token.
+  play: { table: 'play_subscriptions', order: 'updated_at', tieBreak: 'purchase_token', columns: 'purchase_token, plan_key, base_plan_id, latest_order_id, state, entitled, expiry_time, started_at, revoked_at, revocation_reason, superseded_by, is_test, last_verified_via, acknowledgement_state, created_at, updated_at' },
 } as const
 
 export async function getAdminUserHistory(id: string, section: UserHistorySection, params: URLSearchParams) {
   const { page, pageSize, from, to } = parsePagination(params)
   const config = HISTORY_CONFIG[section]
+  const tieBreak = 'tieBreak' in config ? config.tieBreak : 'id'
   const { data, count, error } = await supabaseAdmin.from(config.table).select(config.columns, { count: 'exact' })
-    .eq('user_id', id).order(config.order, { ascending: false }).order('id', { ascending: true }).range(from, to)
-  // resource_views arrives with migration 20261107130000; before that the tab is simply empty.
-  if (error && section === 'resources' && (error.code === 'PGRST205' || error.code === '42P01')) {
+    .eq('user_id', id).order(config.order, { ascending: false }).order(tieBreak, { ascending: true }).range(from, to)
+  // resource_views / play_subscriptions arrive with later migrations; before that the tab is simply empty.
+  if (error && (section === 'resources' || section === 'play') && (error.code === 'PGRST205' || error.code === '42P01')) {
     return { success: true, section, rows: [], pagination: pagination(page, pageSize, 0) }
   }
   if (error) throw error

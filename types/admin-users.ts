@@ -47,10 +47,12 @@ export interface AdminUserSummary {
     failed: number
     pending: number
     totals: { currency: string; amount: number }[]
+    /** Google Play purchases (tokens) on this account; null before the Play migration. */
+    playPurchases: number | null
   }
 }
 
-export const USER_HISTORY_SECTIONS = ['activity', 'practice', 'questions', 'mocks', 'resources', 'payments', 'devices'] as const
+export const USER_HISTORY_SECTIONS = ['activity', 'practice', 'questions', 'mocks', 'resources', 'payments', 'play', 'devices'] as const
 export type UserHistorySection = typeof USER_HISTORY_SECTIONS[number]
 
 export interface UserActivity {
@@ -87,6 +89,12 @@ export interface UserResourceView {
   first_opened_at: string | null; last_opened_at: string | null; last_seen_at: string; last_platform: string | null
   resources: { title: string; category: string; subject: string; medium: string; access: string; file_name: string } | null
 }
+export interface UserPlayPurchase {
+  purchase_token: string; plan_key: string; base_plan_id: string | null; latest_order_id: string | null
+  state: string; entitled: boolean; expiry_time: string | null; started_at: string | null
+  revoked_at: string | null; revocation_reason: string | null; superseded_by: string | null
+  is_test: boolean; last_verified_via: string; acknowledgement_state: string | null; created_at: string; updated_at: string
+}
 export interface HistoryRows {
   activity: UserActivity
   practice: UserPractice
@@ -94,6 +102,7 @@ export interface HistoryRows {
   mocks: UserMockAttempt
   resources: UserResourceView
   payments: UserPayment
+  play: UserPlayPurchase
   devices: UserDevice
 }
 export type AdminUserHistoryResponse = {

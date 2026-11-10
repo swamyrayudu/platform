@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ArrowLeft, Loader2, RefreshCw } from 'lucide-react'
 import type { AdminUserSummary } from '@/types/admin-users'
 import UserHistory from '@/app/components/admin/UserHistory'
+import GrantProPanel from '@/app/components/admin/GrantProPanel'
 import { AccessBadge, money, userDate } from '@/app/components/admin/UserDataUI'
 
 export default function AdminUserPage() {
@@ -58,6 +59,7 @@ export default function AdminUserPage() {
             </dl>
             <p className="mt-4 break-all text-[11px] text-muted-foreground">User ID: {data.user.id}</p>
           </section>
+          <GrantProPanel user={data.user} onGranted={() => setRefresh((n) => n + 1)} />
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {[
               ['Practice sessions', `${data.usage.practiceSessions}`, `${data.usage.practiceCompleted} completed`],
@@ -66,7 +68,7 @@ export default function AdminUserPage() {
               ['Mock attempts', `${data.usage.mockAttempts}`, `${data.usage.mockSubmitted} submitted`],
               ['Resources opened', data.usage.resourcesOpened === null ? '—' : `${data.usage.resourcesOpened} ${data.usage.resourcesOpened === 1 ? 'file' : 'files'}`,
                 data.usage.resourcesOpened === null ? 'Resource tracking is not set up yet' : `${data.usage.resourceOpens} opens · last ${userDate(data.usage.lastResourceOpenedAt)}${data.usage.resourcesBlocked ? ` · ${data.usage.resourcesBlocked} Pro blocked` : ''}`],
-              ['Payments received', data.payments.totals.map((total) => money(total.amount, total.currency)).join(' + ') || '—', `${data.payments.orders} orders · ${data.payments.paid} paid · ${data.payments.failed} failed · ${data.payments.pending} pending`],
+              ['Payments received', data.payments.totals.map((total) => money(total.amount, total.currency)).join(' + ') || '—', `${data.payments.orders} website orders · ${data.payments.paid} paid · ${data.payments.failed} failed · ${data.payments.pending} pending${data.payments.playPurchases ? ` · ${data.payments.playPurchases} Google Play` : ''}`],
               ['Devices & activity', `${data.usage.devices} devices`, `${data.usage.activeSessions} active login sessions · ${data.usage.activityEvents} account events`],
             ].map(([label, value, detail]) => <div key={label} className="rounded-2xl border border-border bg-card p-4"><p className="text-xs font-medium text-muted-foreground">{label}</p><p className="mt-2 text-2xl font-bold">{value}</p><p className="mt-2 text-[11px] text-muted-foreground">{detail}</p></div>)}
           </div>

@@ -22,8 +22,8 @@ export function duration(seconds: number) {
 }
 
 export function StatusBadge({ value }: { value: string }) {
-  const positive = ['PAID', 'completed', 'submitted', 'Premium active', 'Correct'].includes(value)
-  const negative = ['FAILED', 'expired', 'Premium expired', 'Incorrect'].includes(value)
+  const positive = ['PAID', 'completed', 'submitted', 'Premium active', 'Correct', 'Active'].includes(value)
+  const negative = ['FAILED', 'expired', 'Premium expired', 'Incorrect', 'Refunded', 'Expired', 'Payment cancelled', 'On hold'].includes(value)
   return <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${positive
     ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
     : negative ? 'border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300'

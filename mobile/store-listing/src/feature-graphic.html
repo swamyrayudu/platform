@@ -1,0 +1,43 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face { font-family: Manrope; src: url("../../assets/fonts/Manrope-Bold.ttf"); font-weight: 700; }
+html,body { margin:0; padding:0; }
+body { width:1024px; height:500px; overflow:hidden; background:#2E2B55; font-family: Manrope, "Segoe UI", sans-serif; color:#FFFEFB; position:relative; }
+.glow { position:absolute; right:-120px; top:-160px; width:620px; height:620px; border-radius:50%;
+  background: radial-gradient(circle, rgba(201,161,94,.28) 0%, rgba(201,161,94,0) 65%); }
+.ring { position:absolute; right:40px; top:40px; width:420px; height:420px; border-radius:50%; border:2px solid rgba(255,254,251,.08); }
+.ring.r2 { right:100px; top:100px; width:300px; height:300px; }
+.wrap { position:absolute; left:72px; top:0; bottom:0; width:560px; display:flex; flex-direction:column; justify-content:center; }
+.brand { display:flex; align-items:center; gap:16px; margin-bottom:30px; }
+.brand svg { width:64px; height:64px; }
+.brand span { font-size:28px; font-weight:700; letter-spacing:.5px; }
+h1 { margin:0; font-size:54px; line-height:1.08; font-weight:700; letter-spacing:-1px; }
+h1 em { font-style:normal; color:#C9A15E; }
+p { margin:22px 0 0; font-size:22px; line-height:1.4; color:rgba(255,254,251,.78); font-weight:700; }
+.chips { display:flex; gap:10px; margin-top:28px; }
+.chip { padding:8px 16px; border-radius:999px; background:rgba(255,254,251,.1); border:1px solid rgba(255,254,251,.18); font-size:16px; font-weight:700; }
+.art { position:absolute; right:92px; top:50%; transform:translateY(-50%); width:300px; height:300px; }
+</style></head>
+<body>
+<div class="glow"></div><div class="ring"></div><div class="ring r2"></div>
+<div class="wrap">
+  <div class="brand">
+    <svg viewBox="0 0 64 64" fill="none"><rect width="64" height="64" rx="18" fill="#FFFEFB"/>
+      <path d="M13 29C20 26 26 27 32 31C38 27 44 26 51 29V48C44 45 38 46 32 50C26 46 20 45 13 48V29Z" stroke="#2E2B55" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M32 31V50" stroke="#C9A15E" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="32" cy="18" r="4" fill="#C9A15E"/></svg>
+    <span>RSD Education</span>
+  </div>
+  <h1>Crack AP DSC SGT with <em>exam‑real</em> practice</h1>
+  <p>Topic practice, timed mock tests and clear progress reports.</p>
+  <div class="chips"><div class="chip">తెలుగు</div><div class="chip">English</div><div class="chip">Mock tests</div></div>
+</div>
+<svg class="art" viewBox="0 0 64 64" fill="none">
+  <path d="M13 29C20 26 26 27 32 31C38 27 44 26 51 29V48C44 45 38 46 32 50C26 46 20 45 13 48V29Z" stroke="#FFFEFB" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M32 31V50" stroke="#C9A15E" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M20 35C23 35 25 36 27 37M37 37C39 36 41 35 44 35" stroke="#FFFEFB" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="32" cy="18" r="4" fill="#C9A15E"/>
+  <path d="M32 9V10M23 13L24 14M40 14L41 13" stroke="#C9A15E" stroke-width="2" stroke-linecap="round"/>
+</svg>
+</body></html>

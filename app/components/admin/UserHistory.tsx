@@ -10,11 +10,25 @@ const RESOURCE_CATEGORY: Record<string, string> = {
   book: 'Book', study_material: 'Study material', bit_bank: 'Bit bank', previous_paper: 'Previous paper', other: 'Other',
 }
 
+const PLAY_PLAN_LABEL: Record<string, string> = { play_monthly: 'Pro · 1 Month', play_quarterly: 'Pro · 3 Months', play_yearly: 'Pro · 1 Year' }
+
+function playStatus(row: { state: string; revoked_at: string | null; superseded_by: string | null; entitled: boolean }): string {
+  if (row.revoked_at) return 'Refunded'
+  if (row.superseded_by) return 'Replaced'
+  const labels: Record<string, string> = {
+    SUBSCRIPTION_STATE_ACTIVE: 'Active', SUBSCRIPTION_STATE_PENDING: 'Payment pending', SUBSCRIPTION_STATE_EXPIRED: 'Expired',
+    SUBSCRIPTION_STATE_CANCELED: 'Active', SUBSCRIPTION_STATE_IN_GRACE_PERIOD: 'Grace period', SUBSCRIPTION_STATE_ON_HOLD: 'On hold',
+    SUBSCRIPTION_STATE_PAUSED: 'Paused', SUBSCRIPTION_STATE_PENDING_PURCHASE_CANCELED: 'Payment cancelled',
+  }
+  const label = labels[row.state] ?? row.state
+  return label === 'Active' && !row.entitled ? 'Expired' : label
+}
+
 const SECTIONS: { key: UserHistorySection; label: string }[] = [
   { key: 'activity', label: 'Activity' }, { key: 'practice', label: 'Practice sessions' },
   { key: 'questions', label: 'Question attempts' }, { key: 'mocks', label: 'Mock tests' },
   { key: 'resources', label: 'Resources' },
-  { key: 'payments', label: 'Payments' }, { key: 'devices', label: 'Devices' },
+  { key: 'payments', label: 'Payments' }, { key: 'play', label: 'Google Play' }, { key: 'devices', label: 'Devices' },
 ]
 
 export default function UserHistory({ userId }: { userId: string }) {
@@ -104,6 +118,19 @@ function HistoryRows({ data }: { data: AdminUserHistoryResponse }) {
         <div key="amount" className="whitespace-nowrap font-semibold">{money(row.amount, row.currency)}{row.coupon_code && <p className="mt-1 text-[11px] font-normal text-muted-foreground">{row.coupon_code} · {row.discount_percent}% off</p>}</div>,
         <StatusBadge key="status" value={row.status} />, <div key="date" className="whitespace-nowrap">{userDate(row.created_at)}<p className="mt-1 text-muted-foreground">Paid: {userDate(row.paid_at)}</p></div>,
         <details key="details" className="max-w-72"><summary className="cursor-pointer font-semibold text-primary">View references</summary><div className="mt-2 space-y-1 break-all text-[11px] text-muted-foreground"><p>Order: {row.razorpay_order_id}</p><p>Payment: {row.razorpay_payment_id ?? '—'}</p><p>Confirmed via: {row.confirmed_via ?? '—'}</p>{row.failure_reason && <p className="text-destructive">{row.failure_reason}</p>}</div></details>,
+      ] }))} />
+    case 'play': return <UserDataTable headings={['Plan', 'Status', 'Pro until (IST)', 'Bought (IST)', 'Order / details']} empty="No Google Play purchases on this account."
+      rows={data.rows.map((row) => ({ id: row.purchase_token, cells: [
+        <div key="plan"><p className="font-semibold">{PLAY_PLAN_LABEL[row.plan_key] ?? row.plan_key}</p>{row.is_test && <p className="mt-1 text-[11px] text-muted-foreground">Test purchase (license tester)</p>}</div>,
+        <StatusBadge key="status" value={playStatus(row)} />,
+        <div key="expiry" className="whitespace-nowrap">{userDate(row.expiry_time)}{row.entitled && <p className="mt-1 text-[11px] text-emerald-600">Giving Pro now</p>}</div>,
+        userDate(row.started_at ?? row.created_at),
+        <details key="details" className="max-w-80"><summary className="cursor-pointer font-semibold text-primary">{row.latest_order_id ?? 'View details'}</summary><div className="mt-2 space-y-1 break-all text-[11px] text-muted-foreground">
+          <p>Order: {row.latest_order_id ?? '—'}</p><p>Base plan: {row.base_plan_id ?? '—'}</p><p>Google state: {row.state.replace('SUBSCRIPTION_STATE_', '')}</p>
+          <p>Acknowledged: {row.acknowledgement_state === 'ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED' ? 'Yes' : 'Not yet'}</p>
+          <p>Last checked: {userDate(row.updated_at)} via {row.last_verified_via}</p>
+          {row.revoked_at && <p className="text-destructive">Refunded / revoked {userDate(row.revoked_at)}{row.revocation_reason ? ` (${row.revocation_reason})` : ''}</p>}
+          <p>Purchase token: {row.purchase_token.slice(0, 16)}…</p></div></details>,
       ] }))} />
     case 'devices': return <UserDataTable headings={['Platform / browser', 'Logins', 'First login (IST)', 'Last login (IST)']} empty="No registered devices."
       rows={data.rows.map((row) => ({ id: row.id, cells: [<div key="device"><p className="font-semibold">{row.platform}</p>{row.user_agent && <details className="mt-1 max-w-80 text-muted-foreground"><summary className="cursor-pointer">Browser details</summary><p className="mt-2 break-all">{row.user_agent}</p></details>}</div>, row.login_count, userDate(row.first_login_at), userDate(row.last_login_at)] }))} />

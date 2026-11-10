@@ -61,7 +61,7 @@ export default function AdminUsersPage() {
         <label className="flex flex-1 items-center gap-2 rounded-xl border border-border bg-background px-3">
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
           <input aria-label="Search users by name, email or user ID" maxLength={120} value={draft} onChange={(e) => setDraft(e.target.value)}
-            placeholder="Search name, email or user ID…" className="w-full bg-transparent py-2.5 text-sm outline-none" />
+            placeholder="Search name, email, user ID or Google Play order ID (GPA.…)" className="w-full bg-transparent py-2.5 text-sm outline-none" />
         </label>
         <button className="rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground">Search</button>
       </form>

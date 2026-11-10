@@ -37,6 +37,7 @@ export type SecurityEventType =
   | 'PLAY_PURCHASE_REJECTED'
   | 'PLAY_SUBSCRIPTION_UPDATED'
   | 'PLAY_RTDN_INVALID'
+  | 'ADMIN_PRO_GRANTED'
 
 // ---- Database row shapes ----------------------------------------
 
