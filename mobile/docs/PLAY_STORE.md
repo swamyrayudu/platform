@@ -47,8 +47,14 @@ reviewers use an email + password account made by you. There is no public sign-u
    - Username / password: that email and password
    - Instructions: `On the sign-in screen tap "Continue with Email" and sign in with
      this email and password. The account has Pro access, so all practice, topic
-     selection and mock tests are available. Only one device stays signed in at a
-     time: signing in on another device signs out the previous one.`
+     selection and mock tests are available. The account can be signed in on
+     several devices at the same time.`
+
+Accounts made on this page (no Google sign-in) may stay signed in on several devices at
+once, one session per device, so parallel review devices do not sign each other out.
+Students who sign in with Google still keep one device. This needs migration
+`supabase/migrations/20261110120000_multi_device_review_sessions.sql`; until it is applied,
+the reviewer account falls back to one device.
 
 If the reviewer account stops working, open the same page and save the email again
 with a new password (this also resets its Pro days), then update App access.

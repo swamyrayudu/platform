@@ -85,6 +85,8 @@ export interface DbSession {
   previous_refresh_token_hash: string | null
   /** When the refresh token was last rotated. Drives the reuse leeway window. */
   rotated_at: string | null
+  /** Admin-made email accounts: one active session per device, not per user. Missing before migration 20261110120000. */
+  multi_device?: boolean
 }
 
 export interface DbDevice {

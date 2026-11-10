@@ -9,7 +9,8 @@
 // ============================================================
 
 import { NextResponse, after } from 'next/server'
-import { upsertDevice, revokeActiveSession, createSession, logSecurityEvent } from './db'
+import { upsertDevice, revokeActiveSession, revokeDeviceSession, createSession, logSecurityEvent } from './db'
+import { isAdminMadeAccount } from './password-accounts'
 import { signAccessToken, generateOpaqueToken, hashRefreshToken } from './crypto'
 import { setAuthCookies, setOnboardingCookie, clearAuthNonceCookie } from './cookies'
 import { toPublicUser } from './types'
@@ -24,10 +25,14 @@ export async function issueSession(
   const refreshToken = generateOpaqueToken()
   const refreshTokenHash = hashRefreshToken(refreshToken)
 
-  // The partial unique index (sessions_one_active_per_user) guarantees only
-  // one ACTIVE session exists even under concurrent logins.
-  await revokeActiveSession(user.id, 'NEW_DEVICE_LOGIN')
-  const session = await createSession(user.id, deviceInfo, ipHash, refreshTokenHash, user.session_version)
+  // Students get one ACTIVE session (index sessions_one_active_per_user), so a
+  // new device signs the old one out. Accounts an admin made for email sign-in
+  // (the store reviewer's) may stay signed in on several devices at once, one
+  // session per device: store review uses several devices in parallel.
+  const multiDevice = isAdminMadeAccount(user)
+  if (multiDevice) await revokeDeviceSession(user.id, deviceInfo.deviceId, 'SAME_DEVICE_LOGIN')
+  else await revokeActiveSession(user.id, 'NEW_DEVICE_LOGIN')
+  const session = await createSession(user.id, deviceInfo, ipHash, refreshTokenHash, user.session_version, { multiDevice })
 
   // Neither the device row nor the audit entry is read back before the user
   // is signed in, so they run after the response rather than delaying it.

@@ -355,17 +355,49 @@ export async function revokeActiveSession(
 }
 
 /**
+ * Revoke the active session of one device only (multi-device accounts).
+ */
+export async function revokeDeviceSession(
+  userId: string,
+  deviceId: string,
+  reason: string
+): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from('sessions')
+    .update({
+      status: 'REVOKED',
+      revoked_at: new Date().toISOString(),
+      revocation_reason: reason,
+    })
+    .eq('user_id', userId)
+    .eq('device_id', deviceId)
+    .eq('status', 'ACTIVE')
+
+  if (error) {
+    console.error('[DB] revokeDeviceSession error:', error)
+    throw new AuthError('INTERNAL_ERROR', 500)
+  }
+}
+
+/** sessions.multi_device is missing: migration 20261110120000 not applied yet. */
+function isMissingMultiDeviceColumn(error: { code?: string; message?: string } | null): boolean {
+  return !!error && (error.code === '42703' || error.code === 'PGRST204') && /multi_device/.test(error.message ?? '')
+}
+
+/**
  * Create a new ACTIVE session.
- * The partial unique index guarantees only one active session exists per user.
+ * Partial unique indexes allow one active session per user, or, for a
+ * multiDevice session, one per user and device.
  */
 export async function createSession(
   userId: string,
   deviceInfo: DeviceInfo,
   ipHash: string,
   refreshTokenHash: string,
-  sessionVersion: number
+  sessionVersion: number,
+  options: { multiDevice?: boolean } = {}
 ): Promise<DbSession> {
-  const { data, error } = await supabaseAdmin
+  const insert = (multiDevice: boolean) => supabaseAdmin
     .from('sessions')
     .insert({
       user_id: userId,
@@ -378,9 +410,19 @@ export async function createSession(
       status: 'ACTIVE',
       last_activity_at: new Date().toISOString(),
       expires_at: refreshTokenExpiresAt(),
+      ...(multiDevice ? { multi_device: true } : {}),
     })
     .select('*')
     .single()
+
+  let { data, error } = await insert(!!options.multiDevice)
+
+  if (options.multiDevice && isMissingMultiDeviceColumn(error)) {
+    // Code deployed before the migration: sign in single-device as before.
+    console.warn('[DB] sessions.multi_device is missing. Apply supabase/migrations/20261110120000_multi_device_review_sessions.sql')
+    await revokeActiveSession(userId, 'NEW_DEVICE_LOGIN')
+    ;({ data, error } = await insert(false))
+  }
 
   if (error) {
     console.error('[DB] createSession error:', error)

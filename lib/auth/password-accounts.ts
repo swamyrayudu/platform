@@ -19,6 +19,12 @@ import { effectiveSubscription, type DbUser, type SubscriptionColumns } from './
 export const normalizeEmail = (email: string) => email.trim().toLowerCase()
 export const isEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 254
 
+/**
+ * Made at /admin/login-accounts with no Google sign-in (google_id 'local:…').
+ * These may stay signed in on several devices (lib/auth/issue-session.ts).
+ */
+export const isAdminMadeAccount = (user: Pick<DbUser, 'google_id'>) => user.google_id.startsWith('local:')
+
 /** Plan id stored for Pro access granted by an admin (not bought). */
 const COMPLIMENTARY_PLAN = 'complimentary'
 
